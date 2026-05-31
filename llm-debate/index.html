@@ -177,6 +177,80 @@
       .reaction.right {
         right: 12px;
       }
+
+      /* chat header — fixed nav bar identifying the two participants, like a real
+         messaging app. Opaque so messages slide up and disappear beneath it. */
+      .chatheader {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 1080px;
+        height: 200px;
+        z-index: 5;
+        background: #1c1c1e;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+      }
+      .backchev {
+        position: absolute;
+        left: 30px;
+        bottom: 70px;
+        color: #2c7be5;
+        font-size: 56px;
+        font-weight: 300;
+        line-height: 1;
+      }
+      .hcenter {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 9px;
+      }
+      .avatars {
+        display: flex;
+        align-items: center;
+      }
+      .avatar {
+        width: 92px;
+        height: 92px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 40px;
+        font-weight: 600;
+        border: 3px solid #1c1c1e;
+        box-shadow:
+          inset 1px 1px 0 rgba(255, 255, 255, 0.25),
+          inset -1px -1px 0 rgba(0, 0, 0, 0.3),
+          0 2px 6px rgba(0, 0, 0, 0.5);
+      }
+      /* John = blue, Dan = white — matching their bubble colors. They overlap. */
+      .avatar.j {
+        background: #2c7be5;
+        color: #ffffff;
+        margin-right: -26px;
+      }
+      .avatar.d {
+        background: #f2f2f7;
+        color: #1c1c1e;
+      }
+      .chattitle {
+        color: #ffffff;
+        font-size: 30px;
+        font-weight: 600;
+        letter-spacing: 0.2px;
+      }
+      .chatsub {
+        color: #8e8e93;
+        font-size: 16px;
+        font-weight: 500;
+        letter-spacing: 0.3px;
+      }
     </style>
   </head>
   <body>
@@ -191,6 +265,19 @@
       <!-- the stage is an intentional scroll-clip viewport for the chat feed -->
       <div class="stage" data-layout-ignore>
         <div class="feed" id="feed"></div>
+      </div>
+
+      <!-- chat header: who is texting who (rendered above the feed) -->
+      <div class="chatheader" id="chatheader">
+        <div class="backchev">‹</div>
+        <div class="hcenter">
+          <div class="avatars">
+            <div class="avatar j">J</div>
+            <div class="avatar d">D</div>
+          </div>
+          <div class="chattitle">John &amp; Dan</div>
+          <div class="chatsub">iMessage</div>
+        </div>
       </div>
     </div>
 
@@ -304,13 +391,24 @@
         gsap.set(u.lo, { opacity: 0.32 });
       });
 
-      const TARGET = 1320; // keep the newest row's top in the lower third of the portrait frame
+      // The conversation opens at the top (just under the chat header) and fills
+      // downward; only once the newest message reaches the pin line does the feed
+      // start scrolling up — the way a real texting thread behaves when you open it.
+      const TOP_Y = 244; // feed rests here until the newest row reaches the pin line
+      const BOTTOM_PIN = 1340; // once scrolling, the newest row pins here (lower third)
       const tl = gsap.timeline({ paused: true });
-      gsap.set(feed, { y: TARGET - units[0].top });
+      gsap.set(feed, { y: TOP_Y });
 
-      // unhurried scroll — the conversation rises at reading pace, not pushed by the next message
+      // unhurried scroll — clamp keeps content pinned to the top until it overflows,
+      // then rises at reading pace, never pushed by the next incoming message
       const scrollTo = (u, at) =>
-        tl.to(feed, { y: TARGET - u.top, duration: 0.9, ease: "power2.out", overwrite: "auto" }, at);
+        tl.to(feed, { y: Math.min(TOP_Y, BOTTOM_PIN - u.top), duration: 0.9, ease: "power2.out", overwrite: "auto" }, at);
+
+      // chat header — fade in and pop the avatars before the first message arrives
+      gsap.set("#chatheader", { autoAlpha: 0 });
+      gsap.set(".avatar", { scale: 0.4 });
+      tl.to("#chatheader", { autoAlpha: 1, duration: 0.4, ease: "power2.out" }, 0.05);
+      tl.to(".avatar", { scale: 1, duration: 0.5, ease: "back.out(2)", stagger: 0.08 }, 0.12);
 
       // Spring drop with two full oscillations (~18 frames @30fps). Heavy (multi-line)
       // bubbles damp their second oscillation by 40%, as if mass is settling them.
