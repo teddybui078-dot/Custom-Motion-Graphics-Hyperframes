@@ -16,7 +16,75 @@
         width: 1920px;
         height: 1080px;
         overflow: hidden;
-        background: #000;
+        background: #ffffff;
+        font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+      }
+      .stage {
+        position: absolute;
+        inset: 0;
+      }
+      /* rings + spokes */
+      .vec {
+        position: absolute;
+        inset: 0;
+        width: 1920px;
+        height: 1080px;
+        z-index: 1;
+      }
+      .ring {
+        fill: none;
+        stroke: #e8e8e8;
+        stroke-width: 0.5;
+      }
+      .spoke {
+        stroke: #4285f4;
+        stroke-width: 0.5;
+        fill: none;
+      }
+      /* center Google G */
+      .gmark {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 96px;
+        height: 96px;
+        margin-left: -48px;
+        margin-top: -48px;
+        z-index: 3;
+        transform-origin: center center;
+      }
+      .gmark svg {
+        width: 96px;
+        height: 96px;
+        display: block;
+      }
+      /* orbiter holds position (translate); badge holds scale (spring/pulse) */
+      .orbiter {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 56px;
+        height: 56px;
+        margin-left: -28px;
+        margin-top: -28px;
+        z-index: 2;
+      }
+      .badge {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: #ffffff;
+        border: 0.5px solid #e0e0e0;
+        box-shadow: 0 1px 4px rgba(20, 20, 30, 0.07);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transform-origin: center center;
+      }
+      .badge svg {
+        width: 28px;
+        height: 28px;
+        display: block;
       }
     </style>
   </head>
@@ -25,26 +93,208 @@
       id="root"
       data-composition-id="main"
       data-start="0"
-      data-duration="10"
+      data-duration="14"
       data-width="1920"
       data-height="1080"
     >
-      
-      
+      <div class="stage" id="stage">
+        <svg class="vec" id="vec" viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg">
+          <g id="rings">
+            <circle class="ring" cx="960" cy="540" r="160" />
+            <circle class="ring" cx="960" cy="540" r="240" />
+            <circle class="ring" cx="960" cy="540" r="320" />
+          </g>
+          <!-- spokes added by the script (so they draw above the rings) -->
+        </svg>
 
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
-        </div>
-      -->
+        <div class="gmark" id="gmark"></div>
+        <!-- orbiters added by the script -->
+      </div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
+      const SVGNS = "http://www.w3.org/2000/svg";
+      const stage = document.getElementById("stage");
+      const vec = document.getElementById("vec");
+      const CX = 960,
+        CY = 540;
+
+      // ----- brand marks (inline SVG recreations) -----
+      const G_SVG =
+        '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">' +
+        '<path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>' +
+        '<path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>' +
+        '<path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>' +
+        '<path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>' +
+        "</svg>";
+
+      const ICON_SVG = {
+        drive:
+          '<svg viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">' +
+          '<path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>' +
+          '<path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0-1.2 4.5h27.5z" fill="#00ac47"/>' +
+          '<path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/>' +
+          '<path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>' +
+          '<path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>' +
+          '<path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>' +
+          "</svg>",
+        docs:
+          '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
+          '<path fill="#4285F4" d="M6 2h7l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"/>' +
+          '<path fill="#A8C7FA" d="M13 2l5 5h-5z"/>' +
+          '<g fill="#fff"><rect x="8" y="11" width="8" height="1.5" rx=".75"/><rect x="8" y="14" width="8" height="1.5" rx=".75"/><rect x="8" y="17" width="5" height="1.5" rx=".75"/></g>' +
+          "</svg>",
+        slides:
+          '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
+          '<path fill="#F4B400" d="M6 2h7l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"/>' +
+          '<path fill="#FAD980" d="M13 2l5 5h-5z"/>' +
+          '<rect x="8" y="11" width="8" height="6" rx="1" fill="#fff"/>' +
+          "</svg>",
+        chrome:
+          '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
+          '<path d="M12 12 L2.474 6.5 A11 11 0 0 1 21.526 6.5 Z" fill="#EA4335"/>' +
+          '<path d="M12 12 L21.526 6.5 A11 11 0 0 1 12 23 Z" fill="#FBBC04"/>' +
+          '<path d="M12 12 L12 23 A11 11 0 0 1 2.474 6.5 Z" fill="#34A853"/>' +
+          '<circle cx="12" cy="12" r="5" fill="#fff"/>' +
+          '<circle cx="12" cy="12" r="4" fill="#4285F4"/>' +
+          "</svg>",
+        gemini:
+          '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
+          '<defs><linearGradient id="gemGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4285F4"/><stop offset="1" stop-color="#9168E0"/></linearGradient></defs>' +
+          '<path fill="url(#gemGrad)" d="M12 2c.3 5.3 1.7 8.7 8 10-6.3 1.3-7.7 4.7-8 10-.3-5.3-1.7-8.7-8-10 6.3-1.3 7.7-4.7 8-10z"/>' +
+          "</svg>",
+        sites:
+          '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
+          '<rect x="4" y="3.5" width="16" height="17" rx="2.2" fill="#4285F4"/>' +
+          '<rect x="6.2" y="6" width="11.6" height="2.4" rx="1.2" fill="#fff"/>' +
+          '<rect x="6.2" y="10" width="6" height="6.5" rx="1" fill="#fff"/>' +
+          '<rect x="13.4" y="10" width="4.4" height="2.4" rx="1.2" fill="#fff"/>' +
+          '<rect x="13.4" y="13.9" width="4.4" height="2.6" rx="1.2" fill="#fff"/>' +
+          "</svg>",
+      };
+
+      // ----- layout: 3 rings, 2 products each, 180 deg apart -----
+      // entry order = clockwise from 12 o'clock; inner fastest -> outer slowest
+      const ITEMS = [
+        { key: "drive", R: 160, revs: 5, th: 0 },
+        { key: "docs", R: 320, revs: 3, th: 60 },
+        { key: "slides", R: 240, revs: 4, th: 120 },
+        { key: "chrome", R: 160, revs: 5, th: 180 },
+        { key: "gemini", R: 320, revs: 3, th: 240 },
+        { key: "sites", R: 240, revs: 4, th: 300 },
+      ];
+
+      // center G — left/top at center, CSS margins (-48) center it; transform = scale only
+      const gmark = document.getElementById("gmark");
+      gmark.innerHTML = G_SVG;
+      gmark.style.left = CX + "px";
+      gmark.style.top = CY + "px";
+
+      // build orbiters + spokes
+      const orbiters = [];
+      const badges = [];
+      const spokes = [];
+      ITEMS.forEach((it) => {
+        const orb = document.createElement("div");
+        orb.className = "orbiter";
+        const badge = document.createElement("div");
+        badge.className = "badge";
+        badge.innerHTML = ICON_SVG[it.key];
+        orb.appendChild(badge);
+        stage.appendChild(orb);
+        orbiters.push(orb);
+        badges.push(badge);
+
+        const sp = document.createElementNS(SVGNS, "line");
+        sp.setAttribute("class", "spoke");
+        vec.appendChild(sp);
+        spokes.push(sp);
+      });
+
+      // ----- geometry helpers (theta = clockwise degrees from 12 o'clock) -----
+      const posXY = (R, th) => {
+        const a = (th * Math.PI) / 180;
+        return { x: CX + R * Math.sin(a), y: CY - R * Math.cos(a) };
+      };
+      function setSpoke(i, th) {
+        const it = ITEMS[i];
+        const a = (th * Math.PI) / 180;
+        const s = Math.sin(a),
+          c = Math.cos(a);
+        const r1 = 52,
+          r2 = it.R - 30; // from just outside the G to just inside the badge
+        spokes[i].setAttribute("x1", CX + r1 * s);
+        spokes[i].setAttribute("y1", CY - r1 * c);
+        spokes[i].setAttribute("x2", CX + r2 * s);
+        spokes[i].setAttribute("y2", CY - r2 * c);
+      }
+      function placeOrbiter(i, th) {
+        const it = ITEMS[i];
+        const p = posXY(it.R, th);
+        orbiters[i].style.transform = `translate(${p.x}px, ${p.y}px)`;
+      }
+
+      // initial static placement (intro positions) + spoke dash setup
+      ITEMS.forEach((it, i) => {
+        placeOrbiter(i, it.th);
+        setSpoke(i, it.th);
+        const len = it.R - 30 - 52; // spoke length (constant per ring)
+        spokes[i].style.strokeDasharray = len;
+        spokes[i].style.strokeDashoffset = len; // hidden until drawn
+        gsap.set(badges[i], { scale: 0, autoAlpha: 0 });
+      });
+
+      // ----- orbit driver: positions, spoke rotation, 12 o'clock pulse -----
+      function updateOrbit(p) {
+        for (let i = 0; i < ITEMS.length; i++) {
+          const it = ITEMS[i];
+          // mod 360 first so p=1 lands EXACTLY on the start angle (seamless loop)
+          const th = (((it.th + it.revs * 360 * p) % 360) + 360) % 360;
+          placeOrbiter(i, th);
+          setSpoke(i, th);
+          // brighten/pulse as the badge passes 12 o'clock
+          const dist = Math.min(th, 360 - th); // angular distance to top
+          const bump = Math.exp(-((dist / 14) * (dist / 14)));
+          badges[i].style.transform = `scale(${1 + 0.06 * bump})`;
+        }
+      }
+
       const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
+
+      // 1) Google G fades in (12f) with a subtle scale-up (ease-out cubic).
+      tl.fromTo(
+        "#gmark",
+        { scale: 0.94, autoAlpha: 0 },
+        { scale: 1, autoAlpha: 1, duration: 12 / 30, ease: "power2.out" },
+        0
+      );
+      // rings appear at the same moment.
+      tl.from("#rings", { autoAlpha: 0, duration: 12 / 30, ease: "power2.out" }, 0);
+
+      // 2) Icons spring in one at a time (stagger 14f), spoke draws as each lands (8f).
+      const ENTRY0 = 0.5;
+      const STAG = 14 / 30;
+      const SPRING = 10 / 30;
+      const SPOKE = 8 / 30;
+      ITEMS.forEach((it, i) => {
+        const t = ENTRY0 + i * STAG;
+        tl.fromTo(
+          badges[i],
+          { scale: 0, autoAlpha: 0 },
+          { scale: 1, autoAlpha: 1, duration: SPRING, ease: "back.out(1.7)", transformOrigin: "center center" },
+          t
+        );
+        tl.to(spokes[i], { strokeDashoffset: 0, duration: SPOKE, ease: "power2.out" }, t + SPRING);
+      });
+
+      // 3) Orbit: all rings travel clockwise, integer revolutions over T so the
+      //    end state == the start state (seamless loop on the [orbit] segment).
+      const ORBIT_START = 4.0;
+      const T = 10.0; // inner 5, middle 4, outer 3 revolutions
+      const orbit = { p: 0 };
+      tl.to(orbit, { p: 1, duration: T, ease: "none", onUpdate: () => updateOrbit(orbit.p) }, ORBIT_START);
+
       window.__timelines["main"] = tl;
     </script>
   </body>
