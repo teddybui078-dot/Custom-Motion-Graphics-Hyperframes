@@ -5,18 +5,30 @@
     <meta name="viewport" content="width=1920, height=1080" />
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
     <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        margin: 0; width: 1920px; height: 1080px; overflow: hidden;
+        background: #ffffff;
+        font-family: "JetBrains Mono", monospace;
       }
-      html,
-      body {
-        margin: 0;
-        width: 1920px;
-        height: 1080px;
-        overflow: hidden;
-        background: #000;
+      .stage { position: absolute; inset: 0; overflow: hidden; }
+      #world { position: absolute; left: 0; top: 0; width: 1920px; }
+
+      .rail { stroke: #c7c7cf; stroke-width: 8; stroke-linecap: round; }
+      .rung { stroke: #c7c7cf; stroke-width: 7; stroke-linecap: round; }
+
+      .fig { position: absolute; width: 80px; height: 170px; }
+      .fig svg { width: 80px; height: 170px; overflow: visible; }
+      .ink {
+        fill: none; stroke: #adadb5; stroke-width: 5;
+        stroke-linecap: round; stroke-linejoin: round;
+      }
+      .fig.blue .ink { stroke: #2563eb; }
+      .fig.red .ink { stroke: #e23b3b; }
+
+      .plat {
+        position: absolute; height: 16px; border-radius: 8px;
+        background: #ef9a9a;
       }
     </style>
   </head>
@@ -25,26 +37,139 @@
       id="root"
       data-composition-id="main"
       data-start="0"
-      data-duration="10"
+      data-duration="18"
       data-width="1920"
       data-height="1080"
     >
-      
-      
-
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
-        </div>
-      -->
+      <div class="stage" id="stage">
+        <div id="world" data-layout-allow-overflow></div>
+      </div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
+      const SVGNS = "http://www.w3.org/2000/svg";
+      const world = document.getElementById("world");
+
+      const WORLD_H = 5200;
+      const RAIL_L = 360, RAIL_R = 540, LADDER_X = 450;
+      const RUNG = 130;
+      world.style.height = WORLD_H + "px";
+
+      // ---------- ladder rails + rungs ----------
+      const ladder = document.createElementNS(SVGNS, "svg");
+      ladder.setAttribute("width", "1920");
+      ladder.setAttribute("height", WORLD_H);
+      ladder.setAttribute("viewBox", "0 0 1920 " + WORLD_H);
+      ladder.style.position = "absolute";
+      let d = '<line class="rail" x1="' + RAIL_L + '" y1="0" x2="' + RAIL_L + '" y2="' + WORLD_H + '"/>' +
+              '<line class="rail" x1="' + RAIL_R + '" y1="0" x2="' + RAIL_R + '" y2="' + WORLD_H + '"/>';
+      for (let y = 80; y < WORLD_H; y += RUNG) {
+        d += '<line class="rung" x1="' + RAIL_L + '" y1="' + y + '" x2="' + RAIL_R + '" y2="' + y + '"/>';
+      }
+      ladder.innerHTML = d;
+      world.appendChild(ladder);
+
+      // ---------- a stickman ----------
+      function makeFig(color, parent) {
+        const div = document.createElement("div");
+        div.className = "fig" + (color ? " " + color : "");
+        div.innerHTML =
+          '<svg viewBox="0 0 80 170">' +
+          '<g class="head"><circle class="ink" cx="40" cy="22" r="15"/></g>' +
+          '<line class="ink" x1="40" y1="37" x2="40" y2="100"/>' +
+          '<g class="armL"><line class="ink" x1="40" y1="50" x2="26" y2="86"/></g>' +
+          '<g class="armR"><line class="ink" x1="40" y1="50" x2="54" y2="86"/></g>' +
+          '<g class="legL"><line class="ink" x1="40" y1="100" x2="30" y2="158"/></g>' +
+          '<g class="legR"><line class="ink" x1="40" y1="100" x2="50" y2="158"/></g>' +
+          "</svg>";
+        parent.appendChild(div);
+        return {
+          div,
+          head: div.querySelector(".head"),
+          armL: div.querySelector(".armL"), armR: div.querySelector(".armR"),
+          legL: div.querySelector(".legL"), legR: div.querySelector(".legR"),
+        };
+      }
+
+      // ---------- gray crowd: one on every rung, standing, waiting ----------
+      for (let y = 80; y < WORLD_H; y += RUNG) {
+        const g = makeFig("", world);
+        g.div.style.left = LADDER_X - 40 + "px";
+        g.div.style.top = y - 158 + "px"; // feet on the rung
+      }
+
+      // ---------- red builder on the right ----------
+      const RED_TOP = 2300;
+      const red = makeFig("red", world);
+      red.div.style.left = 1300 - 40 + "px";
+      red.div.style.top = RED_TOP + "px";
+      gsap.set(red.div, { autoAlpha: 0 });
+      // a base plank under red + planks he builds outward to the right
+      const planks = [];
+      const PLANK_Y = RED_TOP + 156;
+      [1300, 1470, 1640, 1810].forEach((x, i) => {
+        const p = document.createElement("div");
+        p.className = "plat";
+        p.style.width = "160px";
+        p.style.left = x - 80 + "px";
+        p.style.top = PLANK_Y + "px";
+        world.appendChild(p);
+        gsap.set(p, { autoAlpha: i === 0 ? 0 : 0, scaleX: 0.2, transformOrigin: "left center" });
+        planks.push(p);
+      });
+
+      // ---------- blue climber ----------
+      const blue = makeFig("blue", world);
+      blue.div.style.left = LADDER_X - 40 + "px";
+
+      const BLUE_START = 3600; // low in the world
+      const CENTER_TOP = 440;  // his screen position (camera tracks him)
+      const P = { h: 0 };
+      function applyClimb() {
+        const h = P.h;
+        const cp = h * 0.045;
+        const s = Math.sin(cp), c = Math.cos(cp);
+        const bt = BLUE_START - h;
+        const bob = -7 * Math.abs(s);
+        blue.div.style.top = bt + bob + "px";
+        gsap.set(world, { y: CENTER_TOP - bt });
+        // effortful: arms reach overhead and pull, legs step, alternating
+        blue.armL.setAttribute("transform", "rotate(" + (-138 + 22 * s) + " 40 50)");
+        blue.armR.setAttribute("transform", "rotate(" + (138 - 22 * s) + " 40 50)");
+        blue.legL.setAttribute("transform", "rotate(" + 16 * c + " 40 100)");
+        blue.legR.setAttribute("transform", "rotate(" + -16 * c + " 40 100)");
+      }
+      applyClimb();
+
+      // ---------- timeline ----------
       const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
+
+      // 1) slow, effortful climb to the halfway point, passing gray after gray
+      tl.to(P, { h: 1300, duration: 7.3, ease: "power1.inOut", onUpdate: applyClimb }, 0.3);
+
+      // 2) halfway up, he looks to the right — open white space
+      tl.to(blue.head, { rotation: 34, transformOrigin: "40px 37px", duration: 0.5, ease: "power1.inOut" }, 7.7);
+
+      // 3) the red stickman, building horizontally outward instead of climbing
+      tl.to(red.div, { autoAlpha: 1, duration: 0.5 }, 7.7);
+      tl.to(planks[0], { autoAlpha: 1, scaleX: 1, duration: 0.4, ease: "power2.out" }, 7.8);
+      [1, 2, 3].forEach((i) => {
+        const t = 8.4 + (i - 1) * 1.3;
+        // red gestures, then a plank extends outward
+        tl.to(red.armR, { rotation: -40, transformOrigin: "40px 50px", duration: 0.3, ease: "power1.out" }, t);
+        tl.to(planks[i], { autoAlpha: 1, scaleX: 1, duration: 0.45, ease: "power2.out" }, t + 0.25);
+        tl.to(red.armR, { rotation: 0, transformOrigin: "40px 50px", duration: 0.3, ease: "power1.in" }, t + 0.55);
+      });
+
+      // 4) he watches a long moment, then looks back up the ladder
+      tl.to(blue.head, { rotation: 0, duration: 0.45, ease: "power1.inOut" }, 12.9);
+      tl.to(blue.head, { rotation: -14, transformOrigin: "40px 37px", duration: 0.45, ease: "power1.inOut" }, 13.4);
+      tl.to(blue.head, { rotation: 0, duration: 0.45, ease: "power1.inOut" }, 14.1);
+
+      // 5) he resumes the climb — the gray figures above him haven't moved
+      tl.to(P, { h: 1680, duration: 3.0, ease: "power1.inOut", onUpdate: applyClimb }, 14.4);
+
       window.__timelines["main"] = tl;
     </script>
   </body>
