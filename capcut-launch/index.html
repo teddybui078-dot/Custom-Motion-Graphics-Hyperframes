@@ -184,6 +184,31 @@
         width: 64%;
         height: 64%;
       }
+
+      /* ===== Mouse cursor + click ring ===== */
+      .cursor {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 86px;
+        height: 86px;
+        z-index: 50;
+        transform-origin: 12% 8%; /* near the arrow tip */
+        pointer-events: none;
+        filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.55));
+      }
+      .click-ring {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 200px;
+        height: 200px;
+        border-radius: 50%;
+        border: 7px solid rgba(255, 255, 255, 0.9);
+        box-shadow: 0 0 26px rgba(255, 255, 255, 0.5);
+        z-index: 40;
+        pointer-events: none;
+      }
     </style>
   </head>
   <body>
@@ -248,14 +273,134 @@
               <div class="dot"></div>
             </div>
           </div>
+
+          <!-- mouse cursor + click ring (added by the timeline step) -->
+          <svg class="cursor" id="cursor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M3 2 L3 20.5 L8 16 L11.2 23 L14.2 21.6 L11 14.9 L18 14.9 Z"
+              fill="#ffffff"
+              stroke="#0c0c0c"
+              stroke-width="1.4"
+              stroke-linejoin="round"
+            />
+          </svg>
+          <div class="click-ring" id="clickRing"></div>
         </div>
       </div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
+
+      const bar = document.getElementById("bar");
+      const logos = Array.from(document.querySelectorAll(".logo"));
+      const icons = logos.map((l) => l.querySelector(".icon"));
+      const dots = logos.map((l) => l.querySelector(".dot"));
+      const cursor = document.getElementById("cursor");
+      const ring = document.getElementById("clickRing");
+
+      // Compute each logo's center in bar-local pixels directly from the layout
+      // constants (these MUST mirror the CSS above). Measuring the DOM at script
+      // load is unreliable — layout isn't final yet, so horizontal flex centering
+      // can be off — and HyperFrames forbids deferring timeline construction to
+      // async. Deriving from constants is deterministic and correct in preview
+      // AND render, and stays stable when an icon scales on hover.
+      const BAR_W = 2180; // .bar width
+      const BAR_H = 610; //  .bar height
+      const ICON = 300; //   .icon width/height
+      const GAP = 110; //    .logos gap
+      const ICON_DOT_GAP = 44; // .logo gap (icon -> dot)
+      const DOT = 30; //     .dot size
+      const N = icons.length;
+      const rowW = N * ICON + (N - 1) * GAP;
+      const startX = (BAR_W - rowW) / 2;
+      const colH = ICON + ICON_DOT_GAP + DOT;
+      const iconCenterY = (BAR_H - colH) / 2 + ICON / 2;
+      const centers = icons.map((_, i) => ({
+        x: startX + i * (ICON + GAP) + ICON / 2,
+        y: iconCenterY,
+      }));
+      // Cursor tip lands slightly left-of and below each icon's center.
+      const target = centers.map((c) => ({ x: c.x - 35, y: c.y + 8 }));
+
+      // Initial states
+      gsap.set(cursor, { x: target[0].x, y: target[0].y, autoAlpha: 0, scale: 1 });
+      gsap.set(ring, {
+        left: centers[2].x,
+        top: centers[2].y,
+        xPercent: -50,
+        yPercent: -50,
+        scale: 0,
+        autoAlpha: 0,
+      });
+
       const tl = gsap.timeline({ paused: true });
-      // Animation added in a later step.
+
+      // 1) Bar pops up
+      tl.from(
+        bar,
+        { scale: 0.82, y: 60, autoAlpha: 0, duration: 0.7, ease: "back.out(1.5)", transformOrigin: "center 60%" },
+        0
+      );
+
+      // 2) Five logos pop in (staggered), then the white dots
+      tl.from(
+        icons,
+        { scale: 0, autoAlpha: 0, y: 24, duration: 0.55, ease: "back.out(2)", stagger: 0.16, transformOrigin: "center center" },
+        0.75
+      );
+      tl.from(
+        dots,
+        { scale: 0, autoAlpha: 0, duration: 0.4, ease: "back.out(2.4)", stagger: 0.16, transformOrigin: "center center" },
+        1.05
+      );
+
+      // 3) Cursor fades in resting near After Effects
+      tl.to(cursor, { autoAlpha: 1, duration: 0.4, ease: "power2.out" }, 2.5);
+
+      // Helpers
+      const MD = 0.72; // move duration between logos
+      const moveTo = (i, at) =>
+        tl.to(cursor, { x: target[i].x, y: target[i].y, duration: MD, ease: "power2.inOut" }, at);
+      const hoverUp = (i, at, s) =>
+        tl.to(icons[i], { scale: s || 1.15, duration: 0.3, ease: "power2.out", transformOrigin: "center center" }, at);
+      const hoverDown = (i, at) =>
+        tl.to(icons[i], { scale: 1, duration: 0.3, ease: "power2.inOut", transformOrigin: "center center" }, at);
+
+      // 4) Sweep left -> right, each logo enlarges as the cursor passes over it
+      hoverUp(0, 2.9); //                         AE
+      hoverDown(0, 3.25); moveTo(1, 3.25); //     -> FCP
+      hoverUp(1, 3.97);
+      hoverDown(1, 4.32); moveTo(2, 4.32); //     -> CapCut
+      hoverUp(2, 5.04);
+      hoverDown(2, 5.39); moveTo(3, 5.39); //     -> DaVinci
+      hoverUp(3, 6.11);
+      hoverDown(3, 6.46); moveTo(4, 6.46); //     -> Pr (right end)
+      hoverUp(4, 7.18);
+
+      // 5) Make its way back to the middle (CapCut), brushing DaVinci en route
+      hoverDown(4, 7.6); moveTo(3, 7.6); //       -> DaVinci
+      hoverUp(3, 8.28, 1.1);
+      hoverDown(3, 8.55); moveTo(2, 8.55); //     -> CapCut (center)
+
+      // 6) Settle on CapCut (preview pop) + click
+      hoverUp(2, 9.27, 1.16);
+      tl.to(cursor, { scale: 0.82, duration: 0.1, ease: "power2.in" }, 9.62);
+      tl.to(cursor, { scale: 1, duration: 0.14, ease: "power2.out" }, 9.72);
+      tl.fromTo(
+        ring,
+        { scale: 0.2, autoAlpha: 0.7 },
+        { scale: 1.7, autoAlpha: 0, duration: 0.55, ease: "power2.out" },
+        9.62
+      );
+
+      // 7) CapCut bounces open, Apple-boot style: squash -> pop -> springy settle -> breathe
+      tl.to(icons[2], { scale: 0.9, duration: 0.12, ease: "power2.in", transformOrigin: "center center" }, 9.7);
+      tl.to(icons[2], { scale: 1.3, duration: 0.42, ease: "back.out(2.2)" }, 9.82);
+      tl.to(icons[2], { scale: 1.0, duration: 1.0, ease: "elastic.out(1, 0.45)" }, 10.24);
+      tl.to(icons[2], { scale: 1.06, duration: 0.4, ease: "sine.inOut" }, 11.3);
+      tl.to(icons[2], { scale: 1.0, duration: 0.4, ease: "sine.inOut" }, 11.7);
+
       window.__timelines["main"] = tl;
     </script>
   </body>
