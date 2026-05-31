@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        /* deep dark navy canvas with a soft top-center bloom */
+        background:
+          radial-gradient(ellipse 1100px 760px at 50% 36%, #16203c 0%, #0c1226 52%, #070b18 100%);
+        font-family: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+        color: #e8edf8;
+      }
+      .stage {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+      }
+      /* faint architectural grid, barely there */
+      .grid {
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(120, 150, 220, 0.035) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(120, 150, 220, 0.035) 1px, transparent 1px);
+        background-size: 60px 60px;
+        mask-image: radial-gradient(ellipse 1000px 700px at 50% 45%, #000 30%, transparent 80%);
+        -webkit-mask-image: radial-gradient(ellipse 1000px 700px at 50% 45%, #000 30%, transparent 80%);
+      }
+
+      /* ---- the stack ---- */
+      .stack {
+        position: absolute;
+        left: 370px;
+        top: 160px;
+        width: 1180px;
+      }
+      .bar {
+        position: relative;
+        width: 1180px;
+        height: 128px;
+        margin-bottom: 30px;
+        display: flex;
+        align-items: center;
+        padding: 0 36px 0 30px;
+        border-radius: 18px;
+        background: linear-gradient(180deg, rgba(33, 44, 76, 0.92), rgba(21, 29, 53, 0.94));
+        border: 1px solid rgba(120, 150, 220, 0.14);
+        box-shadow:
+          0 12px 34px rgba(0, 0, 0, 0.45),
+          inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      }
+      .bar:last-child {
+        margin-bottom: 0;
+      }
+
+      /* left accent rail — neutral, hard-cuts to green on activation */
+      .rail {
+        width: 4px;
+        height: 78px;
+        border-radius: 4px;
+        margin-right: 28px;
+        background: rgba(132, 148, 184, 0.45);
+      }
+      .bar.live .rail {
+        background: #34d399;
+        box-shadow: 0 0 14px rgba(52, 211, 153, 0.85);
+      }
+
+      /* node chip */
+      .chip {
+        width: 66px;
+        height: 66px;
+        flex: 0 0 auto;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.035);
+        border: 1px solid rgba(140, 160, 220, 0.16);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 22px;
+        font-weight: 600;
+        color: #aab4d4;
+        letter-spacing: 1px;
+      }
+
+      .labels {
+        margin-left: 26px;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+      }
+      .name {
+        font-size: 31px;
+        font-weight: 700;
+        letter-spacing: 3px;
+        color: #eef2fb;
+        text-transform: uppercase;
+      }
+      .sub {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 16px;
+        letter-spacing: 1.5px;
+        color: #69748f;
+      }
+
+      .spacer {
+        flex: 1 1 auto;
+      }
+
+      .metric {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 17px;
+        letter-spacing: 1px;
+        color: #5f6a85;
+        margin-right: 34px;
+        text-align: right;
+        line-height: 1.5;
+      }
+      .metric b {
+        color: #8b97b6;
+        font-weight: 600;
+      }
+
+      /* ---- status badge: two stacked variants, hard-cut between them ---- */
+      .badge-slot {
+        position: relative;
+        width: 178px;
+        height: 50px;
+        flex: 0 0 auto;
+      }
+      .badge {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 11px;
+        border-radius: 999px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 16px;
+        font-weight: 600;
+        letter-spacing: 2.5px;
+      }
+      .badge .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+      }
+      .badge.neutral {
+        background: rgba(125, 140, 175, 0.1);
+        border: 1px solid rgba(125, 140, 175, 0.22);
+        color: #818ca8;
+      }
+      .badge.neutral .dot {
+        background: rgba(150, 160, 190, 0.5);
+      }
+      .badge.active {
+        background: rgba(34, 211, 128, 0.14);
+        border: 1px solid rgba(52, 211, 153, 0.55);
+        color: #4ade80;
+      }
+      .badge.active .dot {
+        background: #34d399;
+        box-shadow: 0 0 12px rgba(52, 211, 153, 0.9);
+      }
+
+      /* ---- scanner sweep line ---- */
+      .scan {
+        position: absolute;
+        left: 370px;
+        top: 0;
+        width: 1180px;
+        height: 90px;
+        pointer-events: none;
+        background: linear-gradient(
+          180deg,
+          transparent 0%,
+          rgba(150, 190, 255, 0.04) 38%,
+          rgba(196, 218, 255, 0.1) 50%,
+          rgba(150, 190, 255, 0.04) 62%,
+          transparent 100%
+        );
+      }
+      .scan::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 50%;
+        height: 2px;
+        transform: translateY(-1px);
+        background: rgba(198, 220, 255, 0.55);
+        box-shadow: 0 0 10px rgba(198, 220, 255, 0.45);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="13"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div class="stage" id="stage">
+        <div class="grid"></div>
+        <div class="stack" id="stack"></div>
+        <div class="scan" id="scan" data-layout-ignore></div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const stack = document.getElementById("stack");
+      const scan = document.getElementById("scan");
+
+      // five systems, top -> bottom
+      const SYS = [
+        { id: "01", name: "Auth Gateway", sub: "edge · us-west-2", metric: ["routes", "128"] },
+        { id: "02", name: "Data Pipeline", sub: "stream · kafka-0", metric: ["lag", "0 ms"] },
+        { id: "03", name: "Compute Cluster", sub: "nodes · 24/24", metric: ["load", "37%"] },
+        { id: "04", name: "Event Stream", sub: "topic · ingest", metric: ["rate", "9.2k/s"] },
+        { id: "05", name: "Edge Cache", sub: "region · global", metric: ["hit", "99.4%"] },
+      ];
+
+      // ---- build the bars (static layout; the timeline hides them to start) ----
+      const bars = []; // { el, neutral, active }
+      SYS.forEach((s) => {
+        const bar = document.createElement("div");
+        bar.className = "bar";
+        bar.innerHTML =
+          '<div class="rail"></div>' +
+          '<div class="chip">' + s.id + "</div>" +
+          '<div class="labels">' +
+          '<div class="name">' + s.name + "</div>" +
+          '<div class="sub">' + s.sub + "</div>" +
+          "</div>" +
+          '<div class="spacer"></div>' +
+          '<div class="metric"><b>' + s.metric[1] + "</b><br>" + s.metric[0] + "</div>" +
+          '<div class="badge-slot">' +
+          '<div class="badge neutral"><span class="dot"></span>STANDBY</div>' +
+          '<div class="badge active"><span class="dot"></span>ACTIVE</div>' +
+          "</div>";
+        stack.appendChild(bar);
+        bars.push({
+          el: bar,
+          rail: bar.querySelector(".rail"),
+          neutral: bar.querySelector(".badge.neutral"),
+          active: bar.querySelector(".badge.active"),
+        });
+      });
+
+      // measure each bar's vertical centre for scan-sync (relative to canvas)
+      const STACK_TOP = 160;
+      bars.forEach((b) => (b.cy = STACK_TOP + b.el.offsetTop + b.el.offsetHeight / 2));
+
+      // ---- initial states ----
+      const tl = gsap.timeline({ paused: true });
+      bars.forEach((b) => {
+        gsap.set(b.el, { autoAlpha: 0, x: -44 }); // wait off to the left, invisible
+        gsap.set(b.active, { autoAlpha: 0 }); // active badge hidden until activation
+        gsap.set(b.neutral, { autoAlpha: 1 });
+      });
+      gsap.set(scan, { autoAlpha: 0, y: 0 });
+
+      // ============================================================
+      // 1) DEAL THE STACK — bars slide in from the left + fade,
+      //    bottom -> top, tight stagger like cards onto a table.
+      // ============================================================
+      const INTRO_AT = 0.4;
+      const INTRO_STAGGER = 0.13;
+      // bottom bar (index 4) first, up to the top bar (index 0)
+      for (let i = bars.length - 1; i >= 0; i--) {
+        const order = bars.length - 1 - i; // 0 for bottom, 4 for top
+        tl.to(
+          bars[i].el,
+          { autoAlpha: 1, x: 0, duration: 0.55, ease: "power3.out" },
+          INTRO_AT + order * INTRO_STAGGER
+        );
+      }
+      const STACK_SOLID = INTRO_AT + (bars.length - 1) * INTRO_STAGGER + 0.55; // ~1.47
+
+      // ============================================================
+      // 2) SCANNER SWEEP — a faint light passes top -> bottom at a
+      //    steady linear pace across the full stack, then vanishes.
+      // ============================================================
+      const SCAN_AT = STACK_SOLID + 0.45; // settle, then sweep (~1.92)
+      const SCAN_DUR = 1.5;
+      const SCAN_FROM = STACK_TOP - 60; // start just above the stack
+      const SCAN_TO = bars[bars.length - 1].cy + 84; // end just below the stack
+      const scanY = (px) => px - 45; // centre the 90px-tall band on the light line
+
+      gsap.set(scan, { y: scanY(SCAN_FROM) });
+      tl.to(scan, { autoAlpha: 1, duration: 0.25, ease: "none", overwrite: "auto" }, SCAN_AT);
+      tl.to(scan, { y: scanY(SCAN_TO), duration: SCAN_DUR, ease: "none" }, SCAN_AT);
+      tl.to(scan, { autoAlpha: 0, duration: 0.3, ease: "none", overwrite: "auto" }, SCAN_AT + SCAN_DUR - 0.05);
+
+      // ============================================================
+      // 3) ACTIVATION — as the light reaches each bar, its badge
+      //    hard-cuts from STANDBY to vivid green ACTIVE. No fade.
+      // ============================================================
+      const span = SCAN_TO - SCAN_FROM;
+      let lastBadge = SCAN_AT;
+      bars.forEach((b) => {
+        const at = SCAN_AT + ((b.cy - SCAN_FROM) / span) * SCAN_DUR;
+        tl.set(b.neutral, { autoAlpha: 0 }, at);
+        tl.set(b.active, { autoAlpha: 1 }, at);
+        // rail snaps to green too — instantaneous, like the badge
+        tl.set(b.rail, { background: "#34d399", boxShadow: "0 0 14px rgba(52,211,153,0.85)" }, at);
+        if (at > lastBadge) lastBadge = at;
+      });
+
+      // ============================================================
+      // 4) BREATHING LOOP — once every system is online the bars
+      //    pulse in opacity, each slightly out of phase with the one
+      //    above, so a slow wave ripples top -> bottom forever.
+      // ============================================================
+      const BREATHE_AT = lastBadge + 0.3;
+      const BREATHE_DUR = 1.7;
+      const BREATHE_PHASE = 0.18; // top-to-bottom offset per bar
+      const TOTAL = 13; // matches data-duration
+      // finite repeat count — the capture engine seeks to exact frame times and
+      // cannot resolve `repeat: -1`. Enough cycles to fill the tail of the clip.
+      const BREATHE_CYCLES = Math.ceil((TOTAL - BREATHE_AT) / (BREATHE_DUR * 2)) + 1;
+      bars.forEach((b, i) => {
+        tl.to(
+          b.el,
+          {
+            opacity: 0.52,
+            duration: BREATHE_DUR,
+            ease: "sine.inOut",
+            repeat: BREATHE_CYCLES * 2, // *2 because yoyo counts each direction
+            yoyo: true,
+          },
+          BREATHE_AT + i * BREATHE_PHASE
+        );
+      });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
