@@ -16,7 +16,74 @@
         width: 1920px;
         height: 1080px;
         overflow: hidden;
-        background: #000;
+        background: #ffffff;
+        font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+      }
+      .stage {
+        position: absolute;
+        inset: 0;
+      }
+
+      /* bezier connector layer behind the nodes */
+      .net {
+        position: absolute;
+        inset: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: visible;
+        z-index: 1;
+      }
+      .edge {
+        fill: none;
+        stroke: #cdcdd4;
+        stroke-width: 2.5;
+        stroke-linecap: round;
+      }
+
+      .pill {
+        position: absolute;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 80px;
+        border-radius: 44px;
+        color: #ffffff;
+        font-weight: 600;
+        font-size: 30px;
+        letter-spacing: 0.3px;
+        transform-origin: center center;
+        z-index: 2;
+        box-shadow:
+          0 14px 30px rgba(17, 17, 26, 0.16),
+          0 4px 10px rgba(17, 17, 26, 0.08);
+      }
+      .root {
+        width: 240px;
+        background: #1d1d1f;
+      }
+      .mid {
+        width: 250px;
+        background: #45454b;
+      }
+      .leaf {
+        width: 240px;
+        background: #5f5f66;
+        font-size: 28px;
+      }
+      .leaf-content {
+        display: inline-flex;
+        align-items: center;
+      }
+      .txt {
+        white-space: pre;
+      }
+      .cursor {
+        display: inline-block;
+        width: 3px;
+        height: 32px;
+        background: #ffffff;
+        margin-left: 5px;
+        border-radius: 1px;
       }
     </style>
   </head>
@@ -25,26 +92,171 @@
       id="root"
       data-composition-id="main"
       data-start="0"
-      data-duration="10"
+      data-duration="12"
       data-width="1920"
       data-height="1080"
     >
-      
-      
-
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
-        </div>
-      -->
+      <div class="stage" id="stage">
+        <!-- nodes + bezier edges built by the script -->
+      </div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
+      const SVGNS = "http://www.w3.org/2000/svg";
+      const stage = document.getElementById("stage");
+      const HALF_H = 40;
+
+      // ----- Tree definition -----
+      const ROOT = { x: 960, y: 170, label: "Project" };
+      const MIDS = [
+        { x: 620, y: 490, label: "Design" },
+        { x: 1300, y: 490, label: "Engineering" },
+      ];
+      const LEAVES = [
+        { x: 480, y: 800, label: "Research" },
+        { x: 760, y: 800, label: "Prototype" },
+        { x: 1160, y: 800, label: "Frontend" },
+        { x: 1440, y: 800, label: "Backend" },
+      ];
+      // which mid feeds which leaves
+      const TIER2 = [
+        { from: MIDS[0], to: LEAVES[0] },
+        { from: MIDS[0], to: LEAVES[1] },
+        { from: MIDS[1], to: LEAVES[2] },
+        { from: MIDS[1], to: LEAVES[3] },
+      ];
+
+      // ----- bezier connector layer -----
+      const net = document.createElementNS(SVGNS, "svg");
+      net.setAttribute("class", "net");
+      net.setAttribute("viewBox", "0 0 1920 1080");
+      stage.appendChild(net);
+
+      function makeEdge(a, b) {
+        // from parent bottom edge to child top edge, smooth vertical bezier
+        const x1 = a.x;
+        const y1 = a.y + HALF_H;
+        const x2 = b.x;
+        const y2 = b.y - HALF_H;
+        const my = (y1 + y2) / 2;
+        const p = document.createElementNS(SVGNS, "path");
+        p.setAttribute("class", "edge");
+        p.setAttribute("d", `M ${x1} ${y1} C ${x1} ${my} ${x2} ${my} ${x2} ${y2}`);
+        net.appendChild(p);
+        const len = p.getTotalLength();
+        p.style.strokeDasharray = len;
+        p.style.strokeDashoffset = len; // hidden until drawn
+        return p;
+      }
+
+      const tier1Edges = MIDS.map((m) => makeEdge(ROOT, m));
+      const tier2Edges = TIER2.map((e) => makeEdge(e.from, e.to));
+
+      // ----- node pills -----
+      function makePill(cfg, cls, typed) {
+        const el = document.createElement("div");
+        el.className = "pill " + cls;
+        el.style.left = cfg.x - el.offsetWidth + "px"; // placeholder; set after width known
+        // width is fixed via class; position using the class widths
+        const w = cls === "mid" ? 250 : 240;
+        el.style.left = cfg.x - w / 2 + "px";
+        el.style.top = cfg.y - HALF_H + "px";
+        if (typed) {
+          el.innerHTML =
+            '<span class="leaf-content"><span class="txt"></span><span class="cursor"></span></span>';
+        } else {
+          el.textContent = cfg.label;
+        }
+        stage.appendChild(el);
+        return el;
+      }
+
+      const rootEl = makePill(ROOT, "root", false);
+      const midEls = MIDS.map((m) => makePill(m, "mid", false));
+      const leafEls = LEAVES.map((l) => makePill(l, "leaf", true));
+      const txtEls = leafEls.map((el) => el.querySelector(".txt"));
+      const cursorEls = leafEls.map((el) => el.querySelector(".cursor"));
+
+      // ----- initial hidden states -----
+      gsap.set(cursorEls, { autoAlpha: 0 });
+
       const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
+
+      // 1) Root settles in — clean ease-out scale-up from slightly small (no spring).
+      tl.from(
+        rootEl,
+        { scale: 0.86, autoAlpha: 0, duration: 0.8, ease: "power3.out", transformOrigin: "center center" },
+        0.4
+      );
+
+      // 2) Two mirrored bezier lines grow downward; mids spring-pop on arrival.
+      const t1Line = 1.6;
+      const t1Dur = 1.4;
+      tier1Edges.forEach((p) => {
+        tl.to(p, { strokeDashoffset: 0, duration: t1Dur, ease: "power1.inOut" }, t1Line);
+      });
+      const t1Pop = t1Line + t1Dur; // 3.0
+      tl.from(
+        midEls,
+        { scale: 0, autoAlpha: 0, duration: 0.55, ease: "back.out(2.2)", transformOrigin: "center center" },
+        t1Pop
+      );
+
+      // 3) Four mirrored lines branch from the mids; all leaves pop together.
+      const t2Line = t1Pop + 0.6; // 3.6
+      const t2Dur = 1.4;
+      tier2Edges.forEach((p) => {
+        tl.to(p, { strokeDashoffset: 0, duration: t2Dur, ease: "power1.inOut" }, t2Line);
+      });
+      const t2Pop = t2Line + t2Dur; // 5.0
+      tl.from(
+        leafEls,
+        { scale: 0, autoAlpha: 0, duration: 0.55, ease: "back.out(2.2)", transformOrigin: "center center" },
+        t2Pop
+      );
+
+      // 4) All four leaf labels type in parallel from the same moment, each with a
+      //    blinking cursor that blinks 3 more times after the text finishes, then hides.
+      const typeStart = t2Pop + 0.7; // 5.7
+      const perChar = 0.14; // slow enough to read, fast enough to feel live
+      const blinkHalf = 0.3; // on 0.3s / off 0.3s
+      const extraCycles = 3; // blinks after fully typed
+
+      LEAVES.forEach((leaf, i) => {
+        const label = leaf.label;
+        const len = label.length;
+        const tType = len * perChar;
+        const counter = { n: 0 };
+        tl.to(
+          counter,
+          {
+            n: len,
+            duration: tType,
+            ease: "none",
+            onUpdate: () => {
+              txtEls[i].textContent = label.slice(0, Math.floor(counter.n + 0.0001));
+            },
+          },
+          typeStart
+        );
+        // ensure full text at the end
+        tl.set(txtEls[i], { onComplete: () => {} }, typeStart + tType);
+
+        // cursor: appear, blink through typing + 3 more cycles, then disappear
+        const disappear = typeStart + tType + extraCycles * (blinkHalf * 2);
+        const halves = Math.round((disappear - typeStart) / blinkHalf);
+        tl.set(cursorEls[i], { autoAlpha: 1 }, typeStart);
+        tl.to(
+          cursorEls[i],
+          { autoAlpha: 0, duration: blinkHalf, ease: "steps(1)", repeat: halves - 1, yoyo: true },
+          typeStart
+        );
+        tl.set(cursorEls[i], { autoAlpha: 0 }, disappear);
+      });
+
+      // 5) Stillness to 12s.
+
       window.__timelines["main"] = tl;
     </script>
   </body>
