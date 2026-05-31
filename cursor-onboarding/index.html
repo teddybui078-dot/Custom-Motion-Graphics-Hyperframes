@@ -12,11 +12,368 @@
       }
       html,
       body {
-        margin: 0;
         width: 1920px;
         height: 1080px;
         overflow: hidden;
-        background: #000;
+        background: #ffffff;
+        font-family: "Inter", Helvetica, Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        color: #0f1115;
+      }
+      .stage {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        background: #ffffff;
+      }
+
+      /* ---------- sign-up form ---------- */
+      .card {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 520px;
+        background: #ffffff;
+        border: 1px solid #ececf1;
+        border-radius: 20px;
+        padding: 44px 44px 40px;
+        box-shadow:
+          0 1px 2px rgba(16, 17, 21, 0.04),
+          0 24px 60px -12px rgba(16, 17, 21, 0.18),
+          0 8px 24px -8px rgba(16, 17, 21, 0.1);
+      }
+      .brandmark {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #6366f1, #4f46e5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 22px;
+        box-shadow: 0 6px 16px -4px rgba(79, 70, 229, 0.5);
+      }
+      .brandmark span {
+        color: #fff;
+        font-size: 24px;
+        font-weight: 700;
+        line-height: 1;
+      }
+      .card h1 {
+        font-size: 27px;
+        font-weight: 680;
+        letter-spacing: -0.5px;
+        margin-bottom: 7px;
+      }
+      .card .sub {
+        font-size: 15.5px;
+        color: #6b7280;
+        margin-bottom: 30px;
+        letter-spacing: -0.1px;
+      }
+      .field {
+        margin-bottom: 18px;
+      }
+      .field label {
+        display: block;
+        font-size: 13.5px;
+        font-weight: 560;
+        color: #3f4350;
+        margin-bottom: 8px;
+        letter-spacing: -0.1px;
+      }
+      .input {
+        position: relative;
+        height: 54px;
+        border: 1.5px solid #e5e7eb;
+        border-radius: 12px;
+        background: #fcfcfd;
+        display: flex;
+        align-items: center;
+        padding: 0 16px;
+      }
+      .input .value {
+        font-size: 16.5px;
+        color: #0f1115;
+        letter-spacing: -0.2px;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+      }
+      .input .value .ch {
+        display: none;
+        white-space: pre;
+      }
+      .caret {
+        display: inline-block;
+        width: 2px;
+        height: 22px;
+        background: #4f46e5;
+        opacity: 0;
+        margin-left: 1px;
+        border-radius: 1px;
+      }
+      /* focus ring overlay */
+      .ring {
+        position: absolute;
+        inset: -2.5px;
+        border-radius: 13px;
+        border: 2px solid #4f46e5;
+        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.13);
+        opacity: 0;
+        pointer-events: none;
+      }
+      .cta {
+        margin-top: 26px;
+        height: 56px;
+        border-radius: 12px;
+        background: #4f46e5;
+        color: #fff;
+        font-size: 16.5px;
+        font-weight: 620;
+        letter-spacing: -0.1px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 10px 22px -8px rgba(79, 70, 229, 0.6);
+      }
+      .legal {
+        margin-top: 20px;
+        text-align: center;
+        font-size: 13px;
+        color: #9ca3af;
+      }
+
+      /* ---------- dashboard ---------- */
+      .dash {
+        position: absolute;
+        inset: 0;
+        background: #f6f7f9;
+        display: flex;
+        opacity: 0;
+        visibility: hidden;
+      }
+      .side {
+        width: 264px;
+        background: #ffffff;
+        border-right: 1px solid #ececf1;
+        padding: 30px 22px;
+        flex-shrink: 0;
+      }
+      .side .logo {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        margin-bottom: 40px;
+        padding-left: 6px;
+      }
+      .side .logo .dot {
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
+        background: linear-gradient(135deg, #6366f1, #4f46e5);
+      }
+      .side .logo b {
+        font-size: 19px;
+        font-weight: 680;
+        letter-spacing: -0.3px;
+      }
+      .nav {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .nav .item {
+        height: 46px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        gap: 13px;
+        padding: 0 14px;
+        font-size: 15.5px;
+        font-weight: 540;
+        color: #5b6170;
+      }
+      .nav .item.active {
+        background: #f0f1fe;
+        color: #4f46e5;
+      }
+      .nav .item .ic {
+        width: 19px;
+        height: 19px;
+        border-radius: 5px;
+        background: currentColor;
+        opacity: 0.85;
+      }
+      .main {
+        flex: 1;
+        padding: 34px 44px;
+        overflow: hidden;
+      }
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 34px;
+      }
+      .topbar .hello {
+        font-size: 28px;
+        font-weight: 680;
+        letter-spacing: -0.6px;
+      }
+      .topbar .hello span {
+        font-size: 15.5px;
+        font-weight: 500;
+        color: #6b7280;
+        letter-spacing: -0.1px;
+        display: block;
+        margin-top: 5px;
+      }
+      .topbar .right {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      .search {
+        width: 260px;
+        height: 44px;
+        border-radius: 11px;
+        background: #fff;
+        border: 1px solid #ececf1;
+        display: flex;
+        align-items: center;
+        padding: 0 16px;
+        color: #9ca3af;
+        font-size: 14.5px;
+      }
+      .avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #8b8ef5, #4f46e5);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 620;
+        font-size: 16px;
+      }
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 22px;
+        margin-bottom: 24px;
+      }
+      .stat {
+        background: #fff;
+        border: 1px solid #ececf1;
+        border-radius: 16px;
+        padding: 24px 26px;
+      }
+      .stat .k {
+        font-size: 14.5px;
+        color: #6b7280;
+        font-weight: 540;
+        margin-bottom: 14px;
+      }
+      .stat .v {
+        font-size: 34px;
+        font-weight: 700;
+        letter-spacing: -1px;
+      }
+      .stat .d {
+        margin-top: 10px;
+        font-size: 13.5px;
+        font-weight: 600;
+        color: #16a34a;
+      }
+      .stat .d.flat {
+        color: #6b7280;
+      }
+      .panels {
+        display: grid;
+        grid-template-columns: 1.7fr 1fr;
+        gap: 22px;
+      }
+      .panel {
+        background: #fff;
+        border: 1px solid #ececf1;
+        border-radius: 16px;
+        padding: 24px 26px;
+      }
+      .panel .ph {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        margin-bottom: 22px;
+      }
+      .panel .ph b {
+        font-size: 17px;
+        font-weight: 640;
+        letter-spacing: -0.3px;
+      }
+      .panel .ph i {
+        font-style: normal;
+        font-size: 13.5px;
+        color: #9ca3af;
+      }
+      .chart {
+        height: 210px;
+        display: flex;
+        align-items: flex-end;
+        gap: 16px;
+        padding-top: 8px;
+      }
+      .bar {
+        flex: 1;
+        border-radius: 7px 7px 4px 4px;
+        background: linear-gradient(180deg, #6366f1, #4f46e5);
+        transform-origin: bottom center;
+        transform: scaleY(0);
+        position: relative;
+      }
+      .bar.muted {
+        background: linear-gradient(180deg, #e0e1fb, #c8caf6);
+      }
+      .acts {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+      .act {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .act .ad {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        flex-shrink: 0;
+        background: #f0f1fe;
+      }
+      .act .at {
+        font-size: 14.5px;
+        font-weight: 560;
+        color: #1f2430;
+      }
+      .act .at span {
+        display: block;
+        font-size: 13px;
+        font-weight: 500;
+        color: #9ca3af;
+        margin-top: 3px;
+      }
+
+      /* ---------- cursor ---------- */
+      #cursor {
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 50;
+        will-change: transform;
+        filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.28));
       }
     </style>
   </head>
@@ -25,26 +382,287 @@
       id="root"
       data-composition-id="main"
       data-start="0"
-      data-duration="10"
+      data-duration="12"
       data-width="1920"
       data-height="1080"
     >
-      
-      
+      <div class="stage">
+        <!-- sign-up form -->
+        <div class="card" id="card">
+          <div class="brandmark"><span>◆</span></div>
+          <h1>Create your account</h1>
+          <div class="sub">Start building in seconds — no credit card required.</div>
 
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
+          <div class="field">
+            <label>Full name</label>
+            <div class="input" id="in-name">
+              <div class="value"><span class="caret" id="car-name"></span></div>
+              <div class="ring" id="ring-name"></div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Email</label>
+            <div class="input" id="in-email">
+              <div class="value"><span class="caret" id="car-email"></span></div>
+              <div class="ring" id="ring-email"></div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Password</label>
+            <div class="input" id="in-pass">
+              <div class="value"><span class="caret" id="car-pass"></span></div>
+              <div class="ring" id="ring-pass"></div>
+            </div>
+          </div>
+
+          <div class="cta" id="cta">Create account</div>
+          <div class="legal">By continuing you agree to our Terms &amp; Privacy.</div>
         </div>
-      -->
+
+        <!-- product dashboard -->
+        <div class="dash" id="dash">
+          <aside class="side">
+            <div class="logo"><div class="dot"></div><b>Northwind</b></div>
+            <nav class="nav">
+              <div class="item active"><div class="ic"></div>Overview</div>
+              <div class="item"><div class="ic"></div>Analytics</div>
+              <div class="item"><div class="ic"></div>Customers</div>
+              <div class="item"><div class="ic"></div>Billing</div>
+              <div class="item"><div class="ic"></div>Settings</div>
+            </nav>
+          </aside>
+          <section class="main">
+            <div class="topbar">
+              <div class="hello">Welcome back, Jordan<span>Here's what's happening today.</span></div>
+              <div class="right">
+                <div class="search">Search…</div>
+                <div class="avatar">JA</div>
+              </div>
+            </div>
+            <div class="cards">
+              <div class="stat"><div class="k">Revenue</div><div class="v">$48,250</div><div class="d">↑ 12.4% this week</div></div>
+              <div class="stat"><div class="k">Active users</div><div class="v">2,340</div><div class="d">↑ 8.1% this week</div></div>
+              <div class="stat"><div class="k">Conversion</div><div class="v">3.8%</div><div class="d flat">↑ 0.4% this week</div></div>
+            </div>
+            <div class="panels">
+              <div class="panel">
+                <div class="ph"><b>Revenue overview</b><i>Last 7 days</i></div>
+                <div class="chart" id="chart">
+                  <div class="bar muted" style="height: 46%"></div>
+                  <div class="bar muted" style="height: 62%"></div>
+                  <div class="bar muted" style="height: 54%"></div>
+                  <div class="bar muted" style="height: 78%"></div>
+                  <div class="bar muted" style="height: 68%"></div>
+                  <div class="bar" style="height: 92%"></div>
+                  <div class="bar muted" style="height: 84%"></div>
+                </div>
+              </div>
+              <div class="panel">
+                <div class="ph"><b>Recent activity</b><i>Live</i></div>
+                <div class="acts">
+                  <div class="act"><div class="ad"></div><div class="at">New signup — Maya R.<span>2 minutes ago</span></div></div>
+                  <div class="act"><div class="ad"></div><div class="at">Payment received<span>14 minutes ago</span></div></div>
+                  <div class="act"><div class="ad"></div><div class="at">Plan upgraded to Pro<span>1 hour ago</span></div></div>
+                  <div class="act"><div class="ad"></div><div class="at">Invite accepted<span>3 hours ago</span></div></div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- the OS cursor — crisp black arrow, hotspot at the tip (0,0) -->
+        <div id="cursor">
+          <svg viewBox="0 0 20 32" width="27" height="43" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0 0 L0 27 L6.3 20.7 L10.5 30 L13.9 28.5 L9.75 19.5 L18 18.9 Z" fill="#0a0a0a" />
+          </svg>
+        </div>
+      </div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
+      const $ = (id) => document.getElementById(id);
+
+      // ----- build typed-character spans (revealed one at a time) -----
+      function buildChars(inputId, str, mask) {
+        const value = $(inputId).querySelector(".value");
+        const caret = value.querySelector(".caret");
+        const spans = [];
+        [...str].forEach((ch) => {
+          const s = document.createElement("span");
+          s.className = "ch";
+          s.textContent = mask ? "•" : ch === " " ? " " : ch;
+          value.insertBefore(s, caret); // keep the caret as the last child
+          spans.push(s);
+        });
+        return spans;
+      }
+      const nameChars = buildChars("in-name", "Jordan Avery", false);
+      const emailChars = buildChars("in-email", "jordan@avery.io", false);
+      const passChars = buildChars("in-pass", "•••••••••", true);
+
+      // ----- measure cursor targets from the laid-out DOM -----
+      // tip target = a point inside the element (cursor hotspot is the arrow tip at 0,0)
+      const tipOf = (el, fx, fy) => {
+        const r = el.getBoundingClientRect();
+        return { x: r.left + r.width * fx, y: r.top + r.height * fy };
+      };
+      const nameTarget = tipOf($("in-name"), 0.08, 0.5);
+      const ctaTarget = tipOf($("cta"), 0.46, 0.52);
+      const dashCenter = { x: 1090, y: 540 };
+
+      // ----- initial states -----
       const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
+      const cursor = $("cursor");
+      const START = { x: 96, y: 70 };
+      const cur = { x: START.x, y: START.y };
+      gsap.set(cursor, { x: START.x, y: START.y, autoAlpha: 1 });
+      gsap.set("#card", { autoAlpha: 0, y: 14, scale: 0.985, transformOrigin: "50% 50%" });
+      gsap.set([nameChars, emailChars, passChars].flat(), { display: "none" });
+      gsap.set([".bar"], { scaleY: 0 });
+
+      // ----- human-like cursor motion -----
+      // travel = ballistic arc with a perpendicular bow, a small overshoot past the
+      // target, then a quick correction back onto it. jitter side alternates so the
+      // path never looks mechanical, and stays fully deterministic (no randomness).
+      let moveCount = 0;
+      function moveTo(tx, ty, at, dur, opts) {
+        opts = opts || {};
+        const overshoot = opts.overshoot != null ? opts.overshoot : 13;
+        const bow = opts.bow != null ? opts.bow : 26;
+        const dx = tx - cur.x;
+        const dy = ty - cur.y;
+        const dist = Math.hypot(dx, dy) || 1;
+        const ux = dx / dist;
+        const uy = dy / dist;
+        const px = -uy; // perpendicular unit
+        const py = ux;
+        const side = moveCount % 2 === 0 ? 1 : -1;
+        moveCount++;
+        const scaleBow = Math.min(1, dist / 600); // small hops barely bow
+        tl.to(
+          cursor,
+          {
+            keyframes: [
+              {
+                x: cur.x + dx * 0.52 + px * bow * side * scaleBow,
+                y: cur.y + dy * 0.52 + py * bow * side * scaleBow,
+                duration: dur * 0.46,
+                ease: "power1.inOut",
+              },
+              {
+                x: tx + ux * overshoot,
+                y: ty + uy * overshoot,
+                duration: dur * 0.36,
+                ease: "power2.out",
+              },
+              { x: tx, y: ty, duration: dur * 0.18, ease: "power2.inOut" },
+            ],
+          },
+          at
+        );
+        cur.x = tx;
+        cur.y = ty;
+      }
+
+      // click = a quick press of the arrow, pivoting on its tip
+      function click(at) {
+        tl.to(
+          cursor.querySelector("svg"),
+          {
+            transformOrigin: "0% 0%",
+            keyframes: [
+              { scale: 0.8, duration: 0.06, ease: "power2.in" },
+              { scale: 1, duration: 0.13, ease: "back.out(2.5)" },
+            ],
+          },
+          at
+        );
+      }
+
+      // focus a field: ring appears, caret shows and blinks for `hold` seconds
+      function focusField(ringId, caretId, at, hold) {
+        tl.to($(ringId), { autoAlpha: 1, duration: 0.16, ease: "power2.out" }, at);
+        tl.to($(caretId), { opacity: 1, duration: 0.06 }, at);
+        const blinks = Math.max(1, Math.round(hold / 0.9));
+        tl.to($(caretId), { opacity: 0, duration: 0.45, ease: "steps(1)", repeat: blinks * 2, yoyo: true }, at + 0.1);
+      }
+      function blurField(ringId, caretId, at) {
+        tl.to($(ringId), { autoAlpha: 0, duration: 0.16 }, at);
+        tl.to($(caretId), { opacity: 0, duration: 0.06 }, at);
+      }
+      // type: reveal characters one at a time (seek-safe display toggles)
+      function type(chars, at, perChar) {
+        chars.forEach((s, i) => tl.set(s, { display: "inline" }, at + i * perChar));
+        return at + chars.length * perChar;
+      }
+
+      // ======================= SCHEDULE =======================
+      // 1) the cursor drifts in from the top-left toward the empty center
+      tl.to({}, { duration: 0.45 }, 0); // brief stillness on the blank canvas
+      moveTo(nameTarget.x, nameTarget.y, 0.45, 1.75, { bow: 34, overshoot: 16 });
+
+      // 2) the form renders on demand, arriving just before the cursor does
+      tl.to("#card", { autoAlpha: 1, y: 0, scale: 1, duration: 0.85, ease: "power3.out" }, 1.15);
+
+      // 3) click the name field and type a name from muscle memory
+      click(2.16);
+      focusField("ring-name", "car-name", 2.22, 0.95);
+      let end = type(nameChars, 2.4, 0.052);
+
+      // 4) tab → email
+      blurField("ring-name", "car-name", end + 0.12);
+      focusField("ring-email", "car-email", end + 0.22, 0.9);
+      end = type(emailChars, end + 0.38, 0.046);
+
+      // 5) tab → password (masked)
+      blurField("ring-email", "car-email", end + 0.12);
+      focusField("ring-pass", "car-pass", end + 0.22, 0.7);
+      end = type(passChars, end + 0.38, 0.05);
+      blurField("ring-pass", "car-pass", end + 0.14);
+
+      // 6) travel to the CTA — human drift and correction — and click
+      const ctaStart = end + 0.2;
+      moveTo(ctaTarget.x, ctaTarget.y, ctaStart, 0.95, { bow: 20, overshoot: 12 });
+      const ctaClick = ctaStart + 1.0;
+      tl.to(
+        "#cta",
+        {
+          transformOrigin: "50% 50%",
+          keyframes: [
+            { scale: 0.97, duration: 0.08, ease: "power2.in" },
+            { scale: 1, duration: 0.16, ease: "back.out(2)" },
+          ],
+        },
+        ctaClick
+      );
+      click(ctaClick + 0.02);
+
+      // 7) form dissolves
+      const dissolve = ctaClick + 0.28;
+      tl.to("#card", { autoAlpha: 0, scale: 0.97, y: -8, duration: 0.5, ease: "power2.in" }, dissolve);
+
+      // 8) the product dashboard materializes — populated and personalized
+      const dashAt = dissolve + 0.3;
+      tl.set("#dash", { visibility: "visible" }, dashAt);
+      tl.to("#dash", { opacity: 1, duration: 0.5, ease: "power2.out" }, dashAt);
+      tl.from(".side", { x: -40, autoAlpha: 0, duration: 0.55, ease: "power3.out" }, dashAt + 0.04);
+      tl.from(".nav .item", { x: -16, autoAlpha: 0, duration: 0.4, stagger: 0.05, ease: "power2.out" }, dashAt + 0.2);
+      tl.from(".topbar", { y: -16, autoAlpha: 0, duration: 0.5, ease: "power3.out" }, dashAt + 0.14);
+      tl.from(".stat", { y: 22, autoAlpha: 0, duration: 0.5, stagger: 0.08, ease: "power3.out" }, dashAt + 0.24);
+      tl.from(".panel", { y: 26, autoAlpha: 0, duration: 0.55, stagger: 0.1, ease: "power3.out" }, dashAt + 0.36);
+      tl.to(".bar", { scaleY: 1, duration: 0.6, stagger: 0.05, ease: "power2.out" }, dashAt + 0.5);
+
+      // 9) cursor moves to the center of the dashboard and rests
+      const restStart = dashAt + 0.7;
+      moveTo(dashCenter.x, dashCenter.y, restStart, 0.9, { bow: 22, overshoot: 10 });
+      const restEnd = restStart + 0.9;
+
+      // 10) it sits for two full seconds — then fades. the product remains.
+      tl.to(cursor, { autoAlpha: 0, duration: 0.55, ease: "power2.inOut" }, restEnd + 2.0);
+
       window.__timelines["main"] = tl;
     </script>
   </body>
