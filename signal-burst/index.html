@@ -12,11 +12,48 @@
       }
       html,
       body {
-        margin: 0;
         width: 1920px;
         height: 1080px;
         overflow: hidden;
-        background: #000;
+        background: #e9eaed;
+      }
+      .stage {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+      }
+      #scene {
+        position: absolute;
+        inset: 0;
+      }
+
+      /* connector lines — thin, drawn from the hub outward */
+      .line {
+        position: absolute;
+        height: 2px;
+        background: #3a3a40;
+        transform-origin: 0% 50%;
+        z-index: 1;
+      }
+
+      /* hub + satellite nodes — crisp black circles */
+      .node {
+        position: absolute;
+        border-radius: 50%;
+        background: #0c0c0e;
+        z-index: 3;
+      }
+      .hub {
+        box-shadow: 0 3px 10px rgba(12, 12, 14, 0.28);
+      }
+
+      /* traveling signal dots — small, blue, soft glow */
+      .dot {
+        position: absolute;
+        border-radius: 50%;
+        background: #2563eb;
+        box-shadow: 0 0 9px 1px rgba(37, 99, 235, 0.55);
+        z-index: 2;
       }
     </style>
   </head>
@@ -29,22 +66,102 @@
       data-width="1920"
       data-height="1080"
     >
-      
-      
-
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
-        </div>
-      -->
+      <div class="stage">
+        <div id="scene"></div>
+      </div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
+      const scene = document.getElementById("scene");
+
+      // ---------- geometry ----------
+      const CX = 960; // canvas center
+      const CY = 540;
+      const R = 330; // hub → satellite distance
+      const N = 8; // spokes
+      const HUB_R = 30;
+      const SAT_R = 16;
+      const DOT_R = 6;
+      const BASE = -90; // first satellite points straight up
+
+      // ---------- build the hub ----------
+      const hub = document.createElement("div");
+      hub.className = "node hub";
+      hub.style.left = CX - HUB_R + "px";
+      hub.style.top = CY - HUB_R + "px";
+      hub.style.width = hub.style.height = HUB_R * 2 + "px";
+      scene.appendChild(hub);
+
+      // ---------- build spokes: line + satellite + signal dot ----------
+      const lines = [];
+      const sats = [];
+      const dots = [];
+      for (let i = 0; i < N; i++) {
+        const deg = BASE + i * (360 / N);
+        const rad = (deg * Math.PI) / 180;
+        const sx = CX + R * Math.cos(rad);
+        const sy = CY + R * Math.sin(rad);
+
+        const line = document.createElement("div");
+        line.className = "line";
+        line.style.left = CX + "px";
+        line.style.top = CY - 1 + "px";
+        line.style.width = R + "px";
+        scene.appendChild(line);
+        lines.push({ el: line, deg });
+
+        const sat = document.createElement("div");
+        sat.className = "node sat";
+        sat.style.left = sx - SAT_R + "px";
+        sat.style.top = sy - SAT_R + "px";
+        sat.style.width = sat.style.height = SAT_R * 2 + "px";
+        scene.appendChild(sat);
+        sats.push(sat);
+
+        const dot = document.createElement("div");
+        dot.className = "dot";
+        dot.style.left = "0px";
+        dot.style.top = "0px";
+        dot.style.width = dot.style.height = DOT_R * 2 + "px";
+        scene.appendChild(dot);
+        dots.push({ el: dot, sx, sy });
+      }
+
+      // ---------- initial states ----------
       const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
+      gsap.set(hub, { scale: 0, transformOrigin: "50% 50%" });
+      gsap.set(sats, { scale: 0, transformOrigin: "50% 50%" });
+      lines.forEach((l) => gsap.set(l.el, { rotation: l.deg, scaleX: 0, transformOrigin: "0% 50%" }));
+      dots.forEach((d) => gsap.set(d.el, { x: CX - DOT_R, y: CY - DOT_R, autoAlpha: 0 }));
+
+      // ---------- 1) hub springs in: one confident pop, one overshoot, clean settle ----------
+      tl.to(hub, { scale: 1, duration: 0.5, ease: "back.out(2)" }, 0.15);
+
+      // ---------- 2) eight lines radiate simultaneously at identical speed ----------
+      tl.to(lines.map((l) => l.el), { scaleX: 1, duration: 0.7, ease: "power2.out" }, 0.7);
+
+      // ---------- 3) satellites pop in together as the lines land (same spring as hub) ----------
+      tl.to(sats, { scale: 1, duration: 0.5, ease: "back.out(2)" }, 1.4);
+
+      // ---------- 4) a beat of stillness, then a constant outward pulse of signal dots ----------
+      // Each dot loops hub → satellite at identical speed, snapping back to the hub instantly.
+      // Launches are staggered by one-eighth of a loop so the phases stay evenly distributed
+      // and no two dots ever share the same position. Constant rhythm, no easing.
+      const TRAVEL_START = 2.4;
+      const LOOP = 1.3; // seconds per outward trip
+      const REPEAT = 10; // finite (keeps the timeline length sane) but covers the whole render
+      dots.forEach((d, i) => {
+        const startAt = TRAVEL_START + (i / N) * LOOP;
+        tl.set(d.el, { autoAlpha: 1 }, startAt);
+        tl.fromTo(
+          d.el,
+          { x: CX - DOT_R, y: CY - DOT_R },
+          { x: d.sx - DOT_R, y: d.sy - DOT_R, duration: LOOP, ease: "none", repeat: REPEAT },
+          startAt
+        );
+      });
+
       window.__timelines["main"] = tl;
     </script>
   </body>
