@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=1920, height=1080" />
+    <meta name="viewport" content="width=3840, height=2160" />
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
     <style>
       * {
@@ -13,10 +13,48 @@
       html,
       body {
         margin: 0;
-        width: 1920px;
-        height: 1080px;
+        width: 3840px;
+        height: 2160px;
         overflow: hidden;
-        background: #000;
+        /* Dark navy with a faint cool glow lifting the center, like the reference */
+        background:
+          radial-gradient(
+            120% 90% at 50% 42%,
+            #14203c 0%,
+            #0a1124 42%,
+            #060a16 70%,
+            #04060f 100%
+          );
+        font-family: "Montserrat", "Helvetica Neue", Arial, sans-serif;
+      }
+
+      /* Stage fills the canvas and centers the bar */
+      .stage {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* ===== The dock / bar ===== */
+      .bar {
+        position: relative;
+        width: 2180px;
+        height: 610px;
+        border-radius: 104px;
+        /* Dark navy, a touch lighter at the top edge */
+        background: linear-gradient(180deg, #1b2540 0%, #121a30 55%, #0d1426 100%);
+        border: 2px solid rgba(255, 255, 255, 0.07);
+        /* Two directional WHITE blooms = soft glow hugging the top-left & top-right
+           corners (the reference look), plus a deep drop shadow for separation,
+           plus a faint inner top rim highlight. */
+        box-shadow:
+          -34px -26px 90px rgba(255, 255, 255, 0.22),
+          34px -26px 90px rgba(255, 255, 255, 0.22),
+          0 60px 160px rgba(0, 0, 0, 0.65),
+          inset 0 3px 0 rgba(255, 255, 255, 0.10);
+        transform-origin: center 60%;
       }
     </style>
   </head>
@@ -25,26 +63,21 @@
       id="root"
       data-composition-id="main"
       data-start="0"
-      data-duration="10"
-      data-width="1920"
-      data-height="1080"
+      data-duration="12"
+      data-width="3840"
+      data-height="2160"
     >
-      
-      
-
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
+      <div class="stage">
+        <div class="bar" id="bar">
+          <!-- logos + cursor added in the next step -->
         </div>
-      -->
+      </div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
       const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
+      // Animation added in a later step.
       window.__timelines["main"] = tl;
     </script>
   </body>
