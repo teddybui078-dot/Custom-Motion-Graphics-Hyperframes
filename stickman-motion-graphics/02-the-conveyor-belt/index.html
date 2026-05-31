@@ -5,18 +5,38 @@
     <meta name="viewport" content="width=1920, height=1080" />
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
     <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        margin: 0; width: 1920px; height: 1080px; overflow: hidden;
+        background: #ffffff;
+        font-family: "JetBrains Mono", monospace;
       }
-      html,
-      body {
-        margin: 0;
-        width: 1920px;
-        height: 1080px;
-        overflow: hidden;
-        background: #000;
+      .stage { position: absolute; inset: 0; overflow: hidden; }
+
+      /* conveyor belt */
+      .belt-surface {
+        position: absolute; left: 0; width: 1920px; height: 70px; top: 560px;
+        background: repeating-linear-gradient(
+          90deg, #d6d6dd 0 8px, #ececf1 8px 64px
+        );
+        border-top: 4px solid #8a8a93;
+        border-bottom: 4px solid #8a8a93;
+      }
+      .roller { position: absolute; }
+
+      .fig {
+        position: absolute; top: 402px; width: 80px; height: 170px;
+      }
+      .fig svg { width: 80px; height: 170px; overflow: visible; }
+      .ink {
+        fill: none; stroke: #adadb5; stroke-width: 5;
+        stroke-linecap: round; stroke-linejoin: round;
+      }
+      .fig.blue .ink { stroke: #2563eb; }
+
+      .label {
+        position: absolute; top: 470px; width: 1920px; text-align: center;
+        font-size: 30px; letter-spacing: 2px; color: #b4b4bb;
       }
     </style>
   </head>
@@ -25,26 +45,143 @@
       id="root"
       data-composition-id="main"
       data-start="0"
-      data-duration="10"
+      data-duration="15"
       data-width="1920"
       data-height="1080"
     >
-      
-      
-
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
-        </div>
-      -->
+      <div class="stage" id="stage">
+        <div class="belt-surface" id="belt"></div>
+        <!-- rollers + figures injected by script -->
+        <div class="label" id="prod">productivity.</div>
+      </div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
+      const SVGNS = "http://www.w3.org/2000/svg";
+      const stage = document.getElementById("stage");
+      const belt = document.getElementById("belt");
+      const BELT_TOP = 560;
+
+      // ---------- a stickman; legs/arms are <g> so they can swing ----------
+      function makeFig(color, cx) {
+        const div = document.createElement("div");
+        div.className = "fig" + (color === "blue" ? " blue" : "");
+        div.style.left = cx - 40 + "px";
+        div.innerHTML =
+          '<svg viewBox="0 0 80 170">' +
+          '<g class="head"><circle class="ink" cx="40" cy="22" r="15"/></g>' +
+          '<line class="ink" x1="40" y1="37" x2="40" y2="100"/>' + // body
+          '<g class="armL"><line class="ink" x1="40" y1="50" x2="26" y2="86"/></g>' +
+          '<g class="armR"><line class="ink" x1="40" y1="50" x2="54" y2="86"/></g>' +
+          '<g class="legL"><line class="ink" x1="40" y1="100" x2="30" y2="158"/></g>' +
+          '<g class="legR"><line class="ink" x1="40" y1="100" x2="50" y2="158"/></g>' +
+          "</svg>";
+        stage.appendChild(div);
+        return {
+          div,
+          head: div.querySelector(".head"),
+          legL: div.querySelector(".legL"),
+          legR: div.querySelector(".legR"),
+          armL: div.querySelector(".armL"),
+          armR: div.querySelector(".armR"),
+        };
+      }
+
+      // ---------- gray crowd, fixed on screen (the camera rides with them) ----------
+      const GRAY_X = [150, 340, 530, 720, 910, 1100, 1290, 1480, 1670, 1860];
+      const grays = GRAY_X.map((x) => makeFig("gray", x));
+
+      // ---------- rollers ----------
+      function roller(cx) {
+        const svg = document.createElementNS(SVGNS, "svg");
+        svg.setAttribute("class", "roller");
+        svg.setAttribute("width", "120"); svg.setAttribute("height", "120");
+        svg.setAttribute("viewBox", "0 0 120 120");
+        svg.style.left = cx - 60 + "px";
+        svg.style.top = BELT_TOP + 35 - 60 + "px";
+        svg.innerHTML =
+          '<circle cx="60" cy="60" r="46" fill="#f0f0f3" stroke="#8a8a93" stroke-width="4"/>' +
+          '<g class="spoke"><line x1="60" y1="60" x2="60" y2="18" stroke="#8a8a93" stroke-width="4" stroke-linecap="round"/></g>';
+        stage.appendChild(svg);
+        return svg.querySelector(".spoke");
+      }
+      const spokeL = roller(70);
+      const spokeR = roller(1850);
+
+      // ---------- blue, our stickman ----------
+      const X0 = 530;            // his slot among the crowd
+      const blue = makeFig("blue", X0);
+      gsap.set(blue.div, { x: -650 }); // starts off-screen left
+
+      // ---------- drivers ----------
+      const legState = { ph: 0, amp: 0 };
+      function applyLegs() {
+        const a = legState.amp * Math.sin(legState.ph);
+        blue.legL.setAttribute("transform", "rotate(" + a + " 40 100)");
+        blue.legR.setAttribute("transform", "rotate(" + -a + " 40 100)");
+        blue.armL.setAttribute("transform", "rotate(" + -a * 0.6 + " 40 50)");
+        blue.armR.setAttribute("transform", "rotate(" + a * 0.6 + " 40 50)");
+      }
+      applyLegs();
+
+      const beltState = { bp: 0 };
+      function applyBelt() {
+        belt.style.backgroundPositionX = beltState.bp + "px";
+        spokeL.setAttribute("transform", "rotate(" + beltState.bp * 2.2 + " 60 60)");
+        spokeR.setAttribute("transform", "rotate(" + beltState.bp * 2.2 + " 60 60)");
+      }
+      applyBelt();
+
+      // ---------- timeline ----------
       const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
+
+      // belt runs the whole time, speeding up in two steps (5.0s, 7.6s)
+      tl.to(beltState, { bp: 300, duration: 5.0, ease: "none", onUpdate: applyBelt }, 0);
+      tl.to(beltState, { bp: 1000, duration: 2.6, ease: "power1.in", onUpdate: applyBelt }, 5.0);
+      tl.to(beltState, { bp: 2700, duration: 7.4, ease: "none", onUpdate: applyBelt }, 7.6);
+
+      // 1) blue enters from the left and steps onto the belt
+      tl.to(blue.div, { x: 0, duration: 1.3, ease: "power2.out" }, 0.5);
+
+      // 2) he rides, looking around — nobody makes eye contact
+      tl.to(blue.head, { rotation: -16, transformOrigin: "40px 37px", duration: 0.35, ease: "power1.inOut" }, 1.9);
+      tl.to(blue.head, { rotation: 14, transformOrigin: "40px 37px", duration: 0.4, ease: "power1.inOut" }, 2.35);
+      tl.to(blue.head, { rotation: 0, transformOrigin: "40px 37px", duration: 0.35, ease: "power1.inOut" }, 2.85);
+
+      // 3) he starts walking — legs animate, he gains a few positions
+      tl.to(legState, { amp: 26, duration: 0.3, ease: "power1.out", onUpdate: applyLegs }, 3.0);
+      tl.to(legState, { ph: 15.7, duration: 2.0, ease: "none", onUpdate: applyLegs }, 3.0); // ~5 strides
+      tl.to(blue.div, { x: 470, duration: 2.0, ease: "power1.out" }, 3.0);
+
+      // 4) the belt speeds up; he's back where he started relative to the crowd
+      tl.to(legState, { ph: 18.0, duration: 0.6, ease: "none", onUpdate: applyLegs }, 5.0);
+      tl.to(blue.div, { x: 0, duration: 0.6, ease: "power2.in" }, 5.0);
+
+      // 5) he walks faster — gains again
+      tl.to(legState, { ph: 40.0, duration: 2.0, ease: "none", onUpdate: applyLegs }, 5.6); // ~7 strides
+      tl.to(blue.div, { x: 470, duration: 2.0, ease: "power1.out" }, 5.6);
+
+      // 6) the belt speeds up again; back to the start again
+      tl.to(legState, { ph: 43.0, duration: 0.6, ease: "none", onUpdate: applyLegs }, 7.6);
+      tl.to(blue.div, { x: 0, duration: 0.6, ease: "power2.in" }, 7.6);
+
+      // 7) frantic now — legs almost a blur, and he stays exactly in place
+      tl.to(legState, { amp: 30, duration: 0.2, onUpdate: applyLegs }, 8.2);
+      tl.to(legState, { ph: 80.0, duration: 1.8, ease: "none", onUpdate: applyLegs }, 8.2); // ~12 strides
+      // (no x change — he holds position within the crowd)
+
+      // 8) he stops walking. the belt carries him. legs go loose.
+      tl.to(legState, { amp: 0, duration: 0.5, ease: "power2.out", onUpdate: applyLegs }, 10.0);
+
+      // 9) he looks down at his feet
+      tl.to(blue.head, { y: 7, rotation: 4, transformOrigin: "40px 37px", duration: 0.5, ease: "power1.inOut" }, 10.7);
+
+      // 10) "productivity." fades in above the belt, then fades out
+      gsap.set("#prod", { autoAlpha: 0 });
+      tl.to("#prod", { autoAlpha: 1, duration: 0.7, ease: "power1.out" }, 11.5);
+      tl.to("#prod", { autoAlpha: 0, duration: 0.9, ease: "power1.in" }, 13.3);
+
       window.__timelines["main"] = tl;
     </script>
   </body>
