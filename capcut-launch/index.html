@@ -56,6 +56,134 @@
           inset 0 3px 0 rgba(255, 255, 255, 0.10);
         transform-origin: center 60%;
       }
+
+      /* ===== Row of logos ===== */
+      .logos {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 110px;
+      }
+      .logo {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 44px;
+        position: relative;
+      }
+      .icon {
+        position: relative;
+        width: 300px;
+        height: 300px;
+        border-radius: 68px;
+        overflow: hidden;
+        transform-origin: center center;
+        /* Soft white bloom on the top-left & top-right corners (per reference),
+           a depth shadow below, and a faint inner edge highlight. */
+        box-shadow:
+          -10px -10px 34px rgba(255, 255, 255, 0.20),
+          10px -10px 34px rgba(255, 255, 255, 0.20),
+          0 22px 44px rgba(0, 0, 0, 0.45),
+          inset 0 0 0 3px rgba(255, 255, 255, 0.06);
+      }
+      .glyph {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 156px;
+        line-height: 1;
+        letter-spacing: -2px;
+      }
+
+      /* White dot under each logo */
+      .dot {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: #ffffff;
+        box-shadow: 0 0 20px rgba(255, 255, 255, 0.6);
+      }
+
+      /* ---- After Effects ---- */
+      .icon.ae {
+        background: linear-gradient(135deg, #2c1f72 0%, #16103c 100%);
+      }
+      .icon.ae .glyph {
+        color: #b9aaff;
+      }
+
+      /* ---- Premiere Pro ---- */
+      .icon.pr {
+        background: linear-gradient(135deg, #371770 0%, #1a0d40 100%);
+      }
+      .icon.pr .glyph {
+        color: #cdb1ff;
+      }
+
+      /* ---- Final Cut Pro: silver frame, clapper top, rainbow body ---- */
+      .icon.fcp {
+        background: linear-gradient(160deg, #ececf1 0%, #c2c5ce 60%, #a9adb8 100%);
+        padding: 14px;
+      }
+      .fcp-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        border-radius: 54px;
+        overflow: hidden;
+        background: linear-gradient(
+          150deg,
+          #ff7a8a 0%,
+          #ffb15c 28%,
+          #ffe066 50%,
+          #5bd1a0 74%,
+          #5aa9f0 100%
+        );
+      }
+      .fcp-clapper {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 34%;
+        background: repeating-linear-gradient(
+          108deg,
+          #ededed 0 18px,
+          #18181d 18px 52px
+        );
+      }
+
+      /* ---- DaVinci Resolve: dark, color wheel emblem ---- */
+      .icon.resolve {
+        background: radial-gradient(120% 120% at 50% 35%, #15151b 0%, #08080c 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .resolve-svg {
+        width: 78%;
+        height: 78%;
+      }
+      .resolve-blobs {
+        mix-blend-mode: screen;
+      }
+
+      /* ---- CapCut: white, black cut mark ---- */
+      .icon.capcut {
+        background: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .capcut-svg {
+        width: 64%;
+        height: 64%;
+      }
     </style>
   </head>
   <body>
@@ -69,7 +197,57 @@
     >
       <div class="stage">
         <div class="bar" id="bar">
-          <!-- logos + cursor added in the next step -->
+          <div class="logos" id="logos">
+            <!-- After Effects -->
+            <div class="logo" data-app="ae">
+              <div class="icon ae"><span class="glyph">Ae</span></div>
+              <div class="dot"></div>
+            </div>
+
+            <!-- Final Cut Pro -->
+            <div class="logo" data-app="fcp">
+              <div class="icon fcp">
+                <div class="fcp-inner"><div class="fcp-clapper"></div></div>
+              </div>
+              <div class="dot"></div>
+            </div>
+
+            <!-- CapCut (center) -->
+            <div class="logo" data-app="capcut">
+              <div class="icon capcut">
+                <svg class="capcut-svg" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <!-- bowtie: two triangles meeting at center -->
+                  <polygon points="14,24 14,76 52,50" fill="#0c0c0c" />
+                  <polygon points="86,24 86,76 48,50" fill="#0c0c0c" />
+                  <!-- diagonal cut slash -->
+                  <rect x="6" y="45.5" width="88" height="9" rx="4.5" fill="#0c0c0c"
+                        transform="rotate(-28 50 50)" />
+                </svg>
+              </div>
+              <div class="dot"></div>
+            </div>
+
+            <!-- DaVinci Resolve -->
+            <div class="logo" data-app="resolve">
+              <div class="icon resolve">
+                <svg class="resolve-svg" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="150" cy="150" r="120" fill="none" stroke="#4c4c58" stroke-width="8" />
+                  <g class="resolve-blobs">
+                    <circle cx="150" cy="110" r="58" fill="#ff4d4d" />
+                    <circle cx="115" cy="172" r="58" fill="#37d6c4" />
+                    <circle cx="185" cy="172" r="58" fill="#ffd24d" />
+                  </g>
+                </svg>
+              </div>
+              <div class="dot"></div>
+            </div>
+
+            <!-- Premiere Pro -->
+            <div class="logo" data-app="pr">
+              <div class="icon pr"><span class="glyph">Pr</span></div>
+              <div class="dot"></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
