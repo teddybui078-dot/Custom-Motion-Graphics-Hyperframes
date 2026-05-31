@@ -17,7 +17,8 @@
         overflow: hidden;
         /* Apple aluminium product surface — light, with a faint catch of light up top */
         background: linear-gradient(180deg, #f6f6f8 0%, #ededf1 55%, #e3e3e9 100%);
-        font-family: "Helvetica Neue", "Inter", Arial, sans-serif;
+        /* body + supporting lines: the actual Apple system font stack */
+        font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
       }
       .stage {
         position: absolute;
@@ -39,41 +40,58 @@
         pointer-events: none;
       }
 
-      /* every phrase sits centred; only one is visible at a time */
+      /* every phrase sits centred, with 160px side margins so text never feels
+         pinned to the edge; long thoughts wrap and stack at a cinematic 1.3 line-height */
       .line {
         position: absolute;
-        inset: 0;
+        left: 160px;
+        right: 160px;
+        top: 0;
+        bottom: 0;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 0.26em;
-        white-space: nowrap;
       }
-      .line.tertiary {
-        font-size: 28px;
-        font-weight: 600;
-        letter-spacing: -0.01em;
+      .line .inner {
+        width: 100%;
+        text-align: center;
+        line-height: 1.3;
       }
-      .line.heavy {
-        font-size: 80px;
+
+      /* ---- type tiers ----
+         headline   — SF Pro Display stack, Apple's keynote optical kerning/ligatures,
+                      compressed tracking (-0.03em)
+         supporting — system body stack, neutral tracking
+         tertiary   — system body stack, airy tracking (+0.04em)
+         name       — system body stack, the quiet closing signature
+         The opposing tracking (tight headlines / loose detail) is the Apple voice. */
+      .line.headline .inner {
+        font-family: "SF Pro Display", -apple-system, "Helvetica Neue", Helvetica, sans-serif;
+        font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+        font-size: 96px;
         font-weight: 700;
         letter-spacing: -0.03em;
       }
-      .line.hero {
-        font-size: 104px;
-        font-weight: 800;
-        letter-spacing: -0.035em;
+      .line.supporting .inner {
+        font-size: 52px;
+        font-weight: 400;
+        letter-spacing: 0;
       }
-      .line.name {
+      .line.tertiary .inner {
+        font-size: 36px;
+        font-weight: 300;
+        letter-spacing: 0.04em;
+      }
+      .line.name .inner {
         font-size: 64px;
-        font-weight: 600;
-        letter-spacing: -0.02em;
+        font-weight: 500;
+        letter-spacing: -0.01em;
       }
 
       /* ---- bevel & emboss, directly on the letterforms ----
-         --hi  = top white highlight opacity (animated for the arrival flash)
-         --lo  = bottom dark shadow opacity (animated for the exit lift)
-         the third layer is the extremely faint inner sheen (white, ~3px). */
+         --hi = top white highlight opacity (animated for the arrival flash)
+         --lo = bottom dark shadow opacity (animated for the exit lift)
+         third layer is the extremely faint inner sheen (white, ~3px). */
       .word {
         display: inline-block;
         transform-origin: 50% 50%;
@@ -91,7 +109,7 @@
       id="root"
       data-composition-id="main"
       data-start="0"
-      data-duration="27"
+      data-duration="54"
       data-width="1920"
       data-height="1080"
     >
@@ -107,30 +125,31 @@
       const stage = document.getElementById("stage");
 
       // ============================================================
-      // BASE: the "Boris Cherny" Apple text animation — an Apple-keynote
-      // identity reveal. Edit SCRIPT to change the words; every phrase
-      // builds strictly word by word per the treatment.
+      // BASE: the "Boris Cherny" Apple text animation — now every beat carries a
+      // full thought (a complete clause), held long enough to be read. Edit SCRIPT
+      // to change the words; every phrase still builds strictly word by word.
       // ============================================================
       const SCRIPT = [
-        { text: "Meet the maker.", tier: "tertiary", hold: 1.0 },
-        { text: "Engineer.", tier: "heavy", hold: 1.1 },
-        { text: "Author.", tier: "heavy", hold: 1.1 },
-        { text: "Builder.", tier: "heavy", hold: 1.1 },
-        { text: "And then —", tier: "tertiary", hold: 0.7 },
-        { text: "Claude Code.", tier: "hero", hold: 1.4 },
-        { text: "Agentic. Native. Yours.", tier: "tertiary", hold: 1.0 },
-        { text: "Built by one engineer.", tier: "tertiary", hold: 1.0 },
+        { text: "The engineer who thinks in type systems.", tier: "headline", hold: 2.4 },
+        { text: "He wrote the book on TypeScript — literally.", tier: "supporting", hold: 2.2 },
+        { text: "Four years building developer tools at Meta.", tier: "supporting", hold: 2.2 },
+        { text: "Then he set out to build something new.", tier: "tertiary", hold: 2.2 },
+        { text: "What if your terminal could think alongside you?", tier: "headline", hold: 2.6 },
+        { text: "The product that puts a senior engineer in every terminal.", tier: "headline", hold: 2.8 },
+        { text: "Agentic, native, and built to live where you work.", tier: "supporting", hold: 2.2 },
+        { text: "One mind behind the tool that builds the tools.", tier: "tertiary", hold: 2.2 },
         { text: "Boris Cherny", tier: "name", hold: 0 },
       ];
 
-      // ---- bevel & flash spec per size tier ----
-      // heavy (≥72px) and hero carry the stronger bevel + stronger flash (70% / 4f).
-      // tertiary (28px) carries the softer bevel + normal flash (55% / 3f).
+      // ---- bevel & flash spec per tier ----
+      // headline (≥72px) carries the stronger bevel + stronger flash (70% / 4f).
+      // supporting carries the default bevel + normal flash (55% / 3f).
+      // tertiary carries the softest bevel + normal flash.
       // name carries the lightest bevel of the whole sequence and NO arrival flash.
       const TIERS = {
+        headline: { hi: 0.28, lo: 0.36, flash: { peak: 0.7, hold: 4 }, exit: true },
+        supporting: { hi: 0.2, lo: 0.28, flash: { peak: 0.55, hold: 3 }, exit: true },
         tertiary: { hi: 0.12, lo: 0.18, flash: { peak: 0.55, hold: 3 }, exit: true },
-        heavy: { hi: 0.28, lo: 0.36, flash: { peak: 0.7, hold: 4 }, exit: true },
-        hero: { hi: 0.28, lo: 0.36, flash: { peak: 0.7, hold: 4 }, exit: true },
         name: { hi: 0.1, lo: 0.14, flash: null, exit: false },
       };
 
@@ -144,19 +163,24 @@
       const PHRASE_GAP = 0.18; // breath between phrases
       const START = 0.5;
 
-      // ---- build the DOM: one .line per phrase, one .word per word ----
+      // ---- build the DOM: one .line per phrase, one .word per word (with real
+      //      whitespace between words so long phrases wrap naturally) ----
       const phrases = SCRIPT.map((p) => {
         const tier = TIERS[p.tier];
         const line = document.createElement("div");
         line.className = "line " + p.tier;
         line.setAttribute("data-layout-ignore", ""); // centred + stacked + animation-driven
-        const words = p.text.split(" ").map((token) => {
+        const inner = document.createElement("div");
+        inner.className = "inner";
+        const words = p.text.split(" ").map((token, i) => {
+          if (i > 0) inner.appendChild(document.createTextNode(" "));
           const w = document.createElement("span");
           w.className = "word";
           w.textContent = token;
-          line.appendChild(w);
+          inner.appendChild(w);
           return w;
         });
+        line.appendChild(inner);
         stage.appendChild(line);
         return { ...p, tier, words };
       });
@@ -206,8 +230,8 @@
         const lastLand = t + (n - 1) * STAGGER + BUILD;
 
         if (tier.exit) {
-          // 3) exit bevel — shadow strokes intensify to 50% as the word lifts off the
-          //    surface, then the word leaves: scale 1.0→1.04, opacity 1→0 over 14 frames
+          // 3) exit bevel — shadow strokes intensify to 50% as the words lift off the
+          //    surface, then they leave: scale 1.0→1.04, opacity 1→0 over 14 frames
           const exitAt = lastLand + p.hold;
           p.words.forEach((w) => {
             tl.set(w, { "--lo": 0.5 }, exitAt);
