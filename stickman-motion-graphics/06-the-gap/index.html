@@ -5,19 +5,28 @@
     <meta name="viewport" content="width=1920, height=1080" />
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
     <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        margin: 0; width: 1920px; height: 1080px; overflow: hidden;
+        background: #ffffff;
+        font-family: "JetBrains Mono", monospace;
       }
-      html,
-      body {
-        margin: 0;
-        width: 1920px;
-        height: 1080px;
-        overflow: hidden;
-        background: #000;
+      .stage { position: absolute; inset: 0; overflow: hidden; }
+
+      .platform {
+        position: absolute; border-radius: 10px;
+        background: #ececf1; border: 3px solid #c4c4cc;
       }
+      .platform .face {
+        position: absolute; left: 0; bottom: -22px; width: 100%; height: 22px;
+        background: #dcdce2; border: 3px solid #c4c4cc; border-top: none;
+        border-radius: 0 0 10px 10px;
+      }
+
+      .fig { position: absolute; }
+      .fig svg { overflow: visible; }
+      .ink { fill: none; stroke: #adadb5; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+      .fig.blue .ink { stroke: #2563eb; }
     </style>
   </head>
   <body>
@@ -25,26 +34,134 @@
       id="root"
       data-composition-id="main"
       data-start="0"
-      data-duration="10"
+      data-duration="20"
       data-width="1920"
       data-height="1080"
     >
-      
-      
-
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
+      <div class="stage" id="stage">
+        <!-- left platform + blue -->
+        <div class="platform" id="leftPlat" style="left:300px; top:740px; width:380px; height:26px;">
+          <div class="face"></div>
         </div>
-      -->
+        <!-- right group (platform + chatting grays) rises together -->
+        <div id="rightGroup">
+          <div class="platform" id="rightPlat" style="left:1240px; top:560px; width:430px; height:26px;">
+            <div class="face"></div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
+      const stage = document.getElementById("stage");
+      const rightGroup = document.getElementById("rightGroup");
+
+      function makeFig(color, parent) {
+        const div = document.createElement("div");
+        div.className = "fig" + (color ? " " + color : "");
+        div.style.width = "70px"; div.style.height = "150px";
+        div.innerHTML =
+          '<svg viewBox="0 0 70 150" width="70" height="150">' +
+          '<g class="head"><circle class="ink" cx="35" cy="20" r="13"/></g>' +
+          '<line class="ink" x1="35" y1="33" x2="35" y2="92"/>' +
+          '<g class="armL"><line class="ink" x1="35" y1="45" x2="22" y2="74"/></g>' +
+          '<g class="armR"><line class="ink" x1="35" y1="45" x2="48" y2="74"/></g>' +
+          '<g class="legL"><line class="ink" x1="35" y1="92" x2="25" y2="142"/></g>' +
+          '<g class="legR"><line class="ink" x1="35" y1="92" x2="45" y2="142"/></g>' +
+          "</svg>";
+        parent.appendChild(div);
+        return {
+          div, head: div.querySelector(".head"),
+          armL: div.querySelector(".armL"), armR: div.querySelector(".armR"),
+          legL: div.querySelector(".legL"), legR: div.querySelector(".legR"),
+        };
+      }
+
+      // ---------- gray cluster on the right, comfortable, talking ----------
+      const R_TOP = 560; // platform top
+      const grayX = [1290, 1370, 1450, 1530, 1610];
+      const grays = grayX.map((x, i) => {
+        const g = makeFig("", rightGroup);
+        g.div.style.left = x - 35 + "px";
+        g.div.style.top = R_TOP - 142 + "px"; // feet on platform
+        g.div.style.transformOrigin = "center bottom";
+        g.face = i % 2 === 0 ? 1 : -1; // some face each other
+        gsap.set(g.div, { scaleX: g.face });
+        g.phase = i * 1.3;
+        return g;
+      });
+      const edgeGray = grays[0]; // the one nearest the gap
+
+      // ---------- blue, alone on the left ----------
+      const blue = makeFig("blue", stage);
+      const BLUE_L = 455, BLUE_T = 740 - 142; // feet on left platform
+      blue.div.style.left = BLUE_L + "px";
+      blue.div.style.top = BLUE_T + "px";
+      blue.div.style.zIndex = "20";
+
+      // ---------- talking gesture driver (subtle, continuous) ----------
+      const talk = { ph: 0 };
+      function applyTalk() {
+        for (let i = 0; i < grays.length; i++) {
+          const g = grays[i];
+          const a = Math.sin(talk.ph + g.phase);
+          const b = Math.sin(talk.ph * 0.8 + g.phase + 1);
+          g.armR.setAttribute("transform", "rotate(" + (-12 + 16 * a) + " 35 45)");
+          g.armL.setAttribute("transform", "rotate(" + (10 + 10 * b) + " 35 45)");
+          g.head.setAttribute("transform", "rotate(" + 4 * b + " 35 33)");
+        }
+      }
+      applyTalk();
+
+      // ---------- timeline ----------
       const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
+
+      // grays chat the entire time, at ease
+      tl.to(talk, { ph: 30, duration: 20, ease: "none", onUpdate: applyTalk }, 0);
+
+      // 1) blue looks across the gap
+      tl.to(blue.head, { rotation: 26, transformOrigin: "35px 33px", duration: 0.6, ease: "power1.inOut" }, 1.6);
+      tl.to(blue.head, { rotation: 0, duration: 0.5, ease: "power1.inOut" }, 2.6);
+
+      // 2) backs up
+      tl.to(blue.div, { x: -70, duration: 0.7, ease: "power2.out" }, 3.0);
+      // small crouch
+      tl.to([blue.legL, blue.legR], { scaleY: 0.86, transformOrigin: "35px 92px", duration: 0.2 }, 3.9);
+      tl.to([blue.legL, blue.legR], { scaleY: 1, transformOrigin: "35px 92px", duration: 0.15 }, 4.1);
+
+      // 3) runs and jumps — arc toward the right platform edge
+      tl.to(blue.div, { x: 740, duration: 0.95, ease: "none" }, 4.1);              // horizontal run+leap
+      tl.to(blue.div, { y: -205, duration: 0.55, ease: "power2.out" }, 4.1);        // rise
+      tl.to(blue.div, { y: -188, duration: 0.4, ease: "power1.inOut" }, 4.65);      // hands at the edge
+      // arms reach up for the edge
+      tl.to(blue.armL, { rotation: -150, transformOrigin: "35px 45px", duration: 0.4, ease: "power2.out" }, 4.5);
+      tl.to(blue.armR, { rotation: 150, transformOrigin: "35px 45px", duration: 0.4, ease: "power2.out" }, 4.5);
+
+      // 4) a gray looks down at him, pauses, then steps back from the edge
+      tl.to(edgeGray.head, { rotation: 30, transformOrigin: "35px 33px", duration: 0.4, ease: "power1.inOut" }, 4.8);
+      tl.to(edgeGray.div, { x: 70, duration: 0.7, ease: "power2.inOut" }, 5.5); // steps back
+      tl.to(edgeGray.head, { rotation: 0, duration: 0.4 }, 5.7);
+
+      // 5) blue falls back, lands on the left platform, bounces once, settles
+      tl.to(blue.armL, { rotation: 0, transformOrigin: "35px 45px", duration: 0.3 }, 5.6);
+      tl.to(blue.armR, { rotation: 0, transformOrigin: "35px 45px", duration: 0.3 }, 5.6);
+      tl.to(blue.div, { x: 20, duration: 1.0, ease: "power1.in" }, 5.7);     // falls back left
+      tl.to(blue.div, { y: 0, duration: 1.0, ease: "power2.in" }, 5.7);      // falls down to platform
+      tl.to(blue.div, { y: -26, duration: 0.16, ease: "power1.out" }, 6.7);  // bounce up
+      tl.to(blue.div, { y: 0, duration: 0.24, ease: "power1.in" }, 6.86);    // settle
+
+      // 6) he looks at the gap again — same distance
+      tl.to(blue.head, { rotation: 24, transformOrigin: "35px 33px", duration: 0.6, ease: "power1.inOut" }, 7.6);
+      tl.to(blue.head, { rotation: 0, duration: 0.5, ease: "power1.inOut" }, 8.6);
+
+      // 7) the right platform very slowly rises — by ~20% of its height — over the rest.
+      //    The grays don't notice. They keep talking.
+      tl.to(rightGroup, { y: -112, duration: 11.5, ease: "none" }, 8.5);
+
+      // 8) blue slowly notices, tilting his head up to track it
+      tl.to(blue.head, { rotation: 16, transformOrigin: "35px 33px", duration: 2.5, ease: "power1.inOut" }, 14.0);
+
       window.__timelines["main"] = tl;
     </script>
   </body>
