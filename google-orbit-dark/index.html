@@ -16,7 +16,121 @@
         width: 1920px;
         height: 1080px;
         overflow: hidden;
-        background: #000;
+        background: #0d0f1a;
+        font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+      }
+      .stage {
+        position: absolute;
+        inset: 0;
+      }
+
+      /* G's diffuse light source */
+      .gbloom {
+        position: absolute;
+        left: 960px;
+        top: 540px;
+        width: 560px;
+        height: 560px;
+        margin-left: -280px;
+        margin-top: -280px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle,
+          rgba(255, 255, 255, 0.13) 0%,
+          rgba(255, 255, 255, 0.06) 32%,
+          rgba(255, 255, 255, 0) 66%
+        );
+        z-index: 0;
+      }
+
+      /* rings + spokes */
+      .vec {
+        position: absolute;
+        inset: 0;
+        width: 1920px;
+        height: 1080px;
+        z-index: 1;
+      }
+      .ring {
+        fill: none;
+        stroke: #2a2d3e;
+        stroke-width: 1.5;
+      }
+      .spoke {
+        stroke: #4285f4;
+        stroke-width: 2;
+        fill: none;
+      }
+
+      .gmark {
+        position: absolute;
+        left: 960px;
+        top: 540px;
+        width: 96px;
+        height: 96px;
+        margin-left: -48px;
+        margin-top: -48px;
+        z-index: 4;
+        transform-origin: center center;
+      }
+      .gmark svg {
+        width: 96px;
+        height: 96px;
+        display: block;
+      }
+
+      /* orbiter: position (translate). pop: spring+pulse scale. */
+      .orbiter {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 56px;
+        height: 56px;
+        margin-left: -28px;
+        margin-top: -28px;
+        z-index: 2;
+      }
+      .pop {
+        position: relative;
+        width: 56px;
+        height: 56px;
+        transform-origin: center center;
+      }
+      .bloom {
+        position: absolute;
+        left: -24px;
+        top: -24px;
+        width: 104px;
+        height: 104px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle,
+          rgba(255, 255, 255, 0.2) 0%,
+          rgba(255, 255, 255, 0.2) 52%,
+          rgba(255, 255, 255, 0) 100%
+        );
+        filter: blur(5px);
+        transform-origin: center center;
+        z-index: 0;
+      }
+      .badge {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: #161822;
+        border: 1px solid #2a2d3e;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1;
+      }
+      .badge svg {
+        width: 28px;
+        height: 28px;
+        display: block;
       }
     </style>
   </head>
@@ -25,26 +139,200 @@
       id="root"
       data-composition-id="main"
       data-start="0"
-      data-duration="10"
+      data-duration="16"
       data-width="1920"
       data-height="1080"
     >
-      
-      
-
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
-        </div>
-      -->
+      <div class="stage" id="stage">
+        <div class="gbloom" id="gbloom"></div>
+        <svg class="vec" id="vec" viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg">
+          <g id="rings">
+            <circle class="ring" cx="960" cy="540" r="160" />
+            <circle class="ring" cx="960" cy="540" r="240" />
+            <circle class="ring" cx="960" cy="540" r="320" />
+          </g>
+          <g id="spokes"></g>
+        </svg>
+        <div class="gmark" id="gmark"></div>
+        <!-- orbiters added by the script -->
+      </div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
+      const SVGNS = "http://www.w3.org/2000/svg";
+      const stage = document.getElementById("stage");
+      const vec = document.getElementById("vec");
+      const spokesG = document.getElementById("spokes");
+      const CX = 960,
+        CY = 540;
+
+      const G_SVG =
+        '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">' +
+        '<path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>' +
+        '<path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>' +
+        '<path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>' +
+        '<path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>' +
+        "</svg>";
+
+      const ICON_SVG = {
+        drive:
+          '<svg viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">' +
+          '<path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>' +
+          '<path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0-1.2 4.5h27.5z" fill="#00ac47"/>' +
+          '<path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/>' +
+          '<path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>' +
+          '<path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>' +
+          '<path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>' +
+          "</svg>",
+        docs:
+          '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
+          '<path fill="#4285F4" d="M6 2h7l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"/>' +
+          '<path fill="#A8C7FA" d="M13 2l5 5h-5z"/>' +
+          '<g fill="#fff"><rect x="8" y="11" width="8" height="1.5" rx=".75"/><rect x="8" y="14" width="8" height="1.5" rx=".75"/><rect x="8" y="17" width="5" height="1.5" rx=".75"/></g>' +
+          "</svg>",
+        slides:
+          '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
+          '<path fill="#F4B400" d="M6 2h7l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"/>' +
+          '<path fill="#FAD980" d="M13 2l5 5h-5z"/>' +
+          '<rect x="8" y="11" width="8" height="6" rx="1" fill="#fff"/>' +
+          "</svg>",
+        chrome:
+          '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
+          '<path d="M12 12 L2.474 6.5 A11 11 0 0 1 21.526 6.5 Z" fill="#EA4335"/>' +
+          '<path d="M12 12 L21.526 6.5 A11 11 0 0 1 12 23 Z" fill="#FBBC04"/>' +
+          '<path d="M12 12 L12 23 A11 11 0 0 1 2.474 6.5 Z" fill="#34A853"/>' +
+          '<circle cx="12" cy="12" r="5" fill="#161822"/>' +
+          '<circle cx="12" cy="12" r="4" fill="#4285F4"/>' +
+          "</svg>",
+        gemini:
+          '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
+          '<defs><linearGradient id="gemGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4285F4"/><stop offset="1" stop-color="#A972FF"/></linearGradient></defs>' +
+          '<path fill="url(#gemGrad)" d="M12 2c.3 5.3 1.7 8.7 8 10-6.3 1.3-7.7 4.7-8 10-.3-5.3-1.7-8.7-8-10 6.3-1.3 7.7-4.7 8-10z"/>' +
+          "</svg>",
+        sites:
+          '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
+          '<rect x="4" y="3.5" width="16" height="17" rx="2.2" fill="#4285F4"/>' +
+          '<rect x="6.2" y="6" width="11.6" height="2.4" rx="1.2" fill="#fff"/>' +
+          '<rect x="6.2" y="10" width="6" height="6.5" rx="1" fill="#fff"/>' +
+          '<rect x="13.4" y="10" width="4.4" height="2.4" rx="1.2" fill="#fff"/>' +
+          '<rect x="13.4" y="13.9" width="4.4" height="2.6" rx="1.2" fill="#fff"/>' +
+          "</svg>",
+      };
+
+      // ring period in seconds (inner fastest)
+      const ITEMS = [
+        { key: "drive", R: 160, period: 12, th: 0 },
+        { key: "docs", R: 320, period: 24, th: 60 },
+        { key: "slides", R: 240, period: 18, th: 120 },
+        { key: "chrome", R: 160, period: 12, th: 180 },
+        { key: "gemini", R: 320, period: 24, th: 240 },
+        { key: "sites", R: 240, period: 18, th: 300 },
+      ];
+
+      document.getElementById("gmark").innerHTML = G_SVG;
+
+      const orbiters = [],
+        pops = [],
+        blooms = [],
+        spokes = [];
+      ITEMS.forEach((it) => {
+        const orb = document.createElement("div");
+        orb.className = "orbiter";
+        const pop = document.createElement("div");
+        pop.className = "pop";
+        const bloom = document.createElement("div");
+        bloom.className = "bloom";
+        const badge = document.createElement("div");
+        badge.className = "badge";
+        badge.innerHTML = ICON_SVG[it.key];
+        pop.appendChild(bloom);
+        pop.appendChild(badge);
+        orb.appendChild(pop);
+        stage.appendChild(orb);
+        orbiters.push(orb);
+        pops.push(pop);
+        blooms.push(bloom);
+
+        const sp = document.createElementNS(SVGNS, "line");
+        sp.setAttribute("class", "spoke");
+        spokesG.appendChild(sp);
+        spokes.push(sp);
+      });
+
+      const posXY = (R, th) => {
+        const a = (th * Math.PI) / 180;
+        return { x: CX + R * Math.sin(a), y: CY - R * Math.cos(a) };
+      };
+      function setSpoke(i, th) {
+        const it = ITEMS[i];
+        const a = (th * Math.PI) / 180;
+        const s = Math.sin(a),
+          c = Math.cos(a);
+        const r1 = 54,
+          r2 = it.R - 32;
+        spokes[i].setAttribute("x1", CX + r1 * s);
+        spokes[i].setAttribute("y1", CY - r1 * c);
+        spokes[i].setAttribute("x2", CX + r2 * s);
+        spokes[i].setAttribute("y2", CY - r2 * c);
+      }
+      function placeOrbiter(i, th) {
+        const p = posXY(ITEMS[i].R, th);
+        orbiters[i].style.transform = `translate(${p.x}px, ${p.y}px)`;
+      }
+
+      ITEMS.forEach((it, i) => {
+        placeOrbiter(i, it.th);
+        setSpoke(i, it.th);
+        const len = it.R - 32 - 54;
+        spokes[i].style.strokeDasharray = len;
+        spokes[i].style.strokeDashoffset = len;
+        gsap.set(pops[i], { scale: 0, autoAlpha: 0 });
+      });
+
+      const ORBIT_START = 4.2;
+      const ORBIT_DUR = 11.8; // ends at 16s
+
+      function updateOrbit(p) {
+        const elapsed = p * ORBIT_DUR;
+        for (let i = 0; i < ITEMS.length; i++) {
+          const it = ITEMS[i];
+          const th = (((it.th + 360 * (elapsed / it.period)) % 360) + 360) % 360;
+          placeOrbiter(i, th);
+          // pulse as it passes 12 o'clock: scale bump + glow intensification
+          const dist = Math.min(th, 360 - th);
+          const bump = Math.exp(-((dist / 9) * (dist / 9)));
+          pops[i].style.transform = `scale(${1 + 0.08 * bump})`;
+          blooms[i].style.transform = `scale(${1 + 0.28 * bump})`;
+        }
+      }
+
       const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
+
+      // 1) G + bloom + rings fade in; G scales 0.94 -> 1.
+      tl.fromTo("#gmark", { scale: 0.94, autoAlpha: 0 }, { scale: 1, autoAlpha: 1, duration: 12 / 30, ease: "power2.out" }, 0);
+      tl.from("#gbloom", { autoAlpha: 0, duration: 18 / 30, ease: "power2.out" }, 0);
+      tl.from("#rings", { autoAlpha: 0, duration: 14 / 30, ease: "power2.out" }, 0);
+
+      // 2) Badges spring in clockwise (overshoot pop); spoke draws as each lands.
+      const ENTRY0 = 0.5,
+        STAG = 14 / 30,
+        SPRING = 10 / 30,
+        SPOKE = 8 / 30;
+      ITEMS.forEach((it, i) => {
+        const t = ENTRY0 + i * STAG;
+        tl.fromTo(pops[i], { scale: 0, autoAlpha: 0 }, { scale: 1, autoAlpha: 1, duration: SPRING, ease: "back.out(1.7)", transformOrigin: "center center" }, t);
+        tl.to(spokes[i], { strokeDashoffset: 0, duration: SPOKE, ease: "power2.out" }, t + SPRING);
+      });
+
+      // 3) Once all placed, the six spokes fade out together over 20 frames.
+      const lastSpokeEnd = ENTRY0 + 5 * STAG + SPRING + SPOKE;
+      tl.to("#spokes", { autoAlpha: 0, duration: 20 / 30, ease: "power1.inOut" }, lastSpokeEnd + 0.1);
+
+      // 4) Planetary drift: inner 12s/rev, middle 18s, outer 24s. No spokes.
+      const orbit = { p: 0 };
+      tl.to(orbit, { p: 1, duration: ORBIT_DUR, ease: "none", onUpdate: () => updateOrbit(orbit.p) }, ORBIT_START);
+
       window.__timelines["main"] = tl;
     </script>
   </body>
