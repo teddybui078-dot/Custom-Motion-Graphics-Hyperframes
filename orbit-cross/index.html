@@ -16,7 +16,79 @@
         width: 1920px;
         height: 1080px;
         overflow: hidden;
-        background: #000;
+        background: #000000;
+        font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+      }
+      .stage {
+        position: absolute;
+        inset: 0;
+      }
+      /* canvas-bounded layer that holds ONLY the closing text, so the text's
+         container box never includes the off-frame spheres */
+      .textlayer {
+        position: absolute;
+        inset: 0;
+        z-index: 4;
+      }
+      .geo {
+        position: absolute;
+        inset: 0;
+        width: 1920px;
+        height: 1080px;
+        visibility: hidden; /* used only for path geometry */
+      }
+      .fx {
+        position: absolute;
+        inset: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: visible;
+        z-index: 3;
+      }
+      .pulse {
+        fill: none;
+        stroke: rgba(255, 255, 255, 0.85);
+        stroke-width: 2.5;
+      }
+      /* spheres: centered on their (x,y) via the -48 margins, moved with transform */
+      .sphere {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 96px;
+        height: 96px;
+        margin-left: -48px;
+        margin-top: -48px;
+        border-radius: 50%;
+        z-index: 2;
+        will-change: transform, opacity;
+      }
+      .s1,
+      .ghost {
+        background: radial-gradient(circle at 50% 50%, #ffffff 0%, #fbfbfc 34%, #cbccd1 100%);
+      }
+      .s1 {
+        box-shadow: 0 0 26px rgba(255, 255, 255, 0.1);
+      }
+      .s2 {
+        background: radial-gradient(circle at 50% 50%, #fff6ee 0%, #f6e7d5 38%, #d8c2a8 100%);
+        box-shadow: 0 0 26px rgba(255, 226, 200, 0.1);
+      }
+      .ghost {
+        z-index: 1;
+      }
+      .type {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 900px;
+        text-align: center;
+        z-index: 4;
+        color: #ededf0;
+        font-size: 46px;
+        font-weight: 300;
+        letter-spacing: 2px;
+        white-space: nowrap;
       }
     </style>
   </head>
@@ -25,26 +97,167 @@
       id="root"
       data-composition-id="main"
       data-start="0"
-      data-duration="10"
+      data-duration="14"
       data-width="1920"
       data-height="1080"
     >
-      
-      
+      <div class="stage" id="stage">
+        <!-- geometry paths (invisible) -->
+        <svg class="geo" data-layout-ignore viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg">
+          <path id="path1" d="M 560 360 C 980 360, 1480 560, 2040 740" fill="none" stroke="none" />
+          <path id="path2" d="M 180 1200 C 680 820, 1150 520, 2060 60" fill="none" stroke="none" />
+        </svg>
 
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
-        </div>
-      -->
+        <!-- pulse / fx layer -->
+        <svg class="fx" id="fx" viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg">
+          <circle class="pulse" id="pulse" cx="0" cy="0" r="6" />
+        </svg>
+
+        <!-- spheres + ghosts + type built by the script -->
+      </div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
+      const stage = document.getElementById("stage");
+
+      const path1 = document.getElementById("path1");
+      const path2 = document.getElementById("path2");
+      const len1 = path1.getTotalLength();
+      const len2 = path2.getTotalLength();
+
+      const clamp01 = (x) => (x < 0 ? 0 : x > 1 ? 1 : x);
+      const smooth = (a, b, x) => {
+        const t = clamp01((x - a) / (b - a));
+        return t * t * (3 - 2 * t);
+      };
+      const ptAt = (path, len, f) => path.getPointAtLength(len * clamp01(f));
+
+      // ----- spheres + comet-tail ghosts -----
+      const N = 9; // ghost copies
+      const ghosts = [];
+      for (let k = 0; k < N; k++) {
+        const g = document.createElement("div");
+        g.className = "sphere ghost";
+        g.setAttribute("data-layout-ignore", ""); // decorative, travels off-frame
+        g.style.opacity = 0;
+        stage.appendChild(g);
+        ghosts.push(g);
+      }
+      const s1 = document.createElement("div");
+      s1.className = "sphere s1";
+      s1.setAttribute("data-layout-ignore", "");
+      stage.appendChild(s1);
+
+      const s2 = document.createElement("div");
+      s2.className = "sphere s2";
+      s2.setAttribute("data-layout-ignore", "");
+      stage.appendChild(s2);
+
+      const setXY = (el, x, y, s) => {
+        el.style.transform = `translate(${x}px, ${y}px) scale(${s == null ? 1 : s})`;
+      };
+
+      // ----- compute the true intersection of the two paths -----
+      const M = 500;
+      const pts1 = [];
+      const pts2 = [];
+      for (let i = 0; i <= M; i++) {
+        pts1.push(path1.getPointAtLength((len1 * i) / M));
+        pts2.push(path2.getPointAtLength((len2 * i) / M));
+      }
+      let best = 1e18,
+        bi = 0,
+        bj = 0;
+      for (let i = 0; i <= M; i++) {
+        for (let j = 0; j <= M; j++) {
+          const dx = pts1[i].x - pts2[j].x;
+          const dy = pts1[i].y - pts2[j].y;
+          const d = dx * dx + dy * dy;
+          if (d < best) {
+            best = d;
+            bi = i;
+            bj = j;
+          }
+        }
+      }
+      const CROSS = { x: (pts1[bi].x + pts2[bj].x) / 2, y: (pts1[bi].y + pts2[bj].y) / 2 };
+      const f2cross = bj / M; // length-fraction along path2 at the crossing
+
+      // place pulse + type at the crossing
+      const pulse = document.getElementById("pulse");
+      pulse.setAttribute("cx", CROSS.x);
+      pulse.setAttribute("cy", CROSS.y);
+
+      const textLayer = document.createElement("div");
+      textLayer.className = "textlayer";
+      stage.appendChild(textLayer);
+
+      const type = document.createElement("div");
+      type.className = "type";
+      type.style.left = CROSS.x - 450 + "px"; // 900px centered box
+      type.style.top = CROSS.y - 32 + "px";
+      type.textContent = "Some paths cross only once.";
+      textLayer.appendChild(type);
+
+      // ----- progress drivers -----
+      const p1 = { v: 0 };
+      const p2 = { v: 0 };
+
+      function updateS1() {
+        const p = p1.v;
+        const m = ptAt(path1, len1, p);
+        setXY(s1, m.x, m.y, 1);
+        // comet tail materializes in the center third, gone by exit
+        const ta = smooth(0.22, 0.4, p) * (1 - smooth(0.72, 1.0, p));
+        for (let k = 0; k < N; k++) {
+          const gp = p - (k + 1) * 0.012;
+          const g = ptAt(path1, len1, gp);
+          const sc = 1 - (k + 1) * 0.05;
+          ghosts[k].style.transform = `translate(${g.x}px, ${g.y}px) scale(${sc})`;
+          ghosts[k].style.opacity = ta * (1 - (k + 1) / (N + 1)) * 0.55;
+        }
+      }
+      function updateS2() {
+        const m = ptAt(path2, len2, p2.v);
+        setXY(s2, m.x, m.y, 1);
+      }
+
+      // initial positions / hidden states
+      updateS1();
+      updateS2();
+      gsap.set(s2, { autoAlpha: 0 });
+      gsap.set(pulse, { autoAlpha: 0 });
+      gsap.set(type, { autoAlpha: 0 });
+
       const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
+
+      // 1) Sphere 1: an almost-imperceptible start, then a long wide arc across, exit right.
+      const s1Start = 0.5;
+      const s1Dur = 6.0;
+      tl.to(p1, { v: 1, duration: s1Dur, ease: "power1.in", onUpdate: updateS1 }, s1Start);
+
+      // 2) Sphere 2: enters bottom-left, different arc, constant pace, exits top-right.
+      const s2Start = 6.8;
+      const s2Dur = 3.8;
+      tl.set(s2, { autoAlpha: 1 }, s2Start);
+      tl.to(p2, { v: 1, duration: s2Dur, ease: "none", onUpdate: updateS2 }, s2Start);
+      tl.set(s2, { autoAlpha: 0 }, s2Start + s2Dur); // fully offscreen by now
+
+      // 3) Single ring pulse exactly where the paths cross (constant speed -> time = f*dur).
+      const pulseT = s2Start + s2Dur * f2cross;
+      tl.fromTo(
+        pulse,
+        { attr: { r: 8 }, autoAlpha: 0.85 },
+        { attr: { r: 78 }, autoAlpha: 0, duration: 0.85, ease: "power2.out", immediateRender: false },
+        pulseT
+      );
+
+      // 4) Canvas returns to black, then one line of type fades in at the crossing, holds, fades out.
+      const typeIn = s2Start + s2Dur + 0.7; // ~11.3
+      tl.fromTo(type, { autoAlpha: 0, y: 8 }, { autoAlpha: 1, y: 0, duration: 0.9, ease: "power2.out" }, typeIn);
+      tl.to(type, { autoAlpha: 0, duration: 0.9, ease: "power2.in" }, typeIn + 0.9 + 1.0);
+
       window.__timelines["main"] = tl;
     </script>
   </body>
