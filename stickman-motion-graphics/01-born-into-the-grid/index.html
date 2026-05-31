@@ -5,19 +5,24 @@
     <meta name="viewport" content="width=1920, height=1080" />
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
     <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        margin: 0; width: 1920px; height: 1080px; overflow: hidden;
+        background: #ffffff;
+        font-family: "JetBrains Mono", monospace;
       }
-      html,
-      body {
-        margin: 0;
-        width: 1920px;
-        height: 1080px;
-        overflow: hidden;
-        background: #000;
+      .stage { position: absolute; inset: 0; overflow: hidden; }
+
+      /* the whole grid lives in #world; the camera pull-back is a scale on this. */
+      #world { position: absolute; transform-origin: center center; }
+      .cell { position: absolute; }
+
+      .house { fill: #f6e7a6; stroke: #e7d488; stroke-width: 1.5; }
+      .fig {
+        fill: none; stroke: #adadb5; stroke-width: 3;
+        stroke-linecap: round; stroke-linejoin: round;
       }
+      .fig.blue { stroke: #2563eb; }
     </style>
   </head>
   <body>
@@ -25,26 +30,122 @@
       id="root"
       data-composition-id="main"
       data-start="0"
-      data-duration="10"
+      data-duration="12"
       data-width="1920"
       data-height="1080"
     >
-      
-      
-
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
-        </div>
-      -->
+      <div class="stage">
+        <div id="world" data-layout-allow-overflow></div>
+      </div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
+      const world = document.getElementById("world");
+
+      // ---------- grid geometry ----------
+      const COLS = 23, ROWS = 13, CELL = 120;
+      const W = COLS * CELL, H = ROWS * CELL; // 2760 x 1560
+      const CX = 11, CY = 6;                  // centre cell (also world centre)
+      world.style.width = W + "px";
+      world.style.height = H + "px";
+      world.style.left = 960 - W / 2 + "px";  // world centre on frame centre
+      world.style.top = 540 - H / 2 + "px";
+
+      // a single gray stickman + house, identical in every neighbouring box
+      function grayCell() {
+        return (
+          '<svg viewBox="0 0 120 120" width="120" height="120">' +
+          '<path class="house" d="M20,52 L60,24 L100,52 L100,100 L20,100 Z"/>' +
+          '<g class="fig g">' +
+          '<circle cx="60" cy="58" r="7"/>' +
+          '<line x1="60" y1="65" x2="60" y2="84"/>' +
+          '<line x1="60" y1="69" x2="50" y2="77"/>' +
+          '<line x1="60" y1="69" x2="70" y2="77"/>' +
+          '<line x1="60" y1="84" x2="52" y2="96"/>' +
+          '<line x1="60" y1="84" x2="68" y2="96"/>' +
+          "</g></svg>"
+        );
+      }
+
+      // blue parts get built as real nodes so each limb can be "drawn on"
+      const SVGNS = "http://www.w3.org/2000/svg";
+      let blueParts = null; // { head, body, armL, armR, legL, legR, fig }
+      function blueCell(cellDiv) {
+        const svg = document.createElementNS(SVGNS, "svg");
+        svg.setAttribute("viewBox", "0 0 120 120");
+        svg.setAttribute("width", "120");
+        svg.setAttribute("height", "120");
+        const house = document.createElementNS(SVGNS, "path");
+        house.setAttribute("class", "house");
+        house.setAttribute("d", "M20,52 L60,24 L100,52 L100,100 L20,100 Z");
+        svg.appendChild(house);
+        const fig = document.createElementNS(SVGNS, "g");
+        fig.setAttribute("class", "fig blue");
+        const mk = (tag, attrs) => {
+          const el = document.createElementNS(SVGNS, tag);
+          for (const k in attrs) el.setAttribute(k, attrs[k]);
+          el.setAttribute("pathLength", "1");
+          el.style.strokeDasharray = "1";
+          el.style.strokeDashoffset = "1"; // hidden until drawn on
+          fig.appendChild(el);
+          return el;
+        };
+        const head = mk("circle", { cx: 60, cy: 58, r: 7 });
+        const body = mk("line", { x1: 60, y1: 65, x2: 60, y2: 84 });
+        const armL = mk("line", { x1: 60, y1: 69, x2: 50, y2: 77 });
+        const armR = mk("line", { x1: 60, y1: 69, x2: 70, y2: 77 });
+        const legL = mk("line", { x1: 60, y1: 84, x2: 52, y2: 96 });
+        const legR = mk("line", { x1: 60, y1: 84, x2: 68, y2: 96 });
+        svg.appendChild(fig);
+        cellDiv.appendChild(svg);
+        blueParts = { head, body, armL, armR, legL, legR, fig };
+      }
+
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const cell = document.createElement("div");
+          cell.className = "cell";
+          cell.style.left = c * CELL + "px";
+          cell.style.top = r * CELL + "px";
+          cell.style.width = CELL + "px";
+          cell.style.height = CELL + "px";
+          if (c === CX && r === CY) blueCell(cell);
+          else cell.innerHTML = grayCell();
+          world.appendChild(cell);
+        }
+      }
+
+      // ---------- timeline ----------
       const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
+      const START_SCALE = 3.2;   // born: zoomed in on the centre box
+      const END_SCALE = 0.72;    // pulled back: hundreds of identical boxes
+      gsap.set(world, { scale: START_SCALE });
+
+      // 1) born into the grid — a circle first, then arms, legs, and finally a body,
+      //    each limb drawn on like a child's sketch coming to life.
+      const B = blueParts;
+      tl.to(B.head, { strokeDashoffset: 0, duration: 0.45, ease: "power1.inOut" }, 0.5);
+      tl.to([B.armL, B.armR], { strokeDashoffset: 0, duration: 0.45, ease: "power1.inOut" }, 1.1);
+      tl.to([B.legL, B.legR], { strokeDashoffset: 0, duration: 0.45, ease: "power1.inOut" }, 1.8);
+      tl.to(B.body, { strokeDashoffset: 0, duration: 0.5, ease: "power1.inOut" }, 2.5);
+
+      // 2) the camera slowly pulls back, the grid expanding as it retreats.
+      tl.to(world, { scale: END_SCALE, duration: 4.4, ease: "power1.inOut" }, 3.6);
+
+      // 3) he looks left, then right — and every stickman in every box does
+      //    exactly the same, in perfect synchrony.
+      const ORIGIN = "60 92"; // feet, in each cell's local SVG units
+      tl.to(".fig", { rotation: -12, svgOrigin: ORIGIN, duration: 0.5, ease: "power1.inOut" }, 8.4);
+      tl.to(".fig", { rotation: 0, svgOrigin: ORIGIN, duration: 0.5, ease: "power1.inOut" }, 9.0);
+      tl.to(".fig", { rotation: 12, svgOrigin: ORIGIN, duration: 0.5, ease: "power1.inOut" }, 9.6);
+      tl.to(".fig", { rotation: 0, svgOrigin: ORIGIN, duration: 0.5, ease: "power1.inOut" }, 10.2);
+
+      // 4) he pauses. they don't — the gray boxes take one more synchronized look
+      //    while the blue stickman stays perfectly still.
+      tl.to(".fig.g", { rotation: -12, svgOrigin: ORIGIN, duration: 0.5, ease: "power1.inOut" }, 10.9);
+      tl.to(".fig.g", { rotation: 0, svgOrigin: ORIGIN, duration: 0.5, ease: "power1.inOut" }, 11.5);
+
       window.__timelines["main"] = tl;
     </script>
   </body>
