@@ -16,7 +16,66 @@
         width: 1920px;
         height: 1080px;
         overflow: hidden;
-        background: #000;
+        background: #ffffff;
+        font-family: "JetBrains Mono", monospace;
+      }
+      .stage {
+        position: absolute;
+        inset: 0;
+      }
+
+      /* arrows live behind the nodes so the line tucks under each node edge */
+      .wires {
+        position: absolute;
+        inset: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: visible;
+        z-index: 1;
+      }
+      .wire {
+        fill: none;
+        stroke: #1d1d1f;
+        stroke-width: 4;
+        stroke-linecap: round;
+      }
+      .head {
+        fill: #1d1d1f;
+      }
+
+      /* node — rounded rectangle, wider than tall, label sits inside */
+      .node {
+        position: absolute;
+        width: 200px;
+        height: 88px;
+        border-radius: 20px;
+        background: #ffffff;
+        border: 1.5px solid #e3e3e8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transform-origin: center center;
+        z-index: 2;
+        box-shadow:
+          0 16px 34px rgba(17, 17, 26, 0.08),
+          0 4px 12px rgba(17, 17, 26, 0.05);
+      }
+      .node .lbl {
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        color: #1d1d1f;
+      }
+
+      /* 200 OK badge above RETURN — green monospace */
+      .ok {
+        position: absolute;
+        text-align: center;
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        color: #34c759;
+        z-index: 3;
       }
     </style>
   </head>
@@ -25,26 +84,171 @@
       id="root"
       data-composition-id="main"
       data-start="0"
-      data-duration="10"
+      data-duration="9"
       data-width="1920"
       data-height="1080"
     >
-      
-      
-
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
-        </div>
-      -->
+      <div class="stage" id="stage">
+        <!-- nodes, labels, wires and the badge are built by the script -->
+      </div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
+      const SVGNS = "http://www.w3.org/2000/svg";
+      const stage = document.getElementById("stage");
+
+      // ---------- layout ----------
+      const COLS = [260, 540, 820, 1100, 1380, 1660]; // node centers, evenly spaced
+      const NODE_Y = 520;
+      const NODE_W = 200;
+      const NODE_H = 88;
+      const HALF_W = NODE_W / 2;
+      const GREEN = "#34c759";
+      const INK = "#1d1d1f";
+
+      const LABELS = ["POST", "GET", "AUTH", "PARSE", "CACHE", "RETURN"];
+
+      const nodeEls = [];
+      const labelEls = [];
+
+      LABELS.forEach((text, i) => {
+        const node = document.createElement("div");
+        node.className = "node";
+        node.style.left = COLS[i] - HALF_W + "px";
+        node.style.top = NODE_Y - NODE_H / 2 + "px";
+
+        const lbl = document.createElement("div");
+        lbl.className = "lbl";
+        lbl.textContent = text;
+        node.appendChild(lbl);
+
+        stage.appendChild(node);
+        nodeEls.push(node);
+        labelEls.push(lbl);
+      });
+
+      // ---------- arrow layer (lines + traveling heads) ----------
+      const wires = document.createElementNS(SVGNS, "svg");
+      wires.setAttribute("class", "wires");
+      wires.setAttribute("viewBox", "0 0 1920 1080");
+      stage.appendChild(wires);
+
+      const segs = []; // { x1, x2, len, line, head }
+      for (let i = 0; i < COLS.length - 1; i++) {
+        const x1 = COLS[i] + HALF_W; // right edge of node i
+        const x2 = COLS[i + 1] - HALF_W; // left edge of node i+1
+        const len = x2 - x1;
+
+        const line = document.createElementNS(SVGNS, "line");
+        line.setAttribute("class", "wire");
+        line.setAttribute("x1", x1);
+        line.setAttribute("y1", NODE_Y);
+        line.setAttribute("x2", x2);
+        line.setAttribute("y2", NODE_Y);
+        line.style.strokeDasharray = len;
+        line.style.strokeDashoffset = len; // fully hidden until drawn
+        wires.appendChild(line);
+
+        // arrowhead: filled triangle whose tip sits at the group origin,
+        // so translating the group in x places the tip exactly at the line tip.
+        const head = document.createElementNS(SVGNS, "g");
+        head.setAttribute("class", "head");
+        const tri = document.createElementNS(SVGNS, "polygon");
+        tri.setAttribute("points", "0,0 -15,-8 -15,8");
+        head.appendChild(tri);
+        wires.appendChild(head);
+
+        segs.push({ x1, x2, len, line, head });
+      }
+
+      // ---------- 200 OK badge ----------
+      const ok = document.createElement("div");
+      ok.className = "ok";
+      ok.textContent = "200 OK";
+      ok.style.width = "240px";
+      ok.style.left = COLS[5] - 120 + "px";
+      ok.style.top = NODE_Y - NODE_H / 2 - 64 + "px";
+      ok.textContent = "200 OK";
+      stage.appendChild(ok);
+
+      // ---------- initial hidden states ----------
+      gsap.set(labelEls, { autoAlpha: 0 });
+      segs.forEach((s) => gsap.set(s.head, { autoAlpha: 0, x: s.x1, y: NODE_Y }));
+      gsap.set(ok, { autoAlpha: 0 });
+
       const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
+
+      // ===== 1) nodes spring in, one at a time, left -> right =====
+      // each node pops with a single overshoot; its label fades in the instant it settles.
+      const POP_START = 0.4;
+      const POP_STAG = 0.36;
+      const POP_DUR = 0.44;
+
+      LABELS.forEach((_, i) => {
+        const t = POP_START + i * POP_STAG;
+        tl.from(
+          nodeEls[i],
+          {
+            scale: 0,
+            autoAlpha: 0,
+            duration: POP_DUR,
+            ease: "back.out(2.2)",
+            transformOrigin: "center center",
+          },
+          t
+        );
+        // label lands exactly on the settle frame — not before, not after.
+        tl.to(
+          labelEls[i],
+          { autoAlpha: 1, duration: 0.22, ease: "power1.out" },
+          t + POP_DUR
+        );
+      });
+
+      // ===== 2) directional arrows, one connection at a time =====
+      // The head leads and the line is its trail. Duration is constant for every
+      // arrow, so the travel speed adjusts to the gap between nodes.
+      const CONN_START = 2.9;
+      const ARROW_DUR = 0.5; // identical for every arrow regardless of distance
+      const ARROW_GAP = 0.32;
+      const STEP = ARROW_DUR + ARROW_GAP;
+
+      let landT = 0;
+      segs.forEach((s, i) => {
+        const startT = CONN_START + i * STEP;
+        landT = startT + ARROW_DUR;
+
+        // line draws from node edge outward, linear (it is only the trail)
+        tl.to(s.line, { strokeDashoffset: 0, duration: ARROW_DUR, ease: "none" }, startT);
+
+        // head travels with the tip, arriving at the node edge as the line finishes
+        tl.set(s.head, { autoAlpha: 1 }, startT);
+        tl.fromTo(
+          s.head,
+          { x: s.x1 },
+          { x: s.x2, duration: ARROW_DUR, ease: "none", immediateRender: false },
+          startT
+        );
+      });
+
+      // ===== 3) RETURN lands: hard green flash for 4 frames, then back to white =====
+      const FLASH = 4 / 30; // exactly four frames at 30fps
+      tl.set(nodeEls[5], { backgroundColor: GREEN, borderColor: GREEN }, landT);
+      tl.set(labelEls[5], { color: "#ffffff" }, landT);
+      tl.set(nodeEls[5], { backgroundColor: "#ffffff", borderColor: "#e3e3e8" }, landT + FLASH);
+      tl.set(labelEls[5], { color: INK }, landT + FLASH);
+
+      // 200 OK materializes above RETURN in green, on the same beat — and holds.
+      tl.fromTo(
+        ok,
+        { autoAlpha: 0, y: 10 },
+        { autoAlpha: 1, y: 0, duration: 0.3, ease: "power2.out", immediateRender: false },
+        landT
+      );
+
+      // ===== 4) the chain holds to 9s. =====
+
       window.__timelines["main"] = tl;
     </script>
   </body>
