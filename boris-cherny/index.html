@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        /* Apple aluminium product surface — light, with a faint catch of light up top */
+        background: linear-gradient(180deg, #f6f6f8 0%, #ededf1 55%, #e3e3e9 100%);
+        font-family: "Helvetica Neue", "Inter", Arial, sans-serif;
+      }
+      .stage {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+      }
+      /* product-surface sheen — the light the bevels catch */
+      .sheen {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(58% 42% at 50% 24%, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0) 70%);
+        pointer-events: none;
+      }
+      /* the faintest vignette so the centre reads as raised */
+      .vignette {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(75% 75% at 50% 52%, rgba(0, 0, 0, 0) 55%, rgba(28, 32, 42, 0.05) 100%);
+        pointer-events: none;
+      }
+
+      /* every phrase sits centred; only one is visible at a time */
+      .line {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.26em;
+        white-space: nowrap;
+      }
+      .line.tertiary {
+        font-size: 28px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      .line.heavy {
+        font-size: 80px;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+      }
+      .line.hero {
+        font-size: 104px;
+        font-weight: 800;
+        letter-spacing: -0.035em;
+      }
+      .line.name {
+        font-size: 64px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+
+      /* ---- bevel & emboss, directly on the letterforms ----
+         --hi  = top white highlight opacity (animated for the arrival flash)
+         --lo  = bottom dark shadow opacity (animated for the exit lift)
+         the third layer is the extremely faint inner sheen (white, ~3px). */
+      .word {
+        display: inline-block;
+        transform-origin: 50% 50%;
+        color: #1d1d1f;
+        text-shadow:
+          0 -1px 0 rgba(255, 255, 255, var(--hi)),
+          0 1px 0 rgba(0, 0, 0, var(--lo)),
+          0 0 3px rgba(255, 255, 255, 0.1);
+        will-change: transform, opacity;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="27"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div class="stage" id="stage">
+        <div class="sheen"></div>
+        <div class="vignette"></div>
+        <!-- lines injected by the script -->
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const stage = document.getElementById("stage");
+
+      // ============================================================
+      // BASE: the "Boris Cherny" Apple text animation — an Apple-keynote
+      // identity reveal. Edit SCRIPT to change the words; every phrase
+      // builds strictly word by word per the treatment.
+      // ============================================================
+      const SCRIPT = [
+        { text: "Meet the maker.", tier: "tertiary", hold: 1.0 },
+        { text: "Engineer.", tier: "heavy", hold: 1.1 },
+        { text: "Author.", tier: "heavy", hold: 1.1 },
+        { text: "Builder.", tier: "heavy", hold: 1.1 },
+        { text: "And then —", tier: "tertiary", hold: 0.7 },
+        { text: "Claude Code.", tier: "hero", hold: 1.4 },
+        { text: "Agentic. Native. Yours.", tier: "tertiary", hold: 1.0 },
+        { text: "Built by one engineer.", tier: "tertiary", hold: 1.0 },
+        { text: "Boris Cherny", tier: "name", hold: 0 },
+      ];
+
+      // ---- bevel & flash spec per size tier ----
+      // heavy (≥72px) and hero carry the stronger bevel + stronger flash (70% / 4f).
+      // tertiary (28px) carries the softer bevel + normal flash (55% / 3f).
+      // name carries the lightest bevel of the whole sequence and NO arrival flash.
+      const TIERS = {
+        tertiary: { hi: 0.12, lo: 0.18, flash: { peak: 0.55, hold: 3 }, exit: true },
+        heavy: { hi: 0.28, lo: 0.36, flash: { peak: 0.7, hold: 4 }, exit: true },
+        hero: { hi: 0.28, lo: 0.36, flash: { peak: 0.7, hold: 4 }, exit: true },
+        name: { hi: 0.1, lo: 0.14, flash: null, exit: false },
+      };
+
+      // ---- timing (frames @ 30fps) ----
+      const F = 1 / 30;
+      const BUILD = 18 * F; // per-word materialise: opacity 0→1, scale 0.96→1, ease-out cubic
+      const STAGGER = 10 * F; // gap between consecutive words
+      const FLASH_BACK = 8 * F; // highlight eases back down over 8 frames
+      const EXIT_LIFT = 3 * F; // shadow intensifies for 3 frames before the word leaves
+      const EXIT_MOTION = 14 * F; // scale 1→1.04, opacity 1→0 over 14 frames
+      const PHRASE_GAP = 0.18; // breath between phrases
+      const START = 0.5;
+
+      // ---- build the DOM: one .line per phrase, one .word per word ----
+      const phrases = SCRIPT.map((p) => {
+        const tier = TIERS[p.tier];
+        const line = document.createElement("div");
+        line.className = "line " + p.tier;
+        line.setAttribute("data-layout-ignore", ""); // centred + stacked + animation-driven
+        const words = p.text.split(" ").map((token) => {
+          const w = document.createElement("span");
+          w.className = "word";
+          w.textContent = token;
+          line.appendChild(w);
+          return w;
+        });
+        stage.appendChild(line);
+        return { ...p, tier, words };
+      });
+
+      // ---- resting state: each word hidden, pre-scaled, bevel at its resting opacity ----
+      const tl = gsap.timeline({ paused: true });
+      phrases.forEach((p) => {
+        p.words.forEach((w) => {
+          gsap.set(w, {
+            autoAlpha: 0,
+            scale: 0.96,
+            transformOrigin: "50% 50%",
+            "--hi": p.tier.hi,
+            "--lo": p.tier.lo,
+          });
+        });
+      });
+
+      // ============================================================
+      // schedule every phrase, strictly word by word
+      // ============================================================
+      let t = START;
+      phrases.forEach((p) => {
+        const n = p.words.length;
+        const tier = p.tier;
+
+        p.words.forEach((w, i) => {
+          const wt = t + i * STAGGER;
+
+          // 1) materialise: opacity 0→1, scale 0.96→1.0, ease-out cubic over 18 frames
+          tl.fromTo(
+            w,
+            { autoAlpha: 0, scale: 0.96 },
+            { autoAlpha: 1, scale: 1, duration: BUILD, ease: "power3.out" },
+            wt
+          );
+
+          // 2) bevel flash on arrival — as the word lands at full scale, the highlight
+          //    jumps to its peak for a few frames, then eases back to its resting value
+          if (tier.flash) {
+            const land = wt + BUILD;
+            tl.set(w, { "--hi": tier.flash.peak }, land);
+            tl.to(w, { "--hi": tier.hi, duration: FLASH_BACK, ease: "power2.out" }, land + tier.flash.hold * F);
+          }
+        });
+
+        const lastLand = t + (n - 1) * STAGGER + BUILD;
+
+        if (tier.exit) {
+          // 3) exit bevel — shadow strokes intensify to 50% as the word lifts off the
+          //    surface, then the word leaves: scale 1.0→1.04, opacity 1→0 over 14 frames
+          const exitAt = lastLand + p.hold;
+          p.words.forEach((w) => {
+            tl.set(w, { "--lo": 0.5 }, exitAt);
+            tl.to(w, { autoAlpha: 0, scale: 1.04, duration: EXIT_MOTION, ease: "power2.in" }, exitAt + EXIT_LIFT);
+          });
+          t = exitAt + EXIT_LIFT + EXIT_MOTION + PHRASE_GAP;
+        } else {
+          // the closing name materialises softly and stays — no flash, no exit
+          t = lastLand;
+        }
+      });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
