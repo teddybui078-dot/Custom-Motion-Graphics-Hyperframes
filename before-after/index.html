@@ -16,7 +16,66 @@
         width: 1920px;
         height: 1080px;
         overflow: hidden;
-        background: #000;
+        background: #ffffff;
+        font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+      }
+      .stage {
+        position: absolute;
+        inset: 0;
+      }
+      .net {
+        position: absolute;
+        inset: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: visible;
+        z-index: 1;
+      }
+      .divider {
+        stroke: #cdced4;
+        stroke-width: 2.5;
+      }
+      .check {
+        fill: none;
+        stroke: #4f9d69;
+        stroke-width: 12;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .label {
+        position: absolute;
+        font-size: 30px;
+        font-weight: 500;
+        color: #6e6e73;
+        z-index: 2;
+        text-align: left;
+      }
+      .num {
+        position: absolute;
+        font-size: 44px;
+        font-weight: 700;
+        z-index: 2;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      .track {
+        position: absolute;
+        height: 30px;
+        border-radius: 15px;
+        background: #ededf0;
+        z-index: 2;
+      }
+      .bar {
+        position: absolute;
+        height: 30px;
+        border-radius: 15px;
+        z-index: 2;
+      }
+      .bar.red {
+        background: #b8534f;
+      }
+      .bar.green {
+        background: #4f9d69;
       }
     </style>
   </head>
@@ -29,22 +88,170 @@
       data-width="1920"
       data-height="1080"
     >
-      
-      
-
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
-        </div>
-      -->
+      <div class="stage" id="stage">
+        <!-- built by the script -->
+      </div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
+      const SVGNS = "http://www.w3.org/2000/svg";
+      const stage = document.getElementById("stage");
+
+      // ----- Layout -----
+      const CENTER = 960;
+      const LEFT_X = 130; //  left area start
+      const RIGHT_X = 1040; // right area start
+      const AREA_W = 720; //  area / bar-track width
+      const ROW_Y = [300, 490, 680]; // label/number top
+      const BAR_DY = 58; // bar offset below label
+      const BAR_H = 30;
+
+      const RED = "#b8534f";
+      const GREEN = "#4f9d69";
+
+      // ----- Metrics (left = before/high, right = after/low) -----
+      const metrics = [
+        { label: "Latency", before: 1240, after: 180, suffix: " ms", dec: 0, lf: 0.9, rf: 0.16 },
+        { label: "Error rate", before: 8.2, after: 0.4, suffix: "%", dec: 1, lf: 0.84, rf: 0.1 },
+        { label: "Cost / mo", before: 9800, after: 1150, money: true, dec: 0, lf: 0.95, rf: 0.22 },
+      ];
+
+      const addCommas = (n) => n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+      function fmt(m, v) {
+        if (m.money) return "$" + addCommas(Math.round(v));
+        if (m.dec > 0) return v.toFixed(m.dec) + (m.suffix || "");
+        return Math.round(v) + (m.suffix || "");
+      }
+
+      // ----- SVG layer: divider + checkmark -----
+      const net = document.createElementNS(SVGNS, "svg");
+      net.setAttribute("class", "net");
+      net.setAttribute("viewBox", "0 0 1920 1080");
+      stage.appendChild(net);
+
+      const divider = document.createElementNS(SVGNS, "line");
+      divider.setAttribute("class", "divider");
+      divider.setAttribute("x1", CENTER);
+      divider.setAttribute("y1", 0);
+      divider.setAttribute("x2", CENTER);
+      divider.setAttribute("y2", 1080);
+      net.appendChild(divider);
+      const divLen = 1080;
+      divider.style.strokeDasharray = divLen;
+      divider.style.strokeDashoffset = divLen;
+
+      const check = document.createElementNS(SVGNS, "path");
+      check.setAttribute("class", "check");
+      check.setAttribute("d", "M 1352 858 L 1404 912 L 1500 800");
+      net.appendChild(check);
+      const checkLen = check.getTotalLength();
+      check.style.strokeDasharray = checkLen;
+      check.style.strokeDashoffset = checkLen;
+
+      // ----- Build the two sides -----
+      // returns { labels, nums, tracks, bars }
+      function buildSide(areaX, colorClass, valueKey, fracKey, numColor) {
+        const labels = [];
+        const nums = [];
+        const tracks = [];
+        const bars = [];
+        metrics.forEach((m, i) => {
+          const y = ROW_Y[i];
+
+          const label = document.createElement("div");
+          label.className = "label";
+          label.style.left = areaX + "px";
+          label.style.top = y + "px";
+          label.style.width = AREA_W + "px";
+          label.textContent = m.label;
+          stage.appendChild(label);
+          labels.push(label);
+
+          const num = document.createElement("div");
+          num.className = "num";
+          num.style.left = areaX + "px";
+          num.style.top = y - 6 + "px";
+          num.style.width = AREA_W + "px";
+          num.style.color = numColor;
+          num.textContent = fmt(m, m[valueKey]);
+          stage.appendChild(num);
+          nums.push(num);
+
+          const track = document.createElement("div");
+          track.className = "track";
+          track.style.left = areaX + "px";
+          track.style.top = y + BAR_DY + "px";
+          track.style.width = AREA_W + "px";
+          stage.appendChild(track);
+          tracks.push(track);
+
+          const bar = document.createElement("div");
+          bar.className = "bar " + colorClass;
+          bar.style.left = areaX + "px";
+          bar.style.top = y + BAR_DY + "px";
+          bar.style.width = "0px";
+          bar.dataset.target = AREA_W * m[fracKey];
+          stage.appendChild(bar);
+          bars.push(bar);
+        });
+        return { labels, nums, tracks, bars };
+      }
+
+      const left = buildSide(LEFT_X, "red", "before", "lf", RED);
+      const right = buildSide(RIGHT_X, "green", "after", "rf", GREEN);
+      // the right numbers start showing the BEFORE value (they count down later)
+      right.nums.forEach((n, i) => (n.textContent = fmt(metrics[i], metrics[i].before)));
+
       const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
+
+      // 1) Divider draws top -> bottom at a steady pace.
+      tl.to(divider, { strokeDashoffset: 0, duration: 1.2, ease: "none" }, 0.2);
+
+      // helper: build one row's label/number/track/bar
+      function buildRow(side, i, t) {
+        tl.from([side.labels[i], side.nums[i], side.tracks[i]], { autoAlpha: 0, y: 10, duration: 0.4, ease: "power2.out" }, t);
+        tl.fromTo(
+          side.bars[i],
+          { width: 0 },
+          { width: parseFloat(side.bars[i].dataset.target), duration: 0.6, ease: "power2.out" },
+          t + 0.28
+        );
+      }
+
+      // 2) Left side builds, one row at a time, staggered.
+      const leftStart = 1.55;
+      const stag = 0.45;
+      metrics.forEach((m, i) => buildRow(left, i, leftStart + i * stag));
+
+      // 3) Right side builds the same way (short green bars).
+      const rightStart = leftStart + 3 * stag + 0.25; // after left finishes
+      metrics.forEach((m, i) => buildRow(right, i, rightStart + i * stag));
+
+      // 4) Right numbers count down from BEFORE -> AFTER simultaneously, ease out.
+      const countStart = rightStart + 3 * stag + 0.55;
+      metrics.forEach((m, i) => {
+        const c = { v: m.before };
+        tl.to(
+          c,
+          {
+            v: m.after,
+            duration: 1.7,
+            ease: "power2.out",
+            onUpdate: () => {
+              right.nums[i].textContent = fmt(m, c.v);
+            },
+          },
+          countStart
+        );
+      });
+
+      // 5) Checkmark draws as one continuous stroke below the right metrics.
+      const checkStart = countStart + 1.7 + 0.25;
+      tl.to(check, { strokeDashoffset: 0, duration: 0.8, ease: "power2.inOut" }, checkStart);
+
+      // 6) Scene holds to 10s.
+
       window.__timelines["main"] = tl;
     </script>
   </body>
