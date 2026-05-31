@@ -16,7 +16,85 @@
         width: 1920px;
         height: 1080px;
         overflow: hidden;
-        background: #000;
+        background: #f5f5f7;
+        font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+        color: #1d1d1f;
+      }
+      .stage {
+        position: absolute;
+        inset: 0;
+      }
+
+      /* Metric card */
+      .card {
+        position: absolute;
+        width: 420px;
+        height: 420px;
+        border-radius: 32px;
+        background: #ffffff;
+        box-shadow:
+          0 30px 60px rgba(17, 17, 26, 0.06),
+          0 8px 20px rgba(17, 17, 26, 0.05);
+      }
+      .ring {
+        position: absolute;
+        left: 60px;
+        top: 40px;
+        width: 300px;
+        height: 300px;
+      }
+      .ring .track {
+        fill: none;
+        stroke: #ececed;
+        stroke-width: 8;
+      }
+      .ring .arc {
+        fill: none;
+        stroke-width: 8;
+        stroke-linecap: round;
+      }
+      .value {
+        position: absolute;
+        left: 0;
+        top: 120px;
+        width: 100%;
+        text-align: center;
+        font-size: 84px;
+        font-weight: 700;
+        letter-spacing: -2px;
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+      }
+      .value .unit {
+        font-weight: 700;
+      }
+      .label {
+        position: absolute;
+        left: 0;
+        top: 224px;
+        width: 100%;
+        text-align: center;
+        font-size: 25px;
+        font-weight: 600;
+        letter-spacing: 6px;
+        padding-left: 6px; /* offset trailing letter-spacing to recenter */
+        text-transform: uppercase;
+        color: #86868b;
+      }
+
+      /* Horizontal rule + descriptors */
+      .rule {
+        position: absolute;
+        height: 2px;
+        background: #d2d2d7;
+      }
+      .desc {
+        position: absolute;
+        text-align: center;
+        font-size: 25px;
+        font-weight: 400;
+        line-height: 1.45;
+        color: #515154;
       }
     </style>
   </head>
@@ -25,26 +103,190 @@
       id="root"
       data-composition-id="main"
       data-start="0"
-      data-duration="10"
+      data-duration="7"
       data-width="1920"
       data-height="1080"
     >
-      
-      
-
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
-        </div>
-      -->
+      <div class="stage" id="stage">
+        <!-- cards, rule, descriptors built by the script -->
+      </div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
+      const SVGNS = "http://www.w3.org/2000/svg";
+      const stage = document.getElementById("stage");
+
+      // ----- Layout constants -----
+      const COLS = [480, 960, 1440]; // column center x
+      const CARD_W = 420;
+      const CARD_H = 420;
+      const CARD_TOP = 210;
+      const RING_R = 140; // inside the 300x300 ring svg
+      const C = 2 * Math.PI * RING_R; // circumference
+      const RULE_Y = 690;
+      const RULE_X1 = 360;
+      const RULE_X2 = 1560;
+      const DESC_Y = 752;
+
+      const metrics = [
+        {
+          target: 10,
+          decimals: 0,
+          unit: "×", // ×
+          label: "faster",
+          accent: "#2f6bff",
+          desc: "Renders that used to take hours now finish in minutes.",
+        },
+        {
+          target: 99.9,
+          decimals: 1,
+          unit: "%",
+          label: "uptime",
+          accent: "#12b5a6",
+          desc: "Always-on reliability your whole team can count on.",
+        },
+        {
+          target: 2,
+          decimals: 0,
+          unit: "M+",
+          label: "users",
+          accent: "#ff5d52",
+          desc: "Trusted by millions of people across the globe.",
+        },
+      ];
+
+      const fmt = (v, d) => (d > 0 ? v.toFixed(d) : Math.round(v).toString());
+
+      // ----- Build DOM -----
+      const cards = [];
+      const arcs = [];
+      const nums = [];
+      const descs = [];
+
+      metrics.forEach((m, i) => {
+        const card = document.createElement("div");
+        card.className = "card";
+        card.style.left = COLS[i] - CARD_W / 2 + "px";
+        card.style.top = CARD_TOP + "px";
+
+        const svg = document.createElementNS(SVGNS, "svg");
+        svg.setAttribute("class", "ring");
+        svg.setAttribute("viewBox", "0 0 300 300");
+
+        const track = document.createElementNS(SVGNS, "circle");
+        track.setAttribute("class", "track");
+        track.setAttribute("cx", 150);
+        track.setAttribute("cy", 150);
+        track.setAttribute("r", RING_R);
+        svg.appendChild(track);
+
+        const arc = document.createElementNS(SVGNS, "circle");
+        arc.setAttribute("class", "arc");
+        arc.setAttribute("cx", 150);
+        arc.setAttribute("cy", 150);
+        arc.setAttribute("r", RING_R);
+        arc.setAttribute("stroke", m.accent);
+        // start at 12 o'clock and draw clockwise
+        arc.setAttribute("transform", "rotate(-90 150 150)");
+        arc.style.strokeDasharray = C;
+        arc.style.strokeDashoffset = C; // empty until drawn
+        svg.appendChild(arc);
+        arcs.push(arc);
+
+        card.appendChild(svg);
+
+        const value = document.createElement("div");
+        value.className = "value";
+        const num = document.createElement("span");
+        num.className = "num";
+        num.textContent = fmt(0, m.decimals);
+        const unit = document.createElement("span");
+        unit.className = "unit";
+        unit.textContent = m.unit;
+        value.appendChild(num);
+        value.appendChild(unit);
+        card.appendChild(value);
+        nums.push(num);
+
+        const label = document.createElement("div");
+        label.className = "label";
+        label.textContent = m.label;
+        card.appendChild(label);
+
+        stage.appendChild(card);
+        cards.push(card);
+
+        // descriptor (below the rule)
+        const desc = document.createElement("div");
+        desc.className = "desc";
+        desc.style.width = "440px";
+        desc.style.left = COLS[i] - 220 + "px";
+        desc.style.top = DESC_Y + "px";
+        desc.textContent = m.desc;
+        stage.appendChild(desc);
+        descs.push(desc);
+      });
+
+      // Horizontal rule
+      const rule = document.createElement("div");
+      rule.className = "rule";
+      rule.style.left = RULE_X1 + "px";
+      rule.style.top = RULE_Y + "px";
+      rule.style.width = RULE_X2 - RULE_X1 + "px";
+      stage.appendChild(rule);
+
+      // ----- Initial hidden states -----
+      gsap.set(descs, { autoAlpha: 0, y: 16 });
+      gsap.set(rule, { scaleX: 0, autoAlpha: 0, transformOrigin: "left center" });
+
       const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
+
+      // 1) Cards fade up in sequence; each ring draws + number counts up.
+      //    Counters reach their finals staggered by 12 frames (0.4s @ 30fps).
+      const cardStart = 0.3;
+      const cardStag = 0.4; // 12 frames
+      const countDur = 1.5;
+      const ringDur = 1.5;
+
+      metrics.forEach((m, i) => {
+        const t = cardStart + i * cardStag;
+
+        tl.from(
+          cards[i],
+          { y: 44, autoAlpha: 0, duration: 0.6, ease: "power3.out" },
+          t
+        );
+
+        // ring draws clockwise
+        tl.to(arcs[i], { strokeDashoffset: 0, duration: ringDur, ease: "power2.out" }, t + 0.1);
+
+        // eased count-up
+        const counter = { v: 0 };
+        tl.to(
+          counter,
+          {
+            v: m.target,
+            duration: countDur,
+            ease: "power2.out",
+            onUpdate: () => {
+              nums[i].textContent = fmt(counter.v, m.decimals);
+            },
+          },
+          t + 0.1
+        );
+      });
+
+      // 2) After all three land, a soft rule slides in, then descriptors fade in.
+      const landed = cardStart + 2 * cardStag + 0.1 + countDur; // ~2.9s
+      tl.to(rule, { scaleX: 1, autoAlpha: 1, duration: 0.7, ease: "power2.out" }, landed + 0.15);
+
+      descs.forEach((d, i) => {
+        tl.to(d, { autoAlpha: 1, y: 0, duration: 0.6, ease: "power2.out" }, landed + 0.45 + i * 0.18);
+      });
+
+      // 3) Total stillness from ~4.4s to 7s.
+
       window.__timelines["main"] = tl;
     </script>
   </body>
