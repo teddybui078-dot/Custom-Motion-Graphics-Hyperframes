@@ -12,11 +12,58 @@
       }
       html,
       body {
-        margin: 0;
         width: 1920px;
         height: 1080px;
         overflow: hidden;
-        background: #000;
+        background: #ffffff;
+        font-family: "Inter", Helvetica, Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      .stage {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+      }
+      #scene {
+        position: absolute;
+        inset: 0;
+      }
+
+      /* connector lines between stages */
+      .line {
+        position: absolute;
+        height: 4px;
+        background: #d2d6dc;
+        transform-origin: 0% 50%;
+        z-index: 1;
+      }
+
+      /* stage nodes — outlined circles by default */
+      .node {
+        position: absolute;
+        border-radius: 50%;
+        background: #ffffff;
+        border: 4px solid #cbd0d6;
+        z-index: 2;
+        box-shadow: 0 4px 12px rgba(17, 24, 39, 0.08);
+      }
+      .label {
+        position: absolute;
+        z-index: 2;
+        text-align: center;
+        font-size: 26px;
+        font-weight: 600;
+        letter-spacing: -0.2px;
+        color: #4b5563;
+      }
+
+      /* the token — a larger dark dot that travels the pipeline */
+      .token {
+        position: absolute;
+        border-radius: 50%;
+        background: #111827;
+        z-index: 3;
+        box-shadow: 0 4px 14px rgba(17, 24, 39, 0.4);
       }
     </style>
   </head>
@@ -25,26 +72,141 @@
       id="root"
       data-composition-id="main"
       data-start="0"
-      data-duration="10"
+      data-duration="11"
       data-width="1920"
       data-height="1080"
     >
-      
-      
-
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
-        </div>
-      -->
+      <div class="stage">
+        <div id="scene"></div>
+      </div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
+      const scene = document.getElementById("scene");
+
+      // ---------- layout ----------
+      const STAGES = ["Commit", "Build", "Test", "Scan", "Stage", "Approve", "Deploy"];
+      const N = STAGES.length;
+      const CY = 540;
+      const X0 = 210;
+      const STEP = 250; // center-to-center spacing
+      const NODE_R = 34;
+      const TOK_R = 17;
+      const xAt = (i) => X0 + i * STEP;
+
+      // colors
+      const GRAY = "#cbd0d6";
+      const BLUE = "#2563eb";
+      const AMBER = "#f59e0b";
+      const GREEN = "#16a34a";
+
+      // ---------- build connector lines (behind the nodes) ----------
+      const lines = [];
+      for (let i = 0; i < N - 1; i++) {
+        const ln = document.createElement("div");
+        ln.className = "line";
+        ln.style.left = xAt(i) + "px";
+        ln.style.top = CY - 2 + "px";
+        ln.style.width = STEP + "px";
+        scene.appendChild(ln);
+        lines.push(ln);
+      }
+
+      // ---------- build nodes + labels ----------
+      const nodes = [];
+      for (let i = 0; i < N; i++) {
+        const node = document.createElement("div");
+        node.className = "node";
+        node.style.left = xAt(i) - NODE_R + "px";
+        node.style.top = CY - NODE_R + "px";
+        node.style.width = node.style.height = NODE_R * 2 + "px";
+        scene.appendChild(node);
+        nodes.push(node);
+
+        const label = document.createElement("div");
+        label.className = "label";
+        label.textContent = STAGES[i];
+        label.style.left = xAt(i) - 90 + "px";
+        label.style.top = CY + NODE_R + 24 + "px";
+        label.style.width = "180px";
+        scene.appendChild(label);
+      }
+
+      // ---------- token ----------
+      const token = document.createElement("div");
+      token.className = "token";
+      token.style.left = "0px";
+      token.style.top = "0px";
+      token.style.width = token.style.height = TOK_R * 2 + "px";
+      scene.appendChild(token);
+
+      // ---------- initial states ----------
       const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
+      gsap.set(nodes, { scale: 0, transformOrigin: "50% 50%" });
+      lines.forEach((ln) => gsap.set(ln, { scaleX: 0 }));
+      gsap.set(token, { x: xAt(0) - TOK_R, y: CY - TOK_R, autoAlpha: 0 });
+
+      // ---------- 1) the pipeline assembles in one coordinated motion ----------
+      // nodes spring in left→right, 4 frames (~0.133s @30fps) apart — so tight it
+      // reads almost as a single motion; all six connectors draw simultaneously.
+      nodes.forEach((node, i) => {
+        tl.to(node, { scale: 1, duration: 0.45, ease: "back.out(2)" }, 0.2 + i * 0.133);
+      });
+      tl.to(lines, { scaleX: 1, duration: 0.55, ease: "power2.out" }, 0.45);
+
+      // node activation: fill + ring change to a color, with a small confirming bump
+      function activate(i, color, at) {
+        tl.to(nodes[i], { backgroundColor: color, borderColor: color, duration: 0.25, ease: "power2.out" }, at);
+        tl.to(
+          nodes[i],
+          { keyframes: [
+              { scale: 1.18, duration: 0.13, ease: "power2.out" },
+              { scale: 1, duration: 0.17, ease: "power2.inOut" },
+            ] },
+          at
+        );
+      }
+
+      // ---------- 2) the token travels the pipeline at a deliberate pace ----------
+      const LAUNCH = 1.75;
+      const SEG = 0.9; // seconds per segment — slower than expected, on purpose
+      tl.set(token, { autoAlpha: 1 }, LAUNCH);
+      activate(0, BLUE, LAUNCH); // Commit — the token leaves here
+
+      // continuous, constant-speed travel Commit → Approve (one tween, no easing)
+      tl.to(
+        token,
+        { keyframes: [
+            { x: xAt(1) - TOK_R, duration: SEG, ease: "none" },
+            { x: xAt(2) - TOK_R, duration: SEG, ease: "none" },
+            { x: xAt(3) - TOK_R, duration: SEG, ease: "none" },
+            { x: xAt(4) - TOK_R, duration: SEG, ease: "none" },
+            { x: xAt(5) - TOK_R, duration: SEG, ease: "none" },
+          ] },
+        LAUNCH
+      );
+      // Build, Test, Scan, Stage turn blue as the token arrives at each
+      for (let i = 1; i <= 4; i++) activate(i, BLUE, LAUNCH + i * SEG);
+      const approveArrive = LAUNCH + 5 * SEG; // 6.25 — token stops here
+
+      // ---------- 3) Approve: pulse amber, hold three seconds, then go green ----------
+      tl.to(nodes[5], { backgroundColor: AMBER, borderColor: AMBER, duration: 0.25 }, approveArrive);
+      // amber breathing pulse for exactly 3s, landing back at scale 1 (8 plays × 0.375s)
+      tl.to(
+        nodes[5],
+        { scale: 1.14, duration: 0.375, ease: "sine.inOut", repeat: 7, yoyo: true },
+        approveArrive + 0.05
+      );
+      const resume = approveArrive + 3.05; // ~9.3
+      tl.to(nodes[5], { backgroundColor: GREEN, borderColor: GREEN, duration: 0.3, ease: "power2.out" }, resume);
+
+      // ---------- 4) token continues to Deploy, which holds green; token disappears ----------
+      tl.to(token, { x: xAt(6) - TOK_R, duration: SEG, ease: "none" }, resume + 0.1);
+      const deployArrive = resume + 0.1 + SEG;
+      activate(6, GREEN, deployArrive); // Deploy turns green and holds
+      tl.to(token, { autoAlpha: 0, duration: 0.3, ease: "power2.in" }, deployArrive + 0.05);
+
       window.__timelines["main"] = tl;
     </script>
   </body>
