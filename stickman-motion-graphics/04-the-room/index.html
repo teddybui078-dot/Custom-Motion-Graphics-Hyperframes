@@ -5,19 +5,32 @@
     <meta name="viewport" content="width=1920, height=1080" />
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
     <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        margin: 0; width: 1920px; height: 1080px; overflow: hidden;
+        background: #ffffff;
+        font-family: "JetBrains Mono", monospace;
       }
-      html,
-      body {
-        margin: 0;
-        width: 1920px;
-        height: 1080px;
-        overflow: hidden;
-        background: #000;
+      .stage { position: absolute; inset: 0; overflow: hidden; }
+      svg.layer { position: absolute; left: 0; top: 0; overflow: visible; }
+
+      .room { fill: none; stroke: #d2d2d8; stroke-width: 3; stroke-linejoin: round; }
+      .tabletop { fill: #ffffff; stroke: #c4c4cc; stroke-width: 3; stroke-linejoin: round; }
+
+      .seat { position: absolute; }
+      .seat svg { overflow: visible; }
+      .fig svg { overflow: visible; }
+      .ink { fill: none; stroke: #adadb5; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+      .hat { fill: #b8b8c0; stroke: #9a9aa3; stroke-width: 3; }
+
+      .fig.blue .ink { stroke: #2563eb; }
+
+      /* the document */
+      .doc {
+        position: absolute; width: 70px; height: 92px; background: #ffffff;
+        border: 3px solid #b9b9c1; border-radius: 6px;
       }
+      .doc svg { position: absolute; left: 0; top: 0; }
     </style>
   </head>
   <body>
@@ -25,26 +38,162 @@
       id="root"
       data-composition-id="main"
       data-start="0"
-      data-duration="10"
+      data-duration="20"
       data-width="1920"
       data-height="1080"
     >
-      
-      
-
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
-        </div>
-      -->
+      <div class="stage" id="stage">
+        <svg class="layer" width="1920" height="1080" viewBox="0 0 1920 1080" id="roomLayer"></svg>
+        <!-- seats(top), table, seats(bottom), doc, blue injected here -->
+        <svg class="layer" width="1920" height="1080" viewBox="0 0 1920 1080" id="tableLayer" style="z-index:3"></svg>
+      </div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
+      const SVGNS = "http://www.w3.org/2000/svg";
+      const stage = document.getElementById("stage");
+      const roomLayer = document.getElementById("roomLayer");
+      const tableLayer = document.getElementById("tableLayer");
+
+      // ---------- the room: simple flat lines, slight one-point perspective ----------
+      // front opening A B C D, back rectangle a b c d, edges recede to centre.
+      roomLayer.innerHTML =
+        // ceiling
+        '<path class="room" d="M300,150 L1620,150 L1200,330 L720,330 Z"/>' +
+        // floor
+        '<path class="room" d="M300,930 L1620,930 L1200,720 L720,720 Z"/>' +
+        // back wall
+        '<path class="room" d="M720,330 L1200,330 L1200,720 L720,720 Z"/>' +
+        // right wall
+        '<path class="room" d="M1620,150 L1620,930 L1200,720 L1200,330 Z"/>' +
+        // left wall, split to leave a doorway gap (y 560..760 open)
+        '<path class="room" d="M300,150 L720,330 L720,560 L300,470 Z"/>' +
+        '<path class="room" d="M300,820 L720,760 L720,720 L300,930 Z"/>' +
+        // doorway jambs around the gap
+        '<line class="room" x1="300" y1="470" x2="300" y2="820"/>';
+      roomLayer.style.zIndex = 1;
+
+      // ---------- table top (white fill occludes the lower bodies of the far row) ----------
+      tableLayer.innerHTML =
+        '<path class="tabletop" d="M700,470 L1220,470 L1300,660 L620,660 Z"/>' +
+        '<path class="tabletop" d="M620,660 L1300,660 L1300,690 L620,690 Z"/>';
+
+      // ---------- a seated, top-hatted figure ----------
+      function seated(cx, topY) {
+        const div = document.createElement("div");
+        div.className = "seat";
+        div.style.left = cx - 45 + "px";
+        div.style.top = topY + "px";
+        div.style.width = "90px"; div.style.height = "150px";
+        div.innerHTML =
+          '<svg viewBox="0 0 90 150" width="90" height="150">' +
+          '<g class="head">' +
+          '<rect class="hat" x="31" y="6" width="28" height="26" rx="2"/>' +   // crown
+          '<line class="hat" x1="22" y1="33" x2="68" y2="33" stroke-width="5"/>' + // brim
+          '<circle class="ink" cx="45" cy="56" r="21"/>' +
+          "</g>" +
+          '<line class="ink" x1="45" y1="77" x2="45" y2="120"/>' +            // torso
+          '<g class="armL"><line class="ink" x1="45" y1="88" x2="22" y2="112"/></g>' +
+          '<g class="armR"><line class="ink" x1="45" y1="88" x2="68" y2="112"/></g>' +
+          "</svg>";
+        stage.appendChild(div);
+        return { div, head: div.querySelector(".head"), armL: div.querySelector(".armL"), armR: div.querySelector(".armR") };
+      }
+
+      // far row (behind table) z2, near row (in front) z4
+      const TOP_X = [770, 850, 930, 1010, 1090, 1170];
+      const BOT_X = [690, 800, 910, 1020, 1130, 1240];
+      const topFigs = TOP_X.map((x) => { const f = seated(x, 250); f.div.style.zIndex = 2; return f; });
+      const botFigs = BOT_X.map((x) => { const f = seated(x, 520); f.div.style.zIndex = 4; return f; });
+      const allFigs = topFigs.concat(botFigs);
+
+      // hand positions where the document rests for each figure (pass order)
+      const handPos = [];
+      TOP_X.forEach((x) => handPos.push({ x: x, y: 452 }));              // top row L->R
+      for (let i = BOT_X.length - 1; i >= 0; i--) handPos.push({ x: BOT_X[i], y: 612 }); // bottom row R->L
+      // matching figure for each hand stop (for the little "mark" arm dip)
+      const figForStop = topFigs.concat(botFigs.slice().reverse());
+
+      // ---------- the document ----------
+      const doc = document.createElement("div");
+      doc.className = "doc";
+      doc.style.zIndex = 5;
+      doc.innerHTML =
+        '<svg width="70" height="92" viewBox="0 0 70 92">' +
+        '<g class="content" opacity="0">' +
+        '<circle cx="35" cy="30" r="7" fill="none" stroke="#2563eb" stroke-width="3"/>' +
+        '<line x1="35" y1="37" x2="35" y2="55" stroke="#2563eb" stroke-width="3"/>' +
+        '<line x1="35" y1="42" x2="26" y2="50" stroke="#2563eb" stroke-width="3"/>' +
+        '<line x1="35" y1="42" x2="44" y2="50" stroke="#2563eb" stroke-width="3"/>' +
+        '<line x1="35" y1="55" x2="28" y2="66" stroke="#2563eb" stroke-width="3"/>' +
+        '<line x1="35" y1="55" x2="42" y2="66" stroke="#2563eb" stroke-width="3"/>' +
+        // downward arrow
+        '<line x1="35" y1="72" x2="35" y2="86" stroke="#2563eb" stroke-width="3"/>' +
+        '<path d="M29,80 L35,87 L41,80" fill="none" stroke="#2563eb" stroke-width="3"/>' +
+        "</g></svg>";
+      stage.appendChild(doc);
+      const docContent = doc.querySelector(".content");
+      const start = handPos[0];
+      gsap.set(doc, { left: start.x - 35, top: start.y - 46, autoAlpha: 0 });
+
+      // ---------- blue, small, outside the gap on the left ----------
+      const blue = document.createElement("div");
+      blue.className = "fig blue";
+      blue.style.position = "absolute";
+      blue.style.left = "175px"; blue.style.top = "560px";
+      blue.style.width = "70px"; blue.style.height = "150px";
+      blue.style.zIndex = "6";
+      blue.innerHTML =
+        '<svg viewBox="0 0 70 150" width="70" height="150">' +
+        '<g class="head"><circle class="ink" cx="35" cy="20" r="13"/></g>' +
+        '<line class="ink" x1="35" y1="33" x2="35" y2="92"/>' +
+        '<g class="armL"><line class="ink" x1="35" y1="45" x2="22" y2="76"/></g>' +
+        '<g class="armR"><line class="ink" x1="35" y1="45" x2="48" y2="76"/></g>' +
+        '<line class="ink" x1="35" y1="92" x2="25" y2="142"/>' +
+        '<line class="ink" x1="35" y1="92" x2="45" y2="142"/>' +
+        "</svg>";
+      stage.appendChild(blue);
+      const blueHead = blue.querySelector(".head");
+      const blueArmR = blue.querySelector(".armR");
+
+      // ---------- timeline ----------
       const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
+
+      // 1) the document appears at the first seat
+      tl.to(doc, { autoAlpha: 1, duration: 0.4 }, 2.2);
+
+      // 2) it travels figure to figure; each one makes a mark on it
+      const STOP = 1.05;
+      handPos.forEach((p, i) => {
+        const t = 2.6 + i * STOP;
+        if (i > 0) tl.to(doc, { left: p.x - 35, top: p.y - 46, duration: 0.5, ease: "power2.inOut" }, t);
+        const f = figForStop[i];
+        tl.to(f.armR, { rotation: -18, transformOrigin: "45px 88px", duration: 0.18, ease: "power1.out" }, t + 0.5);
+        tl.to(doc, { scale: 1.12, duration: 0.14, ease: "power1.out" }, t + 0.55);
+        tl.to(doc, { scale: 1, duration: 0.18, ease: "power1.in" }, t + 0.69);
+        tl.to(f.armR, { rotation: 0, transformOrigin: "45px 88px", duration: 0.2, ease: "power1.in" }, t + 0.7);
+      });
+      const lastT = 2.6 + (handPos.length - 1) * STOP; // ~14.15s, doc at bottom-left seat
+
+      // 3) it slides off the near edge and floats out through the gap toward blue
+      tl.to(doc, { left: 360, top: 660, duration: 0.7, ease: "power1.in" }, lastT + 0.9);
+      tl.to(doc, { left: 215, top: 600, scale: 0.9, duration: 0.9, ease: "power2.out" }, lastT + 1.5);
+
+      // 4) blue catches it (small bounce) and looks at it
+      tl.to(blueArmR, { rotation: -30, transformOrigin: "35px 45px", duration: 0.25, ease: "power2.out" }, lastT + 2.3);
+      tl.to(doc, { top: 615, duration: 0.18, ease: "power1.in" }, lastT + 2.4);
+      tl.to(doc, { top: 600, duration: 0.18, ease: "power1.out" }, lastT + 2.58);
+      tl.to(blueArmR, { rotation: 0, transformOrigin: "35px 45px", duration: 0.3 }, lastT + 2.8);
+
+      // its content — a small blue stickman with a downward arrow — becomes visible
+      tl.to(doc, { scale: 1.5, left: 255, top: 470, duration: 0.6, ease: "power2.out" }, lastT + 3.0);
+      tl.to(docContent, { attr: { opacity: 1 }, duration: 0.6 }, lastT + 3.2);
+
+      // 5) he looks up at the table — but the twelve are already looking elsewhere
+      tl.to(blueHead, { rotation: 22, transformOrigin: "35px 33px", duration: 0.5, ease: "power1.inOut" }, lastT + 4.0);
+      tl.to(allFigs.map((f) => f.head), { rotation: 20, transformOrigin: "45px 33px", duration: 0.6, ease: "power1.inOut" }, lastT + 3.6);
+
       window.__timelines["main"] = tl;
     </script>
   </body>
