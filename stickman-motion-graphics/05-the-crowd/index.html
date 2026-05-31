@@ -5,18 +5,25 @@
     <meta name="viewport" content="width=1920, height=1080" />
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
     <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        margin: 0; width: 1920px; height: 1080px; overflow: hidden;
+        background: #ffffff;
+        font-family: "JetBrains Mono", monospace;
       }
-      html,
-      body {
-        margin: 0;
-        width: 1920px;
-        height: 1080px;
-        overflow: hidden;
-        background: #000;
+      .stage { position: absolute; inset: 0; overflow: hidden; }
+      #scene { position: absolute; inset: 0; transform-origin: center center; }
+
+      .fig { position: absolute; }
+      .fig svg { overflow: visible; }
+      .ink { fill: none; stroke: #b0b0b8; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+      .fig.blue .ink { stroke: #2563eb; }
+
+      .wall { fill: none; stroke: #cfcfd5; stroke-width: 4; }
+      .doorframe { fill: #f3f3f5; stroke: #b9b9c1; stroke-width: 5; }
+      .doorword {
+        position: absolute; text-align: center; width: 320px;
+        font-size: 30px; letter-spacing: 3px; color: #7c7c85;
       }
     </style>
   </head>
@@ -25,26 +32,159 @@
       id="root"
       data-composition-id="main"
       data-start="0"
-      data-duration="10"
+      data-duration="18"
       data-width="1920"
       data-height="1080"
     >
-      
-      
-
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
+      <div class="stage" id="stage">
+        <div id="scene">
+          <!-- door (revealed on pull-back), crowd and blue injected by script -->
         </div>
-      -->
+      </div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
+      const SVGNS = "http://www.w3.org/2000/svg";
+      const scene = document.getElementById("scene");
+
+      // ---------- door + wall at the right, with a single word above ----------
+      const DOOR_X = 1660;
+      const wall = document.createElementNS(SVGNS, "svg");
+      wall.setAttribute("width", "1920"); wall.setAttribute("height", "1080");
+      wall.setAttribute("viewBox", "0 0 1920 1080");
+      wall.style.position = "absolute"; wall.style.left = "0"; wall.style.top = "0";
+      wall.innerHTML =
+        '<line class="wall" x1="' + (DOOR_X - 10) + '" y1="120" x2="' + (DOOR_X - 10) + '" y2="980"/>' +
+        '<rect class="doorframe" x="' + (DOOR_X - 10) + '" y="470" width="150" height="470" rx="6"/>' +
+        '<rect x="' + (DOOR_X + 8) + '" y="492" width="114" height="448" rx="4" fill="#ffffff" stroke="#cfcfd5" stroke-width="3"/>';
+      scene.appendChild(wall);
+
+      const word = document.createElement("div");
+      word.className = "doorword";
+      word.style.left = DOOR_X - 95 + "px"; word.style.top = "410px";
+      word.textContent = "forward";
+      scene.appendChild(word);
+
+      // ---------- a right-facing profile walker ----------
+      function walker(color) {
+        const div = document.createElement("div");
+        div.className = "fig" + (color ? " " + color : "");
+        div.style.width = "70px"; div.style.height = "160px";
+        div.innerHTML =
+          '<svg viewBox="0 0 70 160" width="70" height="160">' +
+          '<g class="head"><circle class="ink" cx="40" cy="20" r="13"/>' +
+          '<line class="ink" x1="52" y1="20" x2="58" y2="22"/></g>' +     // little nose → faces right
+          '<line class="ink" x1="38" y1="33" x2="33" y2="104"/>' +         // body, slight forward lean
+          '<g class="armB"><line class="ink" x1="36" y1="46" x2="24" y2="82"/></g>' +
+          '<g class="armF"><line class="ink" x1="36" y1="46" x2="48" y2="82"/></g>' +
+          '<g class="legB"><line class="ink" x1="33" y1="104" x2="22" y2="156"/></g>' +
+          '<g class="legF"><line class="ink" x1="33" y1="104" x2="46" y2="156"/></g>' +
+          "</svg>";
+        return {
+          div,
+          head: div.querySelector(".head"),
+          legF: div.querySelector(".legF"), legB: div.querySelector(".legB"),
+          armF: div.querySelector(".armF"), armB: div.querySelector(".armB"),
+        };
+      }
+
+      // ---------- the crowd: dense rows, depth via scale, all identical, all right ----------
+      const ROWS = [
+        { y: 250, s: 0.78, op: 0.55 },
+        { y: 360, s: 0.9, op: 0.7 },
+        { y: 480, s: 1.0, op: 0.85 },
+        { y: 610, s: 1.12, op: 1.0 },
+        { y: 760, s: 1.22, op: 1.0 },
+      ];
+      const grays = [];
+      ROWS.forEach((row, ri) => {
+        const step = 150 * row.s;
+        const offset = (ri % 2) * (step / 2);
+        for (let x = -60 + offset; x < 1640; x += step) {
+          const g = walker("");
+          g.base = x; g.row = row;
+          g.div.style.left = x + "px";
+          g.div.style.top = row.y + "px";
+          g.div.style.transformOrigin = "center bottom";
+          g.div.style.zIndex = String(10 + ri);
+          gsap.set(g.div, { scale: row.s, opacity: row.op });
+          scene.appendChild(g.div);
+          grays.push(g);
+        }
+      });
+
+      // ---------- blue, in the middle of the current ----------
+      const BLUE_X = 880, BLUE_Y = 610;
+      const blue = walker("blue");
+      blue.div.style.left = BLUE_X + "px";
+      blue.div.style.top = BLUE_Y + "px";
+      blue.div.style.transformOrigin = "center bottom";
+      blue.div.style.zIndex = "60";
+      gsap.set(blue.div, { scale: 1.12 });
+      scene.appendChild(blue.div);
+
+      // ---------- walk driver (all grays share one stride) ----------
+      const step = { ph: 0 };
+      function setWalk(f, ph, amp) {
+        const s = Math.sin(ph);
+        f.legF.setAttribute("transform", "rotate(" + amp * s + " 33 104)");
+        f.legB.setAttribute("transform", "rotate(" + -amp * s + " 33 104)");
+        f.armF.setAttribute("transform", "rotate(" + -amp * 0.7 * s + " 36 46)");
+        f.armB.setAttribute("transform", "rotate(" + amp * 0.7 * s + " 36 46)");
+      }
+      function applyCrowd() {
+        for (let i = 0; i < grays.length; i++) setWalk(grays[i], step.ph + grays[i].row.y, 24);
+      }
+      applyCrowd();
+
+      // flow at the end: the whole crowd advances and files through the door
+      const flow = { d: 0 };
+      function applyFlow() {
+        for (let i = 0; i < grays.length; i++) {
+          const g = grays[i];
+          const x = g.base + flow.d;
+          g.div.style.left = x + "px";
+          // figures vanish as they pass into the doorway
+          const fade = x > DOOR_X - 30 ? Math.max(0, 1 - (x - (DOOR_X - 30)) / 90) : 1;
+          g.div.style.opacity = g.row.op * fade;
+        }
+      }
+
+      // ---------- timeline ----------
       const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
+
+      // crowd walks the whole time
+      tl.to(step, { ph: 150, duration: 18, ease: "none", onUpdate: applyCrowd }, 0);
+
+      // 1) blue is carried — not walking, legs loose (handled by leaving his stride at 0)
+      // 2) he tries to stop: leans back, slides back a little, the crowd presses him forward
+      tl.to(blue.div, { rotation: -12, x: -55, duration: 0.7, ease: "power2.out", transformOrigin: "center bottom" }, 3.2);
+      tl.to(blue.div, { rotation: 0, x: 0, duration: 0.9, ease: "power2.in" }, 4.4);
+
+      // 3) he tries to turn around: faces left, pushes back; the crowd flows on, unmoved
+      tl.to(blue.div, { scaleX: -1, x: -40, duration: 0.6, ease: "power2.out" }, 6.0);
+      // a small struggle in place
+      tl.to(blue.div, { x: -70, duration: 0.7, ease: "power1.inOut" }, 6.6);
+      tl.to(blue.div, { x: -30, duration: 0.7, ease: "power1.inOut" }, 7.3);
+      // 4) the pressure of bodies slowly rotates him back to face right
+      tl.to(blue.div, { scaleX: 1, x: 0, duration: 1.3, ease: "power2.inOut" }, 8.2);
+
+      // 5) he stops resisting and moves with the crowd (a beat of stillness)
+
+      // 6) the camera pulls back to reveal the door — and the single word above it
+      tl.to(scene, { scale: 0.82, duration: 1.6, ease: "power2.inOut" }, 11.2);
+
+      // 7) the crowd files through the door without slowing
+      tl.to(flow, { d: 900, duration: 5.4, ease: "none", onUpdate: applyFlow }, 12.4);
+
+      // blue moves with them toward the threshold, then — alone — pauses
+      tl.to(blue.div, { x: 720, duration: 3.4, ease: "none" }, 12.4); // reaches the door area
+      // (pause at the threshold ~15.8–16.8: no motion)
+      // 8) then he goes through
+      tl.to(blue.div, { x: 820, duration: 0.7, ease: "power1.in" }, 16.8);
+      tl.to(blue.div, { autoAlpha: 0, duration: 0.5, ease: "power1.in" }, 17.1);
+
       window.__timelines["main"] = tl;
     </script>
   </body>
