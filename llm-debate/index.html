@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=1920, height=1080" />
+    <meta name="viewport" content="width=1080, height=1920" />
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
     <style>
       * {
@@ -13,10 +13,169 @@
       html,
       body {
         margin: 0;
-        width: 1920px;
-        height: 1080px;
+        width: 1080px;
+        height: 1920px;
         overflow: hidden;
-        background: #000;
+        background: #1c1c1e;
+        font-family: "Inter", Helvetica, Arial, sans-serif;
+      }
+      .stage {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+      }
+      /* portrait 9:16 — conversation fills the width with 20px margins each side */
+      .feed {
+        position: absolute;
+        left: 20px;
+        top: 0;
+        width: 1040px;
+      }
+
+      .tsrow {
+        width: 1040px;
+        text-align: center;
+        color: #8e8e93;
+        font-size: 16px;
+        font-weight: 500;
+        letter-spacing: 0.3px;
+        margin: 22px 0 16px;
+      }
+      .tsrow b {
+        color: #b6b6bb;
+        font-weight: 600;
+      }
+
+      .row {
+        width: 1040px;
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 14px;
+      }
+      .row.left {
+        align-items: flex-start;
+      }
+      .row.right {
+        align-items: flex-end;
+      }
+      .name {
+        font-size: 18px;
+        font-weight: 500;
+        color: #8e8e93;
+        margin: 0 12px 6px;
+      }
+
+      .bwrap {
+        position: relative;
+        max-width: 860px;
+      }
+      .bubble {
+        position: relative;
+        padding: 14px 18px;
+        font-size: 28px;
+        line-height: 1.4;
+        overflow-wrap: break-word;
+      }
+      /* John = blue, left-aligned, sharp bottom-left corner */
+      .bubble.blue {
+        background: #2c7be5;
+        color: #ffffff;
+        border-radius: 22px 22px 22px 6px;
+        /* inner glow lifted to 18% on blue; drop shadow. bevel strokes live in .hi / .lo */
+        box-shadow:
+          inset 0 0 10px rgba(150, 190, 255, 0.18),
+          0 2px 4px rgba(0, 0, 0, 0.45);
+      }
+      /* Dan = white, right-aligned, sharp bottom-right corner */
+      .bubble.white {
+        background: #f2f2f7;
+        color: #1c1c1e;
+        border-radius: 22px 22px 6px 22px;
+        /* inner glow lifted to 14% on white */
+        box-shadow:
+          inset 0 0 10px rgba(255, 255, 255, 0.14),
+          0 2px 4px rgba(0, 0, 0, 0.45);
+      }
+      .bubble.emoji {
+        font-size: 64px;
+        line-height: 1.1;
+        padding: 10px 22px;
+      }
+      /* bevel highlight overlay (top+left) — resting 24%, flashes to 55% on impact */
+      .hi {
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        box-shadow: inset 1px 1px 0 0 #ffffff;
+        opacity: 0.24;
+        pointer-events: none;
+      }
+      /* bevel shadow overlay (bottom+right) — resting 32%, deepens to 45% on impact */
+      .lo {
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        box-shadow: inset -1px -1px 0 0 #000000;
+        opacity: 0.32;
+        pointer-events: none;
+      }
+
+      /* typing indicator bubble — same stronger bevel as message bubbles */
+      .typing {
+        position: absolute;
+        top: 0;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        padding: 18px 22px;
+      }
+      .typing.left {
+        left: 0;
+        background: #2c7be5;
+        border-radius: 22px 22px 22px 6px;
+      }
+      .typing.right {
+        right: 0;
+        background: #f2f2f7;
+        border-radius: 22px 22px 6px 22px;
+      }
+      .typing {
+        box-shadow:
+          inset 1px 1px 0 rgba(255, 255, 255, 0.24),
+          inset -1px -1px 0 rgba(0, 0, 0, 0.32),
+          0 2px 4px rgba(0, 0, 0, 0.45);
+      }
+      .tdot {
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+      }
+      .typing.left .tdot {
+        background: rgba(255, 255, 255, 0.85);
+      }
+      .typing.right .tdot {
+        background: #9a9aa0;
+      }
+
+      /* reaction badge — small pill, 0.5px bevel */
+      .reaction {
+        position: absolute;
+        bottom: -22px;
+        padding: 5px 12px;
+        border-radius: 16px;
+        background: #2a2a2e;
+        font-size: 22px;
+        line-height: 1;
+        box-shadow:
+          inset 0 0.5px 0 rgba(255, 255, 255, 0.45),
+          inset 0 -0.5px 0 rgba(0, 0, 0, 0.35),
+          0 1px 3px rgba(0, 0, 0, 0.5);
+      }
+      .reaction.left {
+        left: 12px;
+      }
+      .reaction.right {
+        right: 12px;
       }
     </style>
   </head>
@@ -25,26 +184,219 @@
       id="root"
       data-composition-id="main"
       data-start="0"
-      data-duration="10"
-      data-width="1920"
-      data-height="1080"
+      data-duration="42"
+      data-width="1080"
+      data-height="1920"
     >
-      
-      
-
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
-        </div>
-      -->
+      <!-- the stage is an intentional scroll-clip viewport for the chat feed -->
+      <div class="stage" data-layout-ignore>
+        <div class="feed" id="feed"></div>
+      </div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
+      const feed = document.getElementById("feed");
+      // The feed is a scrolling chat column clipped by .stage; content above/below
+      // the viewport is intentional off-canvas, so it's excluded from the layout audit.
+      feed.setAttribute("data-layout-ignore", "");
+
+      // ----- conversation data (one entry per sender turn) -----
+      const TURNS = [
+        { s: "john", ts: "0:01", name: "John", msgs: ["ok real talk, which LLM is actually the best right now"] },
+        { s: "dan", name: "Dan", msgs: ["GPT-4o. not even close"] },
+        { s: "john", msgs: ["lol you’re kidding right", "Claude destroys it for writing and reasoning"] },
+        { s: "dan", msgs: ["Claude is good but it refuses to do half the things you ask", "GPT just gets it done"] },
+        { s: "john", ts: "0:09", msgs: ["that’s cope", "Claude’s outputs are so much more nuanced", "it actually thinks before it answers"] },
+        { s: "dan", msgs: ["ok but Gemini has the context window though", "1 million tokens. nothing touches that"] },
+        { s: "john", msgs: ["context window means nothing if the model loses track halfway through", "Gemini still fumbles long docs"] },
+        { s: "dan", msgs: ["have you actually tested it recently or are you just going off vibes"] },
+        { s: "john", ts: "0:14", msgs: ["i run evals for a living bro", "Claude wins on reasoning, GPT wins on speed and tool use", "Gemini wins on nothing except the context window flex"] },
+        { s: "dan", msgs: ["what about Grok"] },
+        { s: "john", msgs: ["😭"], emoji: true, reaction: "😂" },
+        { s: "dan", ts: "0:16", msgs: ["fair", "ok but for coding specifically", "Cursor with GPT-4o is unbeatable"] },
+        { s: "john", msgs: ["Claude in Cursor is better and you know it", "every senior dev i know switched"] },
+        { s: "dan", msgs: ["my whole team uses GPT and ships faster than yours"] },
+        { s: "john", msgs: ["your whole team is wrong"] },
+        { s: "dan", msgs: ["bro there is no right answer here"], reaction: "❤️" },
+        { s: "john", ts: "0:19", msgs: ["yeah there is", "it’s Claude"] },
+        { s: "dan", msgs: ["🙄"], emoji: true },
+      ];
+
+      // ----- build DOM (static layout; everything hidden to start) -----
+      // each "unit" = one bubble row, with refs for the timeline
+      const units = []; // {row, bubble, hi, lo, isFirst, sender, nameEl, tsEl, typingEl, reactionEl, len}
+      TURNS.forEach((turn) => {
+        const side = turn.s === "john" ? "left" : "right";
+        const color = turn.s === "john" ? "blue" : "white";
+        turn.msgs.forEach((text, mi) => {
+          const first = mi === 0;
+
+          let tsEl = null;
+          if (first && turn.ts) {
+            tsEl = document.createElement("div");
+            tsEl.className = "tsrow";
+            tsEl.setAttribute("data-layout-ignore", "");
+            tsEl.innerHTML = "<b>" + turn.ts + "</b>";
+            feed.appendChild(tsEl);
+          }
+
+          const row = document.createElement("div");
+          row.className = "row " + side;
+          row.setAttribute("data-layout-ignore", "");
+
+          let nameEl = null;
+          if (first && turn.name) {
+            nameEl = document.createElement("div");
+            nameEl.className = "name";
+            nameEl.textContent = turn.name;
+            row.appendChild(nameEl);
+          }
+
+          const bwrap = document.createElement("div");
+          bwrap.className = "bwrap";
+
+          // every message — including rapid follow-ups — gets its own typing indicator
+          const typingEl = document.createElement("div");
+          typingEl.className = "typing " + side;
+          typingEl.innerHTML = '<span class="tdot"></span><span class="tdot"></span><span class="tdot"></span>';
+          bwrap.appendChild(typingEl);
+
+          const bubble = document.createElement("div");
+          bubble.className = "bubble " + color + (turn.emoji ? " emoji" : "");
+          const hi = document.createElement("div");
+          hi.className = "hi";
+          bubble.appendChild(hi);
+          const lo = document.createElement("div");
+          lo.className = "lo";
+          bubble.appendChild(lo);
+          const txt = document.createElement("span");
+          txt.textContent = text;
+          bubble.appendChild(txt);
+          bwrap.appendChild(bubble);
+
+          let reactionEl = null;
+          if (first && turn.reaction) {
+            reactionEl = document.createElement("div");
+            reactionEl.className = "reaction " + side;
+            reactionEl.textContent = turn.reaction;
+            bwrap.appendChild(reactionEl);
+          }
+
+          row.appendChild(bwrap);
+          feed.appendChild(row);
+
+          units.push({ row, bubble, hi, lo, typingEl, nameEl, tsEl, reactionEl, isFirst: first, side, len: text.length });
+        });
+      });
+
+      // measure resting top of each row (for scroll targeting)
+      units.forEach((u) => (u.top = u.row.offsetTop));
+
+      // initial hidden states — bubbles wait 24px above their resting position
+      units.forEach((u) => {
+        gsap.set(u.bubble, { autoAlpha: 0, y: -24 });
+        if (u.nameEl) gsap.set(u.nameEl, { autoAlpha: 0 });
+        if (u.tsEl) gsap.set(u.tsEl, { autoAlpha: 0 });
+        if (u.typingEl) gsap.set(u.typingEl, { autoAlpha: 0, scale: 0.7, transformOrigin: u.side === "left" ? "left center" : "right center" });
+        if (u.reactionEl) gsap.set(u.reactionEl, { autoAlpha: 0, scale: 0 });
+        gsap.set(u.hi, { opacity: 0.24 });
+        gsap.set(u.lo, { opacity: 0.32 });
+      });
+
+      const TARGET = 1320; // keep the newest row's top in the lower third of the portrait frame
       const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
+      gsap.set(feed, { y: TARGET - units[0].top });
+
+      // unhurried scroll — the conversation rises at reading pace, not pushed by the next message
+      const scrollTo = (u, at) =>
+        tl.to(feed, { y: TARGET - u.top, duration: 0.9, ease: "power2.out", overwrite: "auto" }, at);
+
+      // Spring drop with two full oscillations (~18 frames @30fps). Heavy (multi-line)
+      // bubbles damp their second oscillation by 40%, as if mass is settling them.
+      function revealBubble(u, at) {
+        const heavy = u.len > 34;
+        const k = heavy ? 0.6 : 1; // second-oscillation scale
+        // fade in fresh as it drops (no morph from the typing indicator)
+        tl.to(u.bubble, { autoAlpha: 1, duration: 0.08, ease: "none" }, at);
+        tl.to(
+          u.bubble,
+          {
+            keyframes: [
+              { y: 9, duration: 0.2, ease: "power2.out" }, // first impact: overshoot 9px below
+              { y: -4.5 * k, duration: 0.15, ease: "sine.inOut" }, // rebound above
+              { y: 2.4 * k, duration: 0.13, ease: "sine.inOut" }, // second overshoot below
+              { y: 0, duration: 0.12, ease: "sine.out" }, // settle to rest
+            ],
+          },
+          at
+        );
+
+        // bevel flash on impact — sharp, physical. highlight jumps to 55% / shadow to 45%
+        // for 4 frames, then eases back to rest (24% / 32%) over 10 frames.
+        const impact = at + 0.2;
+        tl.set(u.hi, { opacity: 0.55 }, impact);
+        tl.set(u.lo, { opacity: 0.45 }, impact);
+        tl.to(u.hi, { opacity: 0.24, duration: 0.333, ease: "power1.out" }, impact + 0.133);
+        tl.to(u.lo, { opacity: 0.32, duration: 0.333, ease: "power1.out" }, impact + 0.133);
+      }
+
+      // typing duration scales with each message's length: punchy one-liners breathe
+      // ~0.7s, longer multi-line messages run up toward ~1.3s. Every message — including
+      // rapid follow-ups in the same turn — gets its own typing indicator before it lands.
+      function msgTypingDur(turn, len) {
+        if (turn.emoji || len <= 6) return 0.7;
+        if (len > 60) return 1.3;
+        if (len > 35) return 1.0;
+        return 0.8;
+      }
+
+      // ----- schedule -----
+      const INTRA = 0.3; // silence between rapid follow-ups within one turn
+      const PAUSE = 0.55; // silence after a turn ends, before the next sender starts
+      let t = 0.6;
+      let ui = 0; // index into units
+
+      TURNS.forEach((turn) => {
+        const n = turn.msgs.length;
+
+        for (let m = 0; m < n; m++) {
+          const u = units[ui + m];
+          const firstMsg = m === 0;
+          const lastMsg = m === n - 1;
+
+          // timestamp separator + sender name appear with the turn's first message
+          if (firstMsg && u.tsEl) tl.to(u.tsEl, { autoAlpha: 1, duration: 0.35 }, t - 0.05);
+          scrollTo(u, t - 0.05);
+          if (firstMsg && u.nameEl) tl.to(u.nameEl, { autoAlpha: 1, duration: 0.3 }, t);
+
+          // this message's own typing indicator (follow-ups type too, no instant pop-in)
+          const td = msgTypingDur(turn, u.len);
+          tl.fromTo(u.typingEl, { autoAlpha: 0, scale: 0.7 }, { autoAlpha: 1, scale: 1, duration: 0.2, ease: "back.out(2)" }, t);
+          tl.to(u.typingEl.querySelectorAll(".tdot"), { y: -5, duration: 0.24, ease: "sine.inOut", stagger: 0.12, repeat: 2, yoyo: true }, t + 0.05);
+
+          const bubbleT = t + td;
+          // snap the typing indicator away — the bubble drops in fresh with its own bounce
+          tl.to(u.typingEl, { autoAlpha: 0, duration: 0.08 }, bubbleT);
+          revealBubble(u, bubbleT);
+
+          // reaction: bounce in ~1.3s after the bubble lands
+          if (u.reactionEl) {
+            tl.fromTo(
+              u.reactionEl,
+              { autoAlpha: 0, scale: 0 },
+              { autoAlpha: 1, scale: 1, duration: 0.55, ease: "back.out(2.2)" },
+              bubbleT + 1.3
+            );
+          }
+
+          // breathe before the next message: short within a turn, longer between turns
+          t = bubbleT + (lastMsg ? PAUSE : INTRA);
+        }
+
+        ui += n;
+      });
+
       window.__timelines["main"] = tl;
     </script>
   </body>
