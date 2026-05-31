@@ -16,7 +16,62 @@
         width: 1920px;
         height: 1080px;
         overflow: hidden;
-        background: #000;
+        background: #f5f5f7;
+        font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+      }
+      .stage {
+        position: absolute;
+        inset: 0;
+      }
+
+      /* connector / dot / ring layer behind the nodes */
+      .net {
+        position: absolute;
+        inset: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: visible;
+        z-index: 1;
+      }
+      .conn {
+        fill: none;
+        stroke: #cdccd2;
+        stroke-width: 3;
+        stroke-linecap: round;
+      }
+      .ring {
+        fill: none;
+        stroke: #3b66ff;
+        stroke-width: 3;
+      }
+
+      .node {
+        position: absolute;
+        width: 140px;
+        height: 140px;
+        border-radius: 32px;
+        background: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transform-origin: center center;
+        z-index: 2;
+        box-shadow:
+          0 18px 38px rgba(17, 17, 26, 0.07),
+          0 5px 14px rgba(17, 17, 26, 0.05);
+      }
+      .node .ic {
+        width: 62px;
+        height: 62px;
+      }
+      .label {
+        position: absolute;
+        text-align: center;
+        font-size: 25px;
+        font-weight: 500;
+        letter-spacing: 0.3px;
+        color: #48484a;
+        z-index: 2;
       }
     </style>
   </head>
@@ -25,26 +80,182 @@
       id="root"
       data-composition-id="main"
       data-start="0"
-      data-duration="10"
+      data-duration="9"
       data-width="1920"
       data-height="1080"
     >
-      
-      
-
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
-        </div>
-      -->
+      <div class="stage" id="stage">
+        <!-- nodes, labels, connectors, dots, rings built by the script -->
+      </div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
+      const SVGNS = "http://www.w3.org/2000/svg";
+      const stage = document.getElementById("stage");
+
+      // ----- Layout -----
+      const COLS = [360, 660, 960, 1260, 1560];
+      const NODE_Y = 500;
+      const NODE = 140;
+      const HALF = NODE / 2;
+      const ACCENT = "#3b66ff";
+
+      // Single-stroke icons (24x24), drawn dark on the white squares.
+      const nodes = [
+        {
+          label: "Source",
+          icon:
+            '<ellipse cx="12" cy="5.5" rx="7.5" ry="2.8"/>' +
+            '<path d="M4.5 5.5 V18 C4.5 19.7 8 21 12 21 C16 21 19.5 19.7 19.5 18 V5.5"/>' +
+            '<path d="M4.5 11.75 C4.5 13.45 8 14.75 12 14.75 C16 14.75 19.5 13.45 19.5 11.75"/>',
+        },
+        { label: "Filter", icon: '<path d="M3 4.5 H21 L14 12.5 V20 L10 18 V12.5 Z"/>' },
+        {
+          label: "Transform",
+          icon:
+            '<path d="M3 8 H15"/><path d="M12 5 L15 8 L12 11"/>' +
+            '<path d="M21 16 H9"/><path d="M12 13 L9 16 L12 19"/>',
+        },
+        {
+          label: "Analyze",
+          icon: '<path d="M4 20 H20"/><path d="M7 20 V13"/><path d="M12 20 V6"/><path d="M17 20 V10"/>',
+        },
+        { label: "Deliver", icon: '<path d="M21 3 L10 14"/><path d="M21 3 L14 21 L10 14 L3 10 Z"/>' },
+      ];
+
+      const nodeEls = [];
+      const labelEls = [];
+
+      nodes.forEach((n, i) => {
+        const node = document.createElement("div");
+        node.className = "node";
+        node.style.left = COLS[i] - HALF + "px";
+        node.style.top = NODE_Y - HALF + "px";
+        node.innerHTML =
+          '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#1d1d1f" ' +
+          'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+          n.icon +
+          "</svg>";
+        stage.appendChild(node);
+        nodeEls.push(node);
+
+        const label = document.createElement("div");
+        label.className = "label";
+        label.style.width = "220px";
+        label.style.left = COLS[i] - 110 + "px";
+        label.style.top = NODE_Y + HALF + 24 + "px";
+        label.textContent = n.label;
+        stage.appendChild(label);
+        labelEls.push(label);
+      });
+
+      // ----- Connector / dot / ring SVG layer -----
+      const net = document.createElementNS(SVGNS, "svg");
+      net.setAttribute("class", "net");
+      net.setAttribute("viewBox", "0 0 1920 1080");
+      stage.appendChild(net);
+
+      const conns = [];
+      const dots = [];
+      const segs = []; // {x1,x2}
+      for (let i = 0; i < COLS.length - 1; i++) {
+        const x1 = COLS[i] + HALF; // right edge of node i
+        const x2 = COLS[i + 1] - HALF; // left edge of node i+1
+        const len = x2 - x1;
+        segs.push({ x1, x2, len });
+
+        const line = document.createElementNS(SVGNS, "line");
+        line.setAttribute("class", "conn");
+        line.setAttribute("x1", x1);
+        line.setAttribute("y1", NODE_Y);
+        line.setAttribute("x2", x2);
+        line.setAttribute("y2", NODE_Y);
+        line.style.strokeDasharray = len;
+        line.style.strokeDashoffset = len; // hidden until drawn
+        net.appendChild(line);
+        conns.push(line);
+
+        const dot = document.createElementNS(SVGNS, "circle");
+        dot.setAttribute("class", "dot");
+        dot.setAttribute("r", 8);
+        dot.setAttribute("cx", x1);
+        dot.setAttribute("cy", NODE_Y);
+        dot.setAttribute("fill", ACCENT);
+        dot.style.filter = "drop-shadow(0 0 8px rgba(59,102,255,0.9))";
+        net.appendChild(dot);
+        dots.push(dot);
+      }
+
+      // pulse rings (one per node) for the final burst
+      const rings = COLS.map((cx) => {
+        const r = document.createElementNS(SVGNS, "circle");
+        r.setAttribute("class", "ring");
+        r.setAttribute("cx", cx);
+        r.setAttribute("cy", NODE_Y);
+        r.setAttribute("r", 60);
+        net.appendChild(r);
+        return r;
+      });
+
+      // ----- Initial hidden states -----
+      gsap.set(dots, { autoAlpha: 0 });
+      gsap.set(rings, { autoAlpha: 0 });
+
       const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
+
+      // 1) Nodes spring in left -> right; each label fades up as the node lands.
+      const popStart = 0.3;
+      const popStag = 0.32;
+      nodes.forEach((n, i) => {
+        const t = popStart + i * popStag;
+        tl.from(
+          nodeEls[i],
+          { scale: 0, autoAlpha: 0, duration: 0.42, ease: "back.out(2.2)", transformOrigin: "center center" },
+          t
+        );
+        tl.from(
+          labelEls[i],
+          { y: 18, autoAlpha: 0, duration: 0.4, ease: "power2.out" },
+          t + 0.26
+        );
+      });
+
+      // 2) For each connection: line draws steadily (linear), then a glowing dot
+      //    travels at constant speed and disappears on arrival.
+      const connStart = 2.3;
+      const lineDur = 0.55;
+      const dotDur = 0.5;
+      const step = lineDur + dotDur + 0.25; // unhurried gap between connections
+
+      segs.forEach((s, i) => {
+        const lineT = connStart + i * step;
+        tl.to(conns[i], { strokeDashoffset: 0, duration: lineDur, ease: "none" }, lineT);
+
+        const dotT = lineT + lineDur; // the instant the line connects
+        tl.set(dots[i], { autoAlpha: 1 }, dotT);
+        tl.fromTo(
+          dots[i],
+          { attr: { cx: s.x1 } },
+          { attr: { cx: s.x2 }, duration: dotDur, ease: "none", immediateRender: false },
+          dotT
+        );
+        tl.to(dots[i], { autoAlpha: 0, duration: 0.1, ease: "none" }, dotT + dotDur); // disappear on arrival
+      });
+
+      // 3) Final dot reaches node 5 -> all nodes emit one expanding ring at once.
+      const burstT = connStart + (segs.length - 1) * step + lineDur + dotDur; // ~7.25s
+      rings.forEach((r) => {
+        tl.fromTo(
+          r,
+          { attr: { r: 60 }, autoAlpha: 0.6 },
+          { attr: { r: 120 }, autoAlpha: 0, duration: 0.65, ease: "power2.out", immediateRender: false },
+          burstT
+        );
+      });
+
+      // 4) Absolute stillness until 9s.
+
       window.__timelines["main"] = tl;
     </script>
   </body>
