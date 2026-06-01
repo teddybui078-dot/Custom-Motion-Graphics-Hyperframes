@@ -12,11 +12,29 @@
       }
       html,
       body {
-        margin: 0;
         width: 1920px;
         height: 1080px;
         overflow: hidden;
-        background: #000;
+        background: #ffffff;
+      }
+      .stage {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        background: #ffffff;
+      }
+      /* SF Pro Display Heavy — falls back to the macOS system face (San Francisco) */
+      .word {
+        position: absolute;
+        font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+        font-weight: 800;
+        font-size: 72px;
+        line-height: 1;
+        letter-spacing: -2px;
+        color: #0a0a0a;
+        white-space: nowrap;
+        transform: translateX(-50%);
+        will-change: filter, opacity;
       }
     </style>
   </head>
@@ -25,26 +43,78 @@
       id="root"
       data-composition-id="main"
       data-start="0"
-      data-duration="10"
+      data-duration="14"
       data-width="1920"
       data-height="1080"
     >
-      
-      
-
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
-        </div>
-      -->
+      <div class="stage" id="stage"></div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
+      const stage = document.getElementById("stage");
+
+      // each word position: starting word → final word (one morph each)
+      const POSITIONS = [
+        { init: "Build", fin: "Ship" },
+        { init: "faster", fin: "better" },
+        { init: "today", fin: "together" },
+      ];
+
+      // build the two word elements (init + final) for each position
+      const TOP = 504; // vertically centers the 72px line near y=540
+      const GAP = 46; // space between word boxes
+      const mk = (text) => {
+        const el = document.createElement("div");
+        el.className = "word";
+        el.textContent = text;
+        el.style.top = TOP + "px";
+        stage.appendChild(el);
+        return el;
+      };
+      const slots = POSITIONS.map((p) => ({ initEl: mk(p.init), finEl: mk(p.fin) }));
+
+      // width-aware layout: each position reserves its WIDEST word, so a swap to a longer
+      // word stays centered on the same spot and never collides with its neighbors.
+      const wpos = slots.map((s) => Math.max(s.initEl.offsetWidth, s.finEl.offsetWidth));
+      const totalW = wpos.reduce((a, b) => a + b, 0) + GAP * (slots.length - 1);
+      let x = (1920 - totalW) / 2;
+      slots.forEach((s, i) => {
+        const center = x + wpos[i] / 2;
+        s.initEl.style.left = center + "px";
+        s.finEl.style.left = center + "px";
+        x += wpos[i] + GAP;
+      });
+
+      // ---------- timeline ----------
       const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
+
+      // first version is on screen from frame 0; final words wait, blurred and hidden
+      slots.forEach((s) => {
+        gsap.set(s.initEl, { autoAlpha: 1, filter: "blur(0px)" });
+        gsap.set(s.finEl, { autoAlpha: 0, filter: "blur(14px)" });
+      });
+
+      // fast defocus swap: old word blurs out over 6 frames, new blurs in over 6 frames
+      function morph(slot, at) {
+        tl.to(slot.initEl, { filter: "blur(14px)", autoAlpha: 0, duration: 0.2, ease: "power2.in" }, at);
+        tl.fromTo(
+          slot.finEl,
+          { filter: "blur(14px)", autoAlpha: 0 },
+          { filter: "blur(0px)", autoAlpha: 1, duration: 0.2, ease: "power2.out" },
+          at + 0.2
+        );
+      }
+
+      // V1 holds 2s → morph word 3 → V2 holds 2s → morph word 2 → V3 holds 2s → morph word 1 → V4
+      morph(slots[2], 2.0); // today → together
+      morph(slots[1], 4.4); // faster → better
+      morph(slots[0], 6.8); // Build → Ship
+
+      // V4 holds. Over the final 3 seconds the canvas warms from pure white toward a
+      // barely perceptible cream — the only thing that moves. The type stays black.
+      tl.to("#stage", { backgroundColor: "#fbf6ec", duration: 3.0, ease: "none" }, 11.0);
+
       window.__timelines["main"] = tl;
     </script>
   </body>
