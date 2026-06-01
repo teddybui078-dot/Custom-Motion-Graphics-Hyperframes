@@ -5,46 +5,222 @@
     <meta name="viewport" content="width=1920, height=1080" />
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
     <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        margin: 0; width: 1920px; height: 1080px; overflow: hidden;
+        background: #ffffff; font-family: "Inter", system-ui, sans-serif;
       }
-      html,
-      body {
-        margin: 0;
-        width: 1920px;
-        height: 1080px;
-        overflow: hidden;
-        background: #000;
+      .stage { position: absolute; inset: 0; overflow: hidden; }
+
+      .title { position: absolute; left: 80px; top: 58px; font-size: 34px; font-weight: 800; color: #16203a; }
+      .sub { position: absolute; left: 80px; top: 104px; font-size: 17px; color: #8a93a6; }
+
+      .selector {
+        position: absolute; right: 80px; top: 60px; height: 52px; padding: 0 22px;
+        background: #fff; border: 1.5px solid #e1e6ee; border-radius: 12px;
+        display: flex; align-items: center; gap: 14px; font-size: 18px; font-weight: 600; color: #2b3650;
       }
+      .selector .cal-ic { width: 20px; height: 20px; }
+      .selector .lbl { position: relative; display: inline-block; min-width: 170px; }
+      .selector .lbl .l2 { position: absolute; left: 0; top: 0; opacity: 0; white-space: nowrap; }
+      .selector .chev { color: #9aa6b6; font-size: 14px; }
+
+      .kpi { position: absolute; top: 150px; height: 132px; background: #fff; border: 1px solid #ebeef3; border-radius: 16px; padding: 22px 24px; }
+      .kpi .kl { font-size: 15px; color: #8a93a6; font-weight: 600; }
+      .layerwrap { position: relative; }
+      .kpi .lay { position: absolute; left: 0; top: 0; }
+      .kpi .kv { font-size: 40px; font-weight: 800; color: #16203a; margin-top: 6px; }
+      .kpi .kd { font-size: 15px; font-weight: 700; margin-top: 6px; }
+      .up { color: #12a150; } .down { color: #e5484d; }
+
+      .panel { position: absolute; background: #fff; border: 1px solid #ebeef3; border-radius: 18px; }
+      .ptitle { position: absolute; left: 28px; top: 22px; font-size: 20px; font-weight: 700; color: #16203a; }
+      .lay { position: absolute; left: 0; top: 0; }
+
+      .dropdown {
+        position: absolute; right: 80px; top: 128px; width: 762px; background: #fff;
+        border: 1px solid #e6eaf1; border-radius: 16px; box-shadow: 0 26px 60px rgba(20,28,46,0.22);
+        padding: 22px; z-index: 40; transform-origin: top right; display: flex; gap: 26px;
+      }
+      .month { width: 332px; }
+      .mhead { text-align: center; font-size: 18px; font-weight: 700; color: #16203a; margin-bottom: 12px; }
+      .cgrid { display: grid; grid-template-columns: repeat(7, 1fr); }
+      .cc { height: 44px; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #3b4658; position: relative; }
+      .cc.dow { color: #9aa6b6; font-size: 13px; font-weight: 700; height: 30px; }
+      .cc .bg { position: absolute; inset: 2px 0; background: #e6efff; opacity: 0; }
+      .cc .ep { position: absolute; inset: 2px; border-radius: 10px; background: #2563eb; opacity: 0; }
+      .cc .num { position: relative; z-index: 2; }
+
+      #cursor { position: absolute; left: 0; top: 0; z-index: 90; }
     </style>
   </head>
   <body>
-    <div
-      id="root"
-      data-composition-id="main"
-      data-start="0"
-      data-duration="10"
-      data-width="1920"
-      data-height="1080"
-    >
-      
-      
+    <div id="root" data-composition-id="main" data-start="0" data-duration="12" data-width="1920" data-height="1080">
+      <div class="stage" id="stage">
+        <div class="title">Analytics</div>
+        <div class="sub">Performance overview</div>
 
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
+        <div class="selector" id="selector">
+          <svg class="cal-ic" viewBox="0 0 24 24" fill="none" stroke="#5f6b7c" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>
+          <span class="lbl"><span class="l1" id="lbl1">Last 30 days</span><span class="l2" id="lbl2">May 12 – Jun 8</span></span>
+          <span class="chev">▾</span>
         </div>
-      -->
+
+        <div class="dropdown" id="dropdown" style="opacity:0">
+          <div class="month" id="monthA"></div>
+          <div class="month" id="monthB"></div>
+        </div>
+
+        <div id="cursor"><svg width="38" height="44" viewBox="0 0 24 28"><path d="M3,2 L3,22 L8.5,16.8 L12,24.5 L15.4,23 L11.9,15.3 L19,15.3 Z" fill="#ffffff" stroke="#1b1b22" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+      </div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
+      const stage = document.getElementById("stage");
+
+      // ---------- KPI cards (two data states, crossfaded) ----------
+      const KPIS = [
+        ["Revenue", ["$48.2k", "▲ 6.2%", "up"], ["$71.6k", "▲ 18.4%", "up"]],
+        ["Sessions", ["12,408", "▲ 3.1%", "up"], ["19,142", "▲ 11.2%", "up"]],
+        ["Conversion", ["2.84%", "▼ 1.0%", "down"], ["3.61%", "▲ 9.4%", "up"]],
+        ["Avg. Order", ["$61.20", "▲ 4.0%", "up"], ["$58.40", "▼ 2.1%", "down"]],
+      ];
+      const kpiB = [];
+      KPIS.forEach((k, i) => {
+        const c = document.createElement("div"); c.className = "kpi";
+        c.style.left = 80 + i * 446 + "px"; c.style.width = "422px";
+        const lay = (d) => '<div class="kv">' + d[0] + '</div><div class="kd ' + d[2] + '">' + d[1] + ' vs prev</div>';
+        c.innerHTML = '<div class="kl">' + k[0] + '</div><div class="layerwrap" style="height:74px">' +
+          '<div class="lay a">' + lay(k[1]) + '</div><div class="lay b" style="opacity:0">' + lay(k[2]) + '</div></div>';
+        stage.appendChild(c);
+        kpiB.push(c.querySelector(".lay.b"));
+      });
+      const kpiA = Array.from(document.querySelectorAll(".kpi .lay.a"));
+
+      // ---------- main area chart + side bar chart (A/B layers) ----------
+      function areaSVG(vals, color, fill) {
+        const W = 1080, H = 430, x0 = 40, y0 = 30, pw = 1000, ph = 360, base = y0 + ph;
+        let pts = vals.map((v, i) => (x0 + i * (pw / (vals.length - 1))) + "," + (base - v * ph));
+        const line = pts.join(" ");
+        const area = x0 + "," + base + " " + line + " " + (x0 + pw) + "," + base;
+        return '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '">' +
+          '<polygon points="' + area + '" fill="' + fill + '"/>' +
+          '<polyline points="' + line + '" fill="none" stroke="' + color + '" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+      }
+      function barsSVG(vals, color) {
+        const H = 430, base = 390, bw = 46, gap = (520 - vals.length * bw) / (vals.length - 1), x0 = 20;
+        let r = '<svg width="560" height="' + H + '" viewBox="0 0 560 ' + H + '">';
+        vals.forEach((v, i) => {
+          const h = v * 320, x = x0 + i * (bw + gap);
+          r += '<rect x="' + x + '" y="' + (base - h) + '" width="' + bw + '" height="' + h + '" rx="7" fill="' + color + '"/>';
+        });
+        return r + "</svg>";
+      }
+      const A_AREA = [0.30,0.42,0.36,0.50,0.46,0.58,0.52,0.63,0.60,0.68,0.64,0.72];
+      const B_AREA = [0.22,0.30,0.28,0.40,0.34,0.30,0.52,0.74,0.66,0.82,0.78,0.92];
+      const A_BARS = [0.45,0.55,0.50,0.62,0.58,0.66,0.60];
+      const B_BARS = [0.30,0.42,0.70,0.55,0.80,0.72,0.90];
+
+      const main = document.createElement("div"); main.className = "panel";
+      main.style.cssText = "left:80px; top:306px; width:1140px; height:632px;";
+      main.innerHTML = '<div class="ptitle">Revenue trend</div>' +
+        '<div class="lay a" style="left:30px; top:150px">' + areaSVG(A_AREA, "#2563eb", "rgba(37,99,235,0.10)") + '</div>' +
+        '<div class="lay b" style="left:30px; top:150px; opacity:0">' + areaSVG(B_AREA, "#7c3aed", "rgba(124,58,237,0.12)") + '</div>';
+      stage.appendChild(main);
+
+      const side = document.createElement("div"); side.className = "panel";
+      side.style.cssText = "left:1244px; top:306px; width:596px; height:632px;";
+      side.innerHTML = '<div class="ptitle">Sessions by day</div>' +
+        '<div class="lay a" style="left:20px; top:170px">' + barsSVG(A_BARS, "#2563eb") + '</div>' +
+        '<div class="lay b" style="left:20px; top:170px; opacity:0">' + barsSVG(B_BARS, "#7c3aed") + '</div>';
+      stage.appendChild(side);
+
+      const layA = document.querySelectorAll(".panel .lay.a");
+      const layB = document.querySelectorAll(".panel .lay.b");
+
+      // ---------- two-month calendar ----------
+      const DOW = ["S","M","T","W","T","F","S"];
+      const cell = {}; // key "A12" / "B8"
+      function buildMonth(elId, key, label, firstDow, days) {
+        const m = document.getElementById(elId);
+        m.innerHTML = '<div class="mhead">' + label + '</div>';
+        const g = document.createElement("div"); g.className = "cgrid";
+        DOW.forEach((d) => { const e = document.createElement("div"); e.className = "cc dow"; e.textContent = d; g.appendChild(e); });
+        for (let i = 0; i < firstDow; i++) g.appendChild(document.createElement("div"));
+        for (let d = 1; d <= days; d++) {
+          const e = document.createElement("div"); e.className = "cc";
+          e.innerHTML = '<div class="bg"></div><div class="ep"></div><div class="num">' + d + "</div>";
+          g.appendChild(e); cell[key + d] = e;
+        }
+        m.appendChild(g);
+      }
+      buildMonth("monthA", "A", "May 2025", 4, 31); // May 1 = Thu
+      buildMonth("monthB", "B", "June 2025", 0, 30); // Jun 1 = Sun
+
+      // range: May 12..31 then Jun 1..8
+      const range = [];
+      for (let d = 12; d <= 31; d++) range.push(cell["A" + d]);
+      for (let d = 1; d <= 8; d++) range.push(cell["B" + d]);
+      const startCell = cell["A12"], endCell = cell["B8"];
+
+      // ---------- cursor + measured targets ----------
+      const cursor = document.getElementById("cursor");
+      const C = (el) => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
+      gsap.set(cursor, { x: 120, y: 980, autoAlpha: 0 });
+      gsap.set("#dropdown", { autoAlpha: 0, scaleY: 0.9, y: -8, transformOrigin: "top right" });
+      const pSel = C(document.getElementById("selector"));
+      const pStart = C(startCell), pMidA = C(cell["A31"]), pMidB = C(cell["B1"]), pEnd = C(endCell);
+
+      const click = (tl, t) => { tl.to(cursor, { scale: 0.86, duration: 0.08, transformOrigin: "0 0" }, t); tl.to(cursor, { scale: 1, duration: 0.1 }, t + 0.08); };
+      const move = (tl, p, t, d) => tl.to(cursor, { x: p.x, y: p.y, duration: d, ease: "power2.inOut" }, t);
+
+      // ---------- timeline ----------
       const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
+
+      // dashboard present; cursor enters and clicks the date selector
+      tl.to(cursor, { autoAlpha: 1, duration: 0.2 }, 0.6);
+      move(tl, pSel, 0.6, 1.0);
+      click(tl, 1.75);
+      tl.to("#dropdown", { autoAlpha: 1, scaleY: 1, y: 0, duration: 0.3, ease: "power2.out" }, 1.85);
+
+      // move to the start date, click — it highlights blue
+      move(tl, pStart, 2.15, 0.75);
+      click(tl, 2.95);
+      tl.to(startCell.querySelector(".ep"), { autoAlpha: 1, duration: 0.15 }, 3.0);
+      tl.to(startCell.querySelector(".num"), { color: "#fff", duration: 0.1 }, 3.0);
+
+      // drag across to the end date — the range fills in blue as the cursor passes
+      const DRAG_S = 3.2, DRAG_E = 5.7, DUR = DRAG_E - DRAG_S;
+      move(tl, pMidA, DRAG_S, DUR * 0.42);                  // sweep down through May
+      move(tl, pMidB, DRAG_S + DUR * 0.42, DUR * 0.16);     // jump to June
+      move(tl, pEnd, DRAG_S + DUR * 0.58, DUR * 0.42);      // across to the end date
+      // cells highlight progressively
+      range.forEach((c, i) => {
+        const t = DRAG_S + (i / (range.length - 1)) * DUR;
+        tl.to(c.querySelector(".bg"), { autoAlpha: 1, duration: 0.18, ease: "power1.out" }, t);
+      });
+      // release on the end date
+      tl.to(endCell.querySelector(".ep"), { autoAlpha: 1, duration: 0.15 }, DRAG_E + 0.05);
+      tl.to(endCell.querySelector(".num"), { color: "#fff", duration: 0.1 }, DRAG_E + 0.05);
+      click(tl, DRAG_E + 0.1);
+
+      // the dropdown closes
+      tl.to("#dropdown", { autoAlpha: 0, scaleY: 0.9, y: -8, duration: 0.25, ease: "power2.in" }, 6.05);
+
+      // the dashboard transitions — all charts and metrics crossfade (20 frames) to the new range
+      const T = 6.4, XF = 20 / 30;
+      tl.to(kpiA, { autoAlpha: 0, duration: XF, ease: "power1.inOut" }, T);
+      tl.to(kpiB, { autoAlpha: 1, duration: XF, ease: "power1.inOut" }, T);
+      tl.to(layA, { autoAlpha: 0, duration: XF, ease: "power1.inOut" }, T);
+      tl.to(layB, { autoAlpha: 1, duration: XF, ease: "power1.inOut" }, T);
+      // the selector now shows the custom range
+      tl.to("#lbl1", { autoAlpha: 0, duration: 0.25 }, T);
+      tl.to("#lbl2", { autoAlpha: 1, duration: 0.25 }, T);
+
+      // cursor drifts away; the new period holds.
+      tl.to(cursor, { x: 1700, y: 540, duration: 0.9, ease: "power2.inOut" }, 7.4);
+
       window.__timelines["main"] = tl;
     </script>
   </body>
