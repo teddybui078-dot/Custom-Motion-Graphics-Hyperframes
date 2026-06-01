@@ -5,46 +5,190 @@
     <meta name="viewport" content="width=1920, height=1080" />
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
     <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        margin: 0; width: 1920px; height: 1080px; overflow: hidden;
+        background: #ffffff; font-family: "Inter", system-ui, sans-serif;
       }
-      html,
-      body {
-        margin: 0;
-        width: 1920px;
-        height: 1080px;
-        overflow: hidden;
-        background: #000;
+      .stage { position: absolute; inset: 0; overflow: hidden; }
+
+      /* file grid */
+      #grid { position: absolute; inset: 0; }
+      .card {
+        position: absolute; width: 300px; height: 220px; background: #ffffff;
+        border: 1px solid #e6e9ef; border-radius: 14px; overflow: hidden;
+        box-shadow: 0 2px 6px rgba(20,28,46,0.05);
       }
+      .thumb { height: 158px; background: #f7f8fb; padding: 22px 24px; }
+      .thumb .topbar { width: 70px; height: 8px; border-radius: 4px; margin-bottom: 16px; }
+      .thumb .ln { height: 7px; border-radius: 4px; background: #dfe3ea; margin-bottom: 11px; }
+      .foot { height: 62px; display: flex; align-items: center; gap: 12px; padding: 0 18px; }
+      .ftype { width: 26px; height: 26px; border-radius: 6px; flex: none; }
+      .fname { font-size: 16px; color: #303642; font-weight: 600; white-space: nowrap; overflow: hidden; }
+
+      /* preview modal */
+      #modal {
+        position: absolute; background: #ffffff; border-radius: 16px; overflow: hidden;
+        box-shadow: 0 40px 100px rgba(20,28,46,0.30), 0 10px 30px rgba(20,28,46,0.16);
+        z-index: 30;
+      }
+      #mhead {
+        position: absolute; left: 0; top: 0; width: 100%; height: 64px;
+        display: flex; align-items: center; padding: 0 26px; border-bottom: 1px solid #eef0f4; background: #fff;
+      }
+      #mhead .mt { font-size: 19px; font-weight: 700; color: #1f2a44; }
+      #closeb {
+        margin-left: auto; width: 38px; height: 38px; border-radius: 50%; background: #f1f3f7;
+        display: flex; align-items: center; justify-content: center;
+      }
+      #viewport { position: absolute; left: 50px; top: 82px; width: 660px; height: 800px; overflow: hidden; }
+      #pagestack { position: absolute; left: 0; top: 0; width: 660px; }
+      .page {
+        position: absolute; left: 0; width: 660px; height: 440px; background: #ffffff;
+        border: 1px solid #edeff3; border-radius: 8px; box-shadow: 0 4px 16px rgba(20,28,46,0.07);
+        overflow: hidden; padding: 40px 46px;
+      }
+      .skel .sb { height: 12px; border-radius: 6px; background: #eef1f5; margin-bottom: 18px; }
+      .content { position: absolute; inset: 0; padding: 40px 46px; opacity: 0; }
+      .content .h { height: 22px; width: 60%; border-radius: 6px; background: #2b3b63; margin-bottom: 22px; }
+      .content .p { height: 11px; border-radius: 5px; background: #d9dde6; margin-bottom: 13px; }
+      .content .fig { height: 150px; border-radius: 10px; background: linear-gradient(135deg,#dbe6ff,#eef3ff); margin: 18px 0; }
+      .shimmer {
+        position: absolute; top: 0; left: -40%; width: 38%; height: 100%;
+        background: linear-gradient(105deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.75) 50%, rgba(255,255,255,0) 100%);
+        transform: skewX(-14deg); opacity: 0; z-index: 5;
+      }
+
+      #cursor { position: absolute; left: 0; top: 0; z-index: 90; }
     </style>
   </head>
   <body>
-    <div
-      id="root"
-      data-composition-id="main"
-      data-start="0"
-      data-duration="10"
-      data-width="1920"
-      data-height="1080"
-    >
-      
-      
-
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
+    <div id="root" data-composition-id="main" data-start="0" data-duration="12" data-width="1920" data-height="1080">
+      <div class="stage" id="stage">
+        <div id="grid"></div>
+        <div id="modal" data-layout-allow-overflow>
+          <div id="mhead"><div class="mt">Annual Report 2025</div>
+            <div id="closeb"><svg width="18" height="18" viewBox="0 0 24 24" stroke-width="2.4" stroke-linecap="round"><path d="M6 6 L18 18 M18 6 L6 18" stroke="#6b7686"/></svg></div>
+          </div>
+          <div id="viewport"><div id="pagestack"></div></div>
         </div>
-      -->
+        <div id="cursor"><svg width="38" height="44" viewBox="0 0 24 28"><path d="M3,2 L3,22 L8.5,16.8 L12,24.5 L15.4,23 L11.9,15.3 L19,15.3 Z" fill="#ffffff" stroke="#1b1b22" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+      </div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
+      const grid = document.getElementById("grid");
+      const modal = document.getElementById("modal");
+
+      // ---------- file grid ----------
+      const COLX = [300, 640, 980, 1320], ROWY = [170, 430, 690];
+      const TYPES = ["#4285f4", "#0f9d58", "#ea4335", "#f4b400"];
+      const NAMES = ["Q3 Plan", "Roadmap", "Budget", "Brief", "Annual Report", "Notes",
+        "Designs", "Invoice", "Research", "Metrics", "Proposal", "Summary"];
+      const TARGET = 4; // "Annual Report" (row 1, col 0)
+      const cards = [];
+      for (let i = 0; i < 12; i++) {
+        const col = i % 4, row = Math.floor(i / 4);
+        const c = document.createElement("div"); c.className = "card";
+        c.style.left = COLX[col] + "px"; c.style.top = ROWY[row] + "px";
+        const tc = TYPES[i % 4];
+        c.innerHTML =
+          '<div class="thumb"><div class="topbar" style="background:' + tc + '"></div>' +
+          '<div class="ln" style="width:88%"></div><div class="ln" style="width:96%"></div>' +
+          '<div class="ln" style="width:74%"></div><div class="ln" style="width:90%"></div></div>' +
+          '<div class="foot"><div class="ftype" style="background:' + tc + '"></div><div class="fname">' + NAMES[i] + '</div></div>';
+        grid.appendChild(c); cards.push(c);
+      }
+      const card = cards[TARGET];
+      const CARD = { x: COLX[TARGET % 4], y: ROWY[Math.floor(TARGET / 4)], w: 300, h: 220 };
+      const MOD = { x: 580, y: 80, w: 760, h: 920 };
+
+      // ---------- pages (skeleton -> content + shimmer) ----------
+      const pagestack = document.getElementById("pagestack");
+      const NPAGES = 5, PAGEH = 440, PGAP = 26;
+      const pages = [];
+      for (let i = 0; i < NPAGES; i++) {
+        const p = document.createElement("div"); p.className = "page"; p.style.top = i * (PAGEH + PGAP) + "px";
+        p.innerHTML =
+          '<div class="skel"><div class="sb" style="width:55%;height:18px"></div>' +
+          '<div class="sb" style="width:96%"></div><div class="sb" style="width:90%"></div>' +
+          '<div class="sb" style="width:98%"></div><div class="sb" style="width:70%"></div>' +
+          '<div class="sb" style="width:100%;height:120px;margin:10px 0"></div>' +
+          '<div class="sb" style="width:92%"></div><div class="sb" style="width:84%"></div></div>' +
+          '<div class="content"><div class="h"></div>' +
+          '<div class="p" style="width:97%"></div><div class="p" style="width:91%"></div><div class="p" style="width:99%"></div>' +
+          '<div class="fig"></div><div class="p" style="width:94%"></div><div class="p" style="width:88%"></div></div>' +
+          '<div class="shimmer"></div>';
+        pagestack.appendChild(p);
+        pages.push({ el: p, skel: p.querySelector(".skel"), content: p.querySelector(".content"), shimmer: p.querySelector(".shimmer") });
+      }
+
+      // ---------- cursor + initial states ----------
+      const cursor = document.getElementById("cursor");
+      gsap.set(cursor, { x: 120, y: 980, autoAlpha: 0 });
+      gsap.set(grid, { autoAlpha: 0 });
+      gsap.set(modal, { left: CARD.x, top: CARD.y, width: CARD.w, height: CARD.h, autoAlpha: 0 });
+      gsap.set("#mhead", { autoAlpha: 0, display: "none" });
+      gsap.set("#viewport", { autoAlpha: 0, display: "none" });
+      gsap.set("#pagestack", { y: 0 });
+
+      const click = (tl, t) => { tl.to(cursor, { scale: 0.86, duration: 0.08, transformOrigin: "0 0" }, t); tl.to(cursor, { scale: 1, duration: 0.1 }, t + 0.08); };
+
+      // ---------- timeline ----------
       const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
+
+      // grid appears
+      tl.to(grid, { autoAlpha: 1, duration: 0.5, ease: "power2.out" }, 0.1);
+
+      // cursor enters, moves to the target card
+      tl.to(cursor, { autoAlpha: 1, duration: 0.2 }, 0.5);
+      tl.to(cursor, { x: CARD.x + 150, y: CARD.y + 110, duration: 0.9, ease: "power2.inOut" }, 0.5);
+
+      // double-click
+      click(tl, 1.45); click(tl, 1.62);
+
+      // the card expands outward from its grid position into a centered modal
+      tl.to(card, { autoAlpha: 0, duration: 0.12 }, 1.78);
+      tl.set(modal, { autoAlpha: 1 }, 1.78);
+      tl.to(modal, { left: MOD.x, top: MOD.y, width: MOD.w, height: MOD.h, duration: 0.55, ease: "power3.inOut" }, 1.8);
+      // grid dims to 60% behind it
+      tl.to(grid, { opacity: 0.6, duration: 0.5, ease: "power2.inOut" }, 1.8);
+      // header + viewport fade in once expanded
+      tl.set("#mhead", { display: "flex" }, 2.28);
+      tl.set("#viewport", { display: "block" }, 2.28);
+      tl.to(["#mhead", "#viewport"], { autoAlpha: 1, duration: 0.3 }, 2.3);
+
+      // the document renders — pages resolve top->bottom with a shimmer
+      pages.forEach((pg, i) => {
+        const t = 2.45 + i * 0.34;
+        tl.fromTo(pg.shimmer, { x: 0, autoAlpha: 0 }, { autoAlpha: 1, duration: 0.12 }, t);
+        tl.to(pg.shimmer, { x: 720, duration: 0.55, ease: "power1.inOut" }, t);
+        tl.to(pg.shimmer, { autoAlpha: 0, duration: 0.12 }, t + 0.5);
+        tl.to(pg.content, { autoAlpha: 1, duration: 0.3, ease: "power1.out" }, t + 0.28);
+        tl.to(pg.skel, { autoAlpha: 0, duration: 0.3, ease: "power1.out" }, t + 0.28);
+      });
+
+      // the cursor scrolls — pages travel upward, smooth and physical
+      tl.to(cursor, { x: 960, y: 560, duration: 0.7, ease: "power2.inOut" }, 4.9);
+      tl.to("#pagestack", { y: -430, duration: 1.1, ease: "power2.inOut" }, 5.5);
+      tl.to("#pagestack", { y: -860, duration: 1.1, ease: "power2.inOut" }, 6.9);
+
+      // cursor moves to the close button and clicks
+      tl.to(cursor, { x: MOD.x + MOD.w - 44, y: MOD.y + 34, duration: 0.7, ease: "power2.inOut" }, 8.1);
+      click(tl, 8.85);
+
+      // the modal compresses back to the card's position; grid brightens to full
+      tl.to(["#mhead", "#viewport"], { autoAlpha: 0, duration: 0.18 }, 9.0);
+      tl.set(["#mhead", "#viewport"], { display: "none" }, 9.2);
+      tl.to(modal, { left: CARD.x, top: CARD.y, width: CARD.w, height: CARD.h, duration: 0.5, ease: "power3.inOut" }, 9.05);
+      tl.to(grid, { opacity: 1, duration: 0.5, ease: "power2.inOut" }, 9.05);
+      tl.to(modal, { autoAlpha: 0, duration: 0.12 }, 9.5);
+      tl.to(card, { autoAlpha: 1, duration: 0.12 }, 9.52);
+      // reset scroll for a clean held state
+      tl.set("#pagestack", { y: 0 }, 9.7);
+
+      // the card is exactly where it was — board holds.
       window.__timelines["main"] = tl;
     </script>
   </body>
