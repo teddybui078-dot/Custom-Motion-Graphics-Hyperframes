@@ -12,12 +12,97 @@
       }
       html,
       body {
-        margin: 0;
         width: 1920px;
         height: 1080px;
         overflow: hidden;
-        background: #000;
+        background: #f4f5f7;
+        font-family: "Inter", Helvetica, Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        color: #1f2430;
       }
+      .stage { position: absolute; inset: 0; overflow: hidden; }
+
+      /* ---------- editor chrome ---------- */
+      .toolbar {
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 66px;
+        background: #ffffff;
+        border-bottom: 1px solid #e9eaee;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 30px;
+        z-index: 4;
+      }
+      .doctitle { display: flex; align-items: center; gap: 14px; font-size: 17px; font-weight: 600; color: #374151; }
+      .doctitle .dot { width: 26px; height: 26px; border-radius: 7px; background: linear-gradient(135deg, #6366f1, #4f46e5); }
+      .doctitle .muted { color: #9ca3af; font-weight: 500; }
+      /* avatar stack */
+      .avatars { display: flex; align-items: center; }
+      .av {
+        width: 42px; height: 42px; border-radius: 50%;
+        border: 3px solid #ffffff;
+        display: flex; align-items: center; justify-content: center;
+        color: #fff; font-size: 14px; font-weight: 640;
+        margin-left: -12px;
+      }
+      .av.me { background: #6366f1; }
+      .av.maya { background: #ec4899; }
+      .av.devin { background: #14b8a6; }
+
+      /* ---------- document page ---------- */
+      .page {
+        position: absolute;
+        left: 460px;
+        top: 112px;
+        width: 1000px;
+        min-height: 900px;
+        background: #ffffff;
+        border: 1px solid #ececf1;
+        border-radius: 6px;
+        padding: 76px 88px;
+        box-shadow: 0 18px 50px -22px rgba(16, 17, 21, 0.16);
+        z-index: 1;
+      }
+      .page h1 { font-size: 40px; font-weight: 720; letter-spacing: -0.9px; margin-bottom: 26px; }
+      .page h2 { font-size: 25px; font-weight: 660; letter-spacing: -0.4px; margin: 34px 0 16px; }
+      .page p { font-size: 19px; line-height: 1.75; color: #3a4150; margin-bottom: 14px; letter-spacing: -0.1px; }
+
+      /* ---------- carets & cursors (overlay) ---------- */
+      .caret {
+        position: absolute;
+        width: 2.5px;
+        background: #111418;
+        border-radius: 2px;
+        z-index: 6;
+      }
+      .caret.maya { background: #ec4899; }
+
+      .selhl {
+        position: absolute;
+        background: rgba(20, 184, 166, 0.26);
+        border-radius: 3px;
+        transform-origin: 0% 50%;
+        z-index: 2;
+      }
+
+      .ptr { position: absolute; top: 0; left: 0; z-index: 10; }
+      .ptr svg { display: block; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.25)); }
+      .flag {
+        position: absolute;
+        left: 16px; top: 22px;
+        padding: 4px 11px;
+        border-radius: 9px 9px 9px 3px;
+        color: #fff;
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: -0.1px;
+        white-space: nowrap;
+        box-shadow: 0 4px 10px -2px rgba(0,0,0,0.3);
+      }
+      .flag.maya { background: #ec4899; }
+      .flag.devin { background: #14b8a6; }
     </style>
   </head>
   <body>
@@ -25,26 +110,115 @@
       id="root"
       data-composition-id="main"
       data-start="0"
-      data-duration="10"
+      data-duration="11"
       data-width="1920"
       data-height="1080"
     >
-      
-      
-
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
+      <div class="stage">
+        <!-- toolbar -->
+        <div class="toolbar">
+          <div class="doctitle"><div class="dot"></div>Design Principles&nbsp;<span class="muted">/ shared draft</span></div>
+          <div class="avatars">
+            <div class="av me" id="avMe">JA</div>
+            <div class="av maya" id="avMaya">MR</div>
+            <div class="av devin" id="avDevin">DK</div>
+          </div>
         </div>
-      -->
+
+        <!-- document -->
+        <div class="page" id="page">
+          <h1>Design Principles for Calm Software</h1>
+          <p>Good software feels calm.<span id="c1"></span> It respects attention, moves with intention, and never asks for more focus than a task truly deserves.</p>
+          <h2>Clarity over cleverness</h2>
+          <p><span id="sel">Clarity means saying less.</span> The interface should never make a reader work to understand what just changed, or why it matters on the page in front of them.</p>
+          <p>When everything competes for attention, nothing earns it. Restraint is the feature that makes every other feature legible.</p>
+          <h2 id="mayaTarget">Motion with meaning</h2>
+          <p>Every animation should explain a change — where something came from, where it went, and how the parts of the product relate to one another over time.</p>
+        </div>
+
+        <!-- selection highlight (Devin) -->
+        <div class="selhl" id="selhl"></div>
+
+        <!-- carets -->
+        <div class="caret" id="caret1"></div>
+        <div class="caret maya" id="caretMaya"></div>
+
+        <!-- collaborator cursors -->
+        <div class="ptr" id="ptrMaya">
+          <svg viewBox="0 0 20 32" width="26" height="42"><path d="M0 0 L0 27 L6.3 20.7 L10.5 30 L13.9 28.5 L9.75 19.5 L18 18.9 Z" fill="#ec4899" /></svg>
+          <span class="flag maya">Maya</span>
+        </div>
+        <div class="ptr" id="ptrDevin">
+          <svg viewBox="0 0 20 32" width="26" height="42"><path d="M0 0 L0 27 L6.3 20.7 L10.5 30 L13.9 28.5 L9.75 19.5 L18 18.9 Z" fill="#14b8a6" /></svg>
+          <span class="flag devin">Devin</span>
+        </div>
+      </div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
+      const $ = (id) => document.getElementById(id);
+      const rectOf = (id) => $(id).getBoundingClientRect();
+
+      // ---------- place carets & selection from the laid-out document ----------
+      const LINE = 30; // caret height (≈ paragraph line box)
+      const r1 = rectOf("c1");
+      $("caret1").style.left = r1.left + "px";
+      $("caret1").style.top = r1.top - 4 + "px";
+      $("caret1").style.height = LINE + "px";
+
+      const rm = rectOf("mayaTarget");
+      $("caretMaya").style.left = rm.left + "px";
+      $("caretMaya").style.top = rm.top + 2 + "px";
+      $("caretMaya").style.height = 34 + "px";
+
+      const rs = rectOf("sel");
+      $("selhl").style.left = rs.left - 2 + "px";
+      $("selhl").style.top = rs.top - 3 + "px";
+      $("selhl").style.width = rs.width + 4 + "px";
+      $("selhl").style.height = rs.height + 6 + "px";
+
+      // ---------- timeline ----------
       const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
+
+      // initial states
+      gsap.set([".toolbar", "#page"], { autoAlpha: 0 });
+      gsap.set("#caret1", { opacity: 0 });
+      gsap.set("#caretMaya", { opacity: 0 });
+      gsap.set("#selhl", { scaleX: 0, autoAlpha: 1 });
+      gsap.set(["#avMe", "#avMaya", "#avDevin"], { scale: 0, transformOrigin: "50% 50%" });
+      gsap.set("#ptrMaya", { x: 1320, y: 380, autoAlpha: 0 });
+      gsap.set("#ptrDevin", { x: 600, y: 840, autoAlpha: 0 });
+
+      // editor settles in, my caret begins blinking
+      tl.to([".toolbar", "#page"], { autoAlpha: 1, duration: 0.5, ease: "power2.out" }, 0);
+      tl.to("#avMe", { scale: 1, duration: 0.4, ease: "back.out(2)" }, 0.35);
+      tl.to("#caret1", { opacity: 1, duration: 0.05 }, 0.5);
+      tl.to("#caret1", { opacity: 0, duration: 0.5, ease: "steps(1)", repeat: 21, yoyo: true }, 0.6);
+
+      // glide a collaborator pointer to a tip position (sel is a CSS selector for GSAP)
+      function glide(sel, tx, ty, at, dur) {
+        tl.to(sel, { x: tx, y: ty, duration: dur, ease: "power2.inOut" }, at);
+      }
+
+      // ----- Maya joins: pointer glides to the "Motion with meaning" heading, clicks in -----
+      tl.to("#avMaya", { scale: 1, duration: 0.4, ease: "back.out(2)" }, 1.0);
+      tl.to("#ptrMaya", { autoAlpha: 1, duration: 0.25 }, 1.0);
+      glide("#ptrMaya", rm.left - 10, rm.top - 8, 1.25, 1.25); // → heading
+      tl.to("#caretMaya", { opacity: 1, duration: 0.05 }, 2.55);
+      tl.to("#caretMaya", { opacity: 0, duration: 0.5, ease: "steps(1)", repeat: 15, yoyo: true }, 2.65);
+
+      // ----- Devin joins: pointer glides to a sentence, selection sweeps in its color -----
+      tl.to("#avDevin", { scale: 1, duration: 0.4, ease: "back.out(2)" }, 1.6);
+      tl.to("#ptrDevin", { autoAlpha: 1, duration: 0.25 }, 1.6);
+      glide("#ptrDevin", rs.left - 8, rs.top + 6, 1.9, 1.2); // → sentence start
+      tl.to("#selhl", { scaleX: 1, duration: 0.4, ease: "power2.out" }, 3.15); // selection drags in
+
+      // ----- all three move simultaneously but independently (overlapping glides) -----
+      glide("#ptrMaya", rm.left + 300, rm.top + 96, 4.0, 1.1); // Maya drifts into the paragraph below
+      glide("#ptrDevin", rs.left + 470, rs.top - 150, 4.35, 1.15); // Devin moves up to another line
+      // (my caret keeps blinking the whole time — three independent actors at once)
+
       window.__timelines["main"] = tl;
     </script>
   </body>
