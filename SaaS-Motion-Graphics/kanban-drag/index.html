@@ -5,19 +5,60 @@
     <meta name="viewport" content="width=1920, height=1080" />
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
     <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        margin: 0; width: 1920px; height: 1080px; overflow: hidden;
+        background: #f4f5f7;
+        font-family: "Inter", "JetBrains Mono", system-ui, sans-serif;
       }
-      html,
-      body {
-        margin: 0;
-        width: 1920px;
-        height: 1080px;
-        overflow: hidden;
-        background: #000;
+      .stage { position: absolute; inset: 0; overflow: hidden; }
+
+      .col {
+        position: absolute; width: 460px; top: 150px; height: 820px;
+        background: #ebecf0; border-radius: 14px;
       }
+      .col-head {
+        position: absolute; top: 22px; left: 24px; right: 24px;
+        display: flex; align-items: center; gap: 12px;
+      }
+      .col-title { font-size: 24px; font-weight: 700; color: #5e6c84; letter-spacing: 0.4px; }
+      .col-count {
+        position: relative; min-width: 30px; height: 30px;
+      }
+      .col-count span {
+        position: absolute; left: 0; top: 0; width: 30px; height: 30px;
+        display: flex; align-items: center; justify-content: center;
+        background: #dfe1e6; color: #5e6c84; border-radius: 15px;
+        font-size: 16px; font-weight: 700;
+      }
+
+      .card {
+        position: absolute; width: 420px; height: 110px; left: 0; top: 0;
+        background: #ffffff; border-radius: 10px; padding: 16px 18px;
+        box-shadow: 0 1px 2px rgba(9,30,66,0.18);
+      }
+      .tag { width: 64px; height: 8px; border-radius: 4px; }
+      .card .title {
+        margin-top: 14px; font-size: 23px; font-weight: 600; color: #172b4d;
+        white-space: nowrap;
+      }
+      .avatar {
+        position: absolute; left: 18px; bottom: 14px;
+        width: 30px; height: 30px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 13px; font-weight: 700; color: #fff;
+      }
+      .meta {
+        position: absolute; right: 18px; bottom: 16px;
+        font-size: 14px; color: #97a0af; font-weight: 600;
+      }
+
+      .insline {
+        position: absolute; height: 4px; border-radius: 2px;
+        background: #2563eb; box-shadow: 0 0 6px rgba(37,99,235,0.5);
+      }
+
+      #cursor { position: absolute; left: 0; top: 0; z-index: 50; }
     </style>
   </head>
   <body>
@@ -25,26 +66,139 @@
       id="root"
       data-composition-id="main"
       data-start="0"
-      data-duration="10"
+      data-duration="7"
       data-width="1920"
       data-height="1080"
     >
-      
-      
-
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
-        </div>
-      -->
+      <div class="stage" id="stage"></div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
+      const stage = document.getElementById("stage");
+
+      // ---------- geometry ----------
+      const COL_X = { todo: 210, prog: 730, done: 1250 };
+      const CARD_DX = 20;            // card inset within a column
+      const SLOT0 = 240, SLOTH = 128; // first slot y, slot pitch
+      const slotY = (i) => SLOT0 + i * SLOTH;
+
+      // ---------- columns ----------
+      function column(x, title, count) {
+        const col = document.createElement("div");
+        col.className = "col";
+        col.style.left = x + "px";
+        col.innerHTML =
+          '<div class="col-head"><div class="col-title">' + title + "</div>" +
+          '<div class="col-count"><span class="c-old">' + count[0] + "</span>" +
+          (count[1] != null ? '<span class="c-new" style="opacity:0">' + count[1] + "</span>" : "") +
+          "</div></div>";
+        stage.appendChild(col);
+        return col;
+      }
+      const colTodo = column(COL_X.todo, "To Do", [3, 2]);
+      const colProg = column(COL_X.prog, "In Progress", [2, 3]);
+      const colDone = column(COL_X.done, "Done", [2]);
+
+      // ---------- cards ----------
+      function card(colx, slot, tagColor, title, av, avColor, meta) {
+        const c = document.createElement("div");
+        c.className = "card";
+        c.style.left = colx + CARD_DX + "px";
+        c.style.top = slotY(slot) + "px";
+        c.innerHTML =
+          '<div class="tag" style="background:' + tagColor + '"></div>' +
+          '<div class="title">' + title + "</div>" +
+          '<div class="avatar" style="background:' + avColor + '">' + av + "</div>" +
+          '<div class="meta">' + meta + "</div>";
+        stage.appendChild(c);
+        return c;
+      }
+
+      // To Do
+      const A = card(COL_X.todo, 0, "#f5a623", "Redesign onboarding", "JD", "#6554c0", "OB-21");
+      const B = card(COL_X.todo, 1, "#e2483d", "Fix auth redirect", "MK", "#0079bf", "OB-19");
+      const C = card(COL_X.todo, 2, "#2d9cdb", "Write API docs", "SR", "#36b37e", "OB-24");
+      // In Progress
+      const P1 = card(COL_X.prog, 0, "#6554c0", "Migrate database", "AL", "#ff8b00", "PR-08");
+      const P2 = card(COL_X.prog, 1, "#36b37e", "Update billing flow", "TY", "#e2483d", "PR-12");
+      // Done
+      card(COL_X.done, 0, "#36b37e", "Ship dark mode", "QA", "#0079bf", "DN-03");
+      card(COL_X.done, 1, "#36b37e", "Release v2.1", "QA", "#36b37e", "DN-05");
+
+      // ---------- insertion indicator (between P1 and P2) ----------
+      const ins = document.createElement("div");
+      ins.className = "insline";
+      ins.style.left = COL_X.prog + CARD_DX + "px";
+      ins.style.width = "420px";
+      ins.style.top = slotY(1) - 11 + "px";
+      gsap.set(ins, { autoAlpha: 0, scaleX: 0.7, transformOrigin: "center center" });
+      stage.appendChild(ins);
+
+      // ---------- cursor ----------
+      const cursor = document.createElement("div");
+      cursor.id = "cursor";
+      cursor.innerHTML =
+        '<svg width="38" height="44" viewBox="0 0 24 28">' +
+        '<path d="M3,2 L3,22 L8.5,16.8 L12,24.5 L15.4,23 L11.9,15.3 L19,15.3 Z" ' +
+        'fill="#ffffff" stroke="#1b1b22" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+      stage.appendChild(cursor);
+      gsap.set(cursor, { x: 1480, y: 990 });
+
+      // ---------- timeline ----------
       const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
+
+      // helper z-lift for the dragged card
+      gsap.set(A, { zIndex: 40, transformOrigin: "center center" });
+
+      // 1) cursor moves to hover the To Do card
+      tl.to(cursor, { x: 360, y: 300, duration: 1.0, ease: "power2.inOut" }, 0.3);
+
+      // 2) the card lifts — scale up, shadow deepens, separates from the column
+      tl.to(A, {
+        scale: 1.045, y: -8,
+        boxShadow: "0 14px 28px rgba(9,30,66,0.30)",
+        duration: 0.35, ease: "power2.out",
+      }, 1.35);
+      tl.to(cursor, { scale: 0.9, duration: 0.12, transformOrigin: "0 0" }, 1.35);
+      tl.to(cursor, { scale: 1, duration: 0.12 }, 1.47);
+      // To Do reflows: B and C rise to close the gap
+      tl.to(B, { y: -SLOTH, duration: 0.4, ease: "power2.inOut" }, 1.55);
+      tl.to(C, { y: -SLOTH, duration: 0.4, ease: "power2.inOut" }, 1.55);
+
+      // 3) drag rightward into In Progress — the card trails the cursor by 4 frames
+      const DRAG_T = 1.85, DRAG_DUR = 1.6;
+      const DX = 520, DY = 128;      // To Do slot0 -> In Progress slot1
+      tl.to(cursor, { x: 360 + DX, y: 300 + DY, duration: DRAG_DUR, ease: "power1.inOut" }, DRAG_T);
+      tl.to(A, { x: DX, y: DY - 8, duration: DRAG_DUR, ease: "power1.inOut" }, DRAG_T + 4 / 30);
+
+      // 4) as it enters, the insertion indicator appears and P2 opens a slot
+      tl.to(ins, { autoAlpha: 1, scaleX: 1, duration: 0.25, ease: "power2.out" }, DRAG_T + 0.7);
+      tl.to(P2, { y: SLOTH, duration: 0.45, ease: "power2.inOut" }, DRAG_T + 0.7);
+
+      // 5) release — indicator hides, card drops into place with one satisfying bounce
+      const REL_T = DRAG_T + DRAG_DUR + 4 / 30; // ~3.58
+      tl.to(cursor, { scale: 0.88, duration: 0.1, transformOrigin: "0 0" }, REL_T);
+      tl.to(cursor, { scale: 1, duration: 0.12 }, REL_T + 0.1);
+      tl.to(ins, { autoAlpha: 0, duration: 0.18 }, REL_T);
+      tl.to(A, {
+        scale: 1, y: DY,
+        boxShadow: "0 1px 2px rgba(9,30,66,0.18)",
+        duration: 0.3, ease: "power2.in",
+      }, REL_T);
+      // single bounce
+      tl.to(A, { y: DY + 12, duration: 0.12, ease: "power2.out" }, REL_T + 0.3);
+      tl.to(A, { y: DY, duration: 0.26, ease: "power2.out" }, REL_T + 0.42);
+
+      // counts update: To Do 3 -> 2, In Progress 2 -> 3
+      tl.to(colTodo.querySelector(".c-old"), { autoAlpha: 0, duration: 0.25 }, REL_T + 0.1);
+      tl.to(colTodo.querySelector(".c-new"), { autoAlpha: 1, duration: 0.25 }, REL_T + 0.1);
+      tl.to(colProg.querySelector(".c-old"), { autoAlpha: 0, duration: 0.25 }, REL_T + 0.1);
+      tl.to(colProg.querySelector(".c-new"), { autoAlpha: 1, duration: 0.25 }, REL_T + 0.1);
+
+      // 6) the cursor moves away; the board holds.
+      tl.to(cursor, { x: 1500, y: 250, duration: 1.0, ease: "power2.inOut" }, REL_T + 1.0);
+
       window.__timelines["main"] = tl;
     </script>
   </body>
