@@ -5,19 +5,77 @@
     <meta name="viewport" content="width=1920, height=1080" />
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
     <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-      html,
-      body {
-        margin: 0;
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
         width: 1920px;
         height: 1080px;
         overflow: hidden;
-        background: #000;
+        font-family: "Inter", Helvetica, Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
       }
+      /* white → light-blue gradient backdrop */
+      .stage {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        background: radial-gradient(120% 95% at 50% 18%, #ffffff 0%, #eef4fc 45%, #dbe8fa 78%, #cadcf5 100%);
+      }
+      .rings { position: absolute; inset: 0; z-index: 1; }
+
+      /* ---------- phone ---------- */
+      .phone {
+        position: absolute;
+        left: 835px;
+        top: 210px;
+        width: 250px;
+        height: 520px;
+        z-index: 4;
+      }
+      .phoneglow {
+        position: absolute;
+        inset: -16px;
+        border-radius: 60px;
+        background: conic-gradient(from 200deg, #ff5d5d, #ff9d3d, #ffe23d, #4dffa0, #43c6ff, #9a6dff, #ff5dc8, #ff5d5d);
+        filter: blur(34px);
+        opacity: 0.75;
+      }
+      .phonerim {
+        position: absolute;
+        inset: 0;
+        border-radius: 52px;
+        padding: 4px;
+        background: conic-gradient(from 200deg, #ff5d5d, #ff9d3d, #ffe23d, #4dffa0, #43c6ff, #9a6dff, #ff5dc8, #ff5d5d);
+        box-shadow: 0 40px 80px -28px rgba(20, 30, 60, 0.55);
+      }
+      .phonescr {
+        position: absolute;
+        inset: 4px;
+        border-radius: 48px;
+        background: radial-gradient(120% 80% at 50% 30%, #1a1b22 0%, #0a0a0d 70%);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 26px;
+      }
+      .notch { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); width: 84px; height: 22px; border-radius: 12px; background: #000; }
+      .wordmark { font-size: 21px; font-weight: 600; letter-spacing: -0.3px; white-space: nowrap; }
+      .wordmark .ws { color: #e9edf4; }
+      .calicon { width: 86px; height: 86px; }
+
+      /* ---------- orbiting tool icons ---------- */
+      .item {
+        position: absolute;
+        width: 84px;
+        height: 84px;
+        z-index: 5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        filter: drop-shadow(0 10px 18px rgba(30, 45, 80, 0.18));
+      }
+      .item svg { width: 84px; height: 84px; display: block; }
     </style>
   </head>
   <body>
@@ -29,22 +87,122 @@
       data-width="1920"
       data-height="1080"
     >
-      
-      
+      <div class="stage">
+        <!-- faint orbit rings -->
+        <svg class="rings" id="rings" viewBox="0 0 1920 1080">
+          <g fill="none" stroke="#8aa6d6" stroke-width="1.6">
+            <ellipse cx="960" cy="470" rx="300" ry="178" opacity="0.30" />
+            <ellipse cx="960" cy="470" rx="445" ry="262" opacity="0.26" />
+            <ellipse cx="960" cy="470" rx="580" ry="345" opacity="0.22" />
+          </g>
+        </svg>
 
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
+        <!-- phone -->
+        <div class="phone" id="phone">
+          <div class="phoneglow"></div>
+          <div class="phonerim">
+            <div class="phonescr">
+              <div class="notch"></div>
+              <div class="wordmark" id="wordmark"></div>
+              <div class="calicon" id="calicon"></div>
+            </div>
+          </div>
         </div>
-      -->
+
+        <!-- orbiting tool icons injected here -->
+      </div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
+      const stage = document.querySelector(".stage");
+
+      // ---- brand SVGs (clean, recognizable approximations) ----
+      const SVG = {
+        slides:
+          '<svg viewBox="0 0 100 100"><rect x="20" y="8" width="60" height="84" rx="10" fill="#F5B400"/><rect x="32" y="34" width="36" height="26" rx="3" fill="#fff"/></svg>',
+        keep:
+          '<svg viewBox="0 0 100 100"><rect x="14" y="10" width="72" height="72" rx="14" fill="#FFBF00"/><path d="M50 30 a16 16 0 0 0-9 29 v6 h18 v-6 a16 16 0 0 0-9-29z" fill="#fff"/><rect x="44" y="70" width="12" height="5" rx="2" fill="#fff"/></svg>',
+        gmail:
+          '<svg viewBox="0 0 100 80"><rect x="6" y="12" width="88" height="58" rx="10" fill="#fff" stroke="#e6e8ec"/><path d="M14 64 V28 L50 54 L86 28 V64 H76 V42 L50 60 L24 42 V64 Z" fill="#EA4335"/></svg>',
+        meet:
+          '<svg viewBox="0 0 100 80"><rect x="10" y="16" width="58" height="48" rx="10" fill="#00A94F"/><path d="M68 32 L90 20 V60 L68 48 Z" fill="#2E7D32"/><rect x="20" y="26" width="30" height="28" rx="5" fill="#fff" opacity="0.92"/></svg>',
+        drive:
+          '<svg viewBox="0 0 100 92"><path d="M50 10 L12 80 L50 58 Z" fill="#2684FC"/><path d="M12 80 L88 80 L50 58 Z" fill="#00A94F"/><path d="M88 80 L50 10 L50 58 Z" fill="#FFBA00"/></svg>',
+        forms:
+          '<svg viewBox="0 0 100 100"><rect x="20" y="8" width="60" height="84" rx="10" fill="#7248B9"/><path d="M34 38 l5 5 l9 -10" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/><rect x="52" y="38" width="18" height="4" rx="2" fill="#fff"/><path d="M34 58 l5 5 l9 -10" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/><rect x="52" y="58" width="18" height="4" rx="2" fill="#fff"/></svg>',
+        sites:
+          '<svg viewBox="0 0 100 100"><rect x="14" y="16" width="72" height="68" rx="12" fill="#fff" stroke="#e6e8ec"/><rect x="14" y="16" width="72" height="20" rx="12" fill="#4285F4"/><rect x="14" y="24" width="72" height="12" fill="#4285F4"/><circle cx="26" cy="26" r="3" fill="#fff"/><circle cx="37" cy="26" r="3" fill="#fff"/><rect x="24" y="46" width="22" height="26" rx="3" fill="#cfe0ff"/><rect x="52" y="46" width="24" height="5" rx="2" fill="#d6dae0"/><rect x="52" y="56" width="24" height="5" rx="2" fill="#d6dae0"/><rect x="52" y="66" width="16" height="5" rx="2" fill="#d6dae0"/></svg>',
+        calendar:
+          '<svg viewBox="0 0 100 100"><rect x="10" y="14" width="80" height="78" rx="14" fill="#fff" stroke="#e6e8ec"/><rect x="10" y="14" width="80" height="16" rx="14" fill="#4285F4"/><rect x="10" y="22" width="80" height="8" fill="#4285F4"/><text x="50" y="72" text-anchor="middle" font-family="Inter,Arial" font-size="42" font-weight="700" fill="#4285F4">31</text></svg>',
+      };
+
+      // ---- the 7 orbiting tools, in entrance order around the ring ----
+      const ICONS = [
+        { key: "slides", a: -90 },
+        { key: "keep", a: -90 + 360 / 7 },
+        { key: "gmail", a: -90 + (2 * 360) / 7 },
+        { key: "meet", a: -90 + (3 * 360) / 7 },
+        { key: "drive", a: -90 + (4 * 360) / 7 },
+        { key: "forms", a: -90 + (5 * 360) / 7 },
+        { key: "sites", a: -90 + (6 * 360) / 7 },
+      ];
+
+      // colored "Google" wordmark + " Workspace"
+      const GC = ["#4285F4", "#EA4335", "#FBBC04", "#4285F4", "#34A853", "#EA4335"];
+      document.getElementById("wordmark").innerHTML =
+        [..."Google"].map((c, i) => `<span style="color:${GC[i]}">${c}</span>`).join("") +
+        '<span class="ws">&nbsp;Workspace</span>';
+      document.getElementById("calicon").innerHTML = SVG.calendar;
+
+      // ---- geometry ----
+      const CX = 960, CY = 470, RX = 580, RY = 345, SZ = 84;
+      const items = ICONS.map((ic) => {
+        const el = document.createElement("div");
+        el.className = "item";
+        el.innerHTML = SVG[ic.key];
+        el.style.left = CX - SZ / 2 + "px";
+        el.style.top = CY - SZ / 2 + "px";
+        stage.appendChild(el);
+        const rad = (ic.a * Math.PI) / 180;
+        return { el, a: ic.a, x: RX * Math.cos(rad), y: RY * Math.sin(rad) };
+      });
+
+      // ---- timeline ----
       const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
+
+      // initial states
+      gsap.set("#rings", { autoAlpha: 0 });
+      gsap.set("#phone", { transformPerspective: 1600, rotationY: -15, rotationX: 4, scale: 0.82, autoAlpha: 0, transformOrigin: "50% 50%" });
+      gsap.set(["#wordmark", "#calicon"], { autoAlpha: 0, y: 8 });
+      items.forEach((it) => gsap.set(it.el, { x: 0, y: 0, scale: 0.4, autoAlpha: 0 }));
+
+      // 1) backdrop holds, faint rings fade in
+      tl.to("#rings", { autoAlpha: 1, duration: 0.8, ease: "power1.out" }, 0.4);
+
+      // 2) the phone arrives, then Workspace + Calendar settle on screen
+      tl.to("#phone", { scale: 1, autoAlpha: 1, duration: 0.9, ease: "back.out(1.5)" }, 1.0);
+      tl.to("#wordmark", { autoAlpha: 1, y: 0, duration: 0.5, ease: "power2.out" }, 2.0);
+      tl.to("#calicon", { autoAlpha: 1, y: 0, duration: 0.5, ease: "back.out(1.8)" }, 2.25);
+
+      // 3) tools emerge one by one — flying out from the phone to their orbit positions
+      const ENTER = 2.7, STEP = 0.46;
+      items.forEach((it, i) => {
+        tl.to(it.el, { x: it.x, y: it.y, scale: 1, autoAlpha: 1, duration: 0.65, ease: "power3.out" }, ENTER + i * STEP);
+      });
+
+      // 4) gentle continuous orbit — rigid (all share one clock), seek-safe ellipse keyframes
+      const PERIOD = 20, N = 24, ORBIT_AT = 6.3;
+      items.forEach((it) => {
+        const keys = [];
+        for (let k = 1; k <= N; k++) {
+          const rad = ((it.a + (k * 360) / N) * Math.PI) / 180;
+          keys.push({ x: RX * Math.cos(rad), y: RY * Math.sin(rad), duration: PERIOD / N, ease: "none" });
+        }
+        // one slow pass (20s cycle) easily covers the ~3.7s of orbit left in the 10s render
+        tl.to(it.el, { keyframes: keys }, ORBIT_AT);
+      });
+
       window.__timelines["main"] = tl;
     </script>
   </body>
