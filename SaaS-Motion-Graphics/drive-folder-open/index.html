@@ -5,19 +5,84 @@
     <meta name="viewport" content="width=1920, height=1080" />
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
     <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        margin: 0; width: 1920px; height: 1080px; overflow: hidden;
+        background: #ffffff;
+        font-family: "Inter", "Roboto", system-ui, sans-serif;
       }
-      html,
-      body {
-        margin: 0;
-        width: 1920px;
-        height: 1080px;
-        overflow: hidden;
-        background: #000;
+      .stage { position: absolute; inset: 0; overflow: hidden; }
+
+      /* browser window */
+      #frame {
+        position: absolute; left: 120px; top: 88px; width: 1680px; height: 904px;
+        background: #ffffff; border-radius: 16px;
+        box-shadow: 0 30px 80px rgba(20,28,46,0.16), 0 6px 18px rgba(20,28,46,0.08);
+        overflow: hidden; border: 1px solid #eceef1;
       }
+      .titlebar {
+        position: absolute; left: 0; top: 0; width: 100%; height: 52px;
+        background: #f1f3f4; display: flex; align-items: center; padding: 0 20px;
+      }
+      .dot { width: 13px; height: 13px; border-radius: 50%; margin-right: 9px; }
+      .addr {
+        margin-left: 22px; height: 32px; flex: 1; max-width: 720px;
+        background: #ffffff; border-radius: 16px; display: flex; align-items: center;
+        padding: 0 16px; color: #5f6368; font-size: 15px; gap: 8px;
+      }
+
+      /* drive top bar */
+      .topbar {
+        position: absolute; left: 0; top: 52px; width: 100%; height: 66px;
+        display: flex; align-items: center; padding: 0 26px; gap: 16px;
+        border-bottom: 1px solid #ededf0;
+      }
+      .logo { display: flex; align-items: center; gap: 10px; font-size: 22px; color: #5f6368; width: 220px; }
+      .search {
+        flex: 1; max-width: 760px; height: 46px; background: #e9eef6; border-radius: 24px;
+        display: flex; align-items: center; padding: 0 20px; gap: 14px; color: #5f6368; font-size: 17px;
+      }
+      .topicons { margin-left: auto; display: flex; align-items: center; gap: 18px; }
+      .iconbtn { width: 22px; height: 22px; border-radius: 50%; background: #dfe3e8; }
+      .ava { width: 34px; height: 34px; border-radius: 50%; background: #1a73e8; color: #fff;
+        display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; }
+
+      /* sidebar */
+      .sidebar { position: absolute; left: 0; top: 118px; width: 250px; bottom: 0; padding: 18px 14px; }
+      .newbtn {
+        width: 130px; height: 52px; border-radius: 16px; background: #ffffff;
+        box-shadow: 0 1px 3px rgba(60,64,67,0.3); display: flex; align-items: center;
+        gap: 12px; padding: 0 18px; font-size: 17px; color: #444746; margin-bottom: 18px;
+      }
+      .nav { display: flex; align-items: center; gap: 16px; height: 44px; padding: 0 16px;
+        border-radius: 0 22px 22px 0; color: #444746; font-size: 16px; }
+      .nav.active { background: #c2e7ff; color: #001d35; font-weight: 600; }
+      .nav .ni { width: 20px; height: 20px; border-radius: 4px; background: #5f6368; opacity: 0.6; }
+      .nav.active .ni { background: #0b57d0; opacity: 1; }
+
+      /* main content */
+      .main { position: absolute; left: 250px; top: 118px; right: 0; bottom: 0; }
+      #home, #folderview { position: absolute; left: 34px; top: 26px; right: 34px; }
+      .crumb { display: flex; align-items: center; gap: 10px; font-size: 27px; color: #1f1f1f; font-weight: 500; }
+      .crumb .chev { color: #9aa0a6; font-size: 22px; }
+      .crumb .muted { color: #5f6368; }
+      .seclabel { font-size: 15px; color: #5f6368; font-weight: 600; margin: 22px 0 12px; letter-spacing: 0.3px; }
+
+      .folderpill {
+        position: absolute; width: 300px; height: 58px; background: #f0f1f3; border-radius: 12px;
+        display: flex; align-items: center; gap: 14px; padding: 0 18px; color: #3c4043; font-size: 17px; font-weight: 500;
+      }
+
+      .fcard {
+        position: absolute; width: 300px; height: 196px; background: #ffffff;
+        border: 1px solid #e4e6ea; border-radius: 12px; overflow: hidden;
+      }
+      .fthumb { height: 132px; background: #f6f8fb; display: flex; align-items: center; justify-content: center; }
+      .ffoot { height: 64px; display: flex; align-items: center; gap: 12px; padding: 0 16px; }
+      .ftype { width: 22px; height: 22px; border-radius: 4px; flex: none; }
+      .fname { font-size: 16px; color: #3c4043; font-weight: 500; white-space: nowrap; overflow: hidden; }
+
+      #cursor { position: absolute; left: 0; top: 0; z-index: 90; }
     </style>
   </head>
   <body>
@@ -25,26 +90,213 @@
       id="root"
       data-composition-id="main"
       data-start="0"
-      data-duration="10"
+      data-duration="7"
       data-width="1920"
       data-height="1080"
     >
-      
-      
+      <div class="stage" id="stage">
+        <div id="frame">
+          <div class="titlebar">
+            <div class="dot" style="background:#ff5f57"></div>
+            <div class="dot" style="background:#febc2e"></div>
+            <div class="dot" style="background:#28c840"></div>
+            <div class="addr">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5f6368" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+              drive.google.com/drive/home
+            </div>
+          </div>
 
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
+          <div class="topbar">
+            <div class="logo">
+              <svg width="30" height="26" viewBox="0 0 48 42"><path d="M16 2 L32 2 L48 30 L32 30 Z" fill="#ffcf40"/><path d="M16 2 L0 30 L8 42 L24 14 Z" fill="#1da462"/><path d="M48 30 L40 42 L8 42 L16 30 Z" fill="#4688f4"/></svg>
+              Drive
+            </div>
+            <div class="search">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5f6368" stroke-width="2"><circle cx="10.5" cy="10.5" r="7"/><line x1="16" y1="16" x2="21" y2="21"/></svg>
+              Search in Drive
+            </div>
+            <div class="topicons"><div class="iconbtn"></div><div class="iconbtn"></div><div class="ava">A</div></div>
+          </div>
+
+          <div class="sidebar">
+            <div class="newbtn">
+              <svg width="22" height="22" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="#5f6368" stroke-width="2.4" stroke-linecap="round"/></svg>
+              New
+            </div>
+            <div class="nav active"><div class="ni"></div>My Drive</div>
+            <div class="nav"><div class="ni"></div>Computers</div>
+            <div class="nav"><div class="ni"></div>Shared with me</div>
+            <div class="nav"><div class="ni"></div>Recent</div>
+            <div class="nav"><div class="ni"></div>Starred</div>
+            <div class="nav"><div class="ni"></div>Trash</div>
+            <div class="nav"><div class="ni"></div>Storage</div>
+          </div>
+
+          <div class="main">
+            <!-- home view -->
+            <div id="home">
+              <div class="crumb">My Drive</div>
+              <div class="seclabel">Suggested folders</div>
+              <div id="folders"></div>
+              <div class="seclabel" style="margin-top:118px">Files</div>
+              <div id="recent"></div>
+            </div>
+            <!-- folder view -->
+            <div id="folderview" style="opacity:0">
+              <div class="crumb"><span class="muted">My Drive</span><span class="chev">›</span>Project Atlas</div>
+              <div class="seclabel">Files</div>
+              <div id="grid"></div>
+            </div>
+          </div>
         </div>
-      -->
+
+        <div id="cursor">
+          <svg width="38" height="44" viewBox="0 0 24 28">
+            <path d="M3,2 L3,22 L8.5,16.8 L12,24.5 L15.4,23 L11.9,15.3 L19,15.3 Z" fill="#ffffff" stroke="#1b1b22" stroke-width="1.6" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
+
+      // ---------- file-type glyph ----------
+      const TYPES = {
+        doc:   { c: "#1a73e8", label: "W" },
+        sheet: { c: "#0f9d58", label: "E" },
+        slide: { c: "#f4b400", label: "P" },
+        pdf:   { c: "#ea4335", label: "" },
+        img:   { c: "#a142f4", label: "" },
+      };
+      function glyph(t, big) {
+        const c = TYPES[t].c;
+        const s = big ? 64 : 22;
+        if (t === "img") {
+          return '<svg width="' + s + '" height="' + s + '" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="18" rx="3" fill="' + c + '" opacity="0.18"/><circle cx="8" cy="9" r="2.2" fill="' + c + '"/><path d="M4 19 L10 12 L14 16 L17 13 L21 19 Z" fill="' + c + '"/></svg>';
+        }
+        // generic page glyph with colored top
+        return '<svg width="' + (big ? 58 : 20) + '" height="' + (big ? 74 : 26) + '" viewBox="0 0 24 30">' +
+          '<path d="M3 2 H15 L21 8 V28 H3 Z" fill="#ffffff" stroke="' + c + '" stroke-width="1.6"/>' +
+          '<path d="M15 2 V8 H21 Z" fill="' + c + '" opacity="0.5"/>' +
+          '<rect x="6" y="13" width="12" height="1.8" fill="' + c + '" opacity="0.7"/>' +
+          '<rect x="6" y="17" width="12" height="1.8" fill="' + c + '" opacity="0.45"/>' +
+          '<rect x="6" y="21" width="8" height="1.8" fill="' + c + '" opacity="0.45"/></svg>';
+      }
+      function fileCard(type, name) {
+        const d = document.createElement("div");
+        d.className = "fcard";
+        d.innerHTML =
+          '<div class="fthumb">' + glyph(type, true) + "</div>" +
+          '<div class="ffoot"><div class="ftype" style="background:' + TYPES[type].c + '"></div>' +
+          '<div class="fname">' + name + "</div></div>";
+        return d;
+      }
+
+      // ---------- layout constants (relative to .main padding) ----------
+      const COLS = [0, 330, 660, 990];   // 4 columns, card 300 + gap 30
+      const folders = document.getElementById("folders");
+      const recent = document.getElementById("recent");
+      const grid = document.getElementById("grid");
+
+      // suggested folder pills (home)
+      const FOLDER_NAMES = ["Marketing", "Project Atlas", "Designs", "Archive"];
+      const FOLDER_X = [0, 324, 648, 972];
+      const folderEls = [];
+      FOLDER_NAMES.forEach((n, i) => {
+        const p = document.createElement("div");
+        p.className = "folderpill";
+        p.style.left = FOLDER_X[i] + "px";
+        p.style.top = "0px";
+        p.innerHTML =
+          '<svg width="26" height="22" viewBox="0 0 24 20"><path d="M2 4 a2 2 0 0 1 2-2 h5 l2 2 h9 a2 2 0 0 1 2 2 v10 a2 2 0 0 1-2 2 H4 a2 2 0 0 1-2-2 Z" fill="#5f6368" opacity="0.85"/></svg>' + n;
+        folders.appendChild(p);
+        folderEls.push(p);
+      });
+      folders.style.position = "relative"; folders.style.height = "58px";
+
+      // recent files (home, static, fully populated)
+      const RECENT = [
+        ["doc","Q3 Roadmap"],["sheet","Budget 2025"],["slide","Pitch Deck"],["pdf","Contract.pdf"],
+        ["img","Team Photo"],["doc","Meeting Notes"],["sheet","Metrics"],["slide","All-Hands"],
+      ];
+      recent.style.position = "relative"; recent.style.height = "420px";
+      RECENT.forEach((f, i) => {
+        const c = fileCard(f[0], f[1]);
+        c.style.left = COLS[i % 4] + "px";
+        c.style.top = Math.floor(i / 4) * 224 + "px";
+        recent.appendChild(c);
+      });
+
+      // folder contents (cascade target) — 12 cards, 4 x 3
+      const FILES = [
+        ["doc","Overview"],["sheet","Timeline"],["slide","Kickoff Deck"],["pdf","Brief.pdf"],
+        ["img","Hero Image"],["doc","Spec v2"],["sheet","Tracker"],["img","Moodboard"],
+        ["slide","Review"],["doc","Retro Notes"],["pdf","Report.pdf"],["sheet","Estimates"],
+      ];
+      grid.style.position = "relative"; grid.style.height = "660px";
+      const gridCards = [];
+      FILES.forEach((f, i) => {
+        const c = fileCard(f[0], f[1]);
+        c.style.left = COLS[i % 4] + "px";
+        c.style.top = Math.floor(i / 4) * 224 + "px";
+        grid.appendChild(c);
+        gridCards.push(c);
+      });
+
+      const cursor = document.getElementById("cursor");
+      const target = folderEls[1]; // "Project Atlas"
+
+      // ---------- initial states ----------
+      gsap.set("#frame", { autoAlpha: 0, scale: 0.985, transformOrigin: "center center" });
+      gsap.set(cursor, { x: 1500, y: 1000, autoAlpha: 0 });
+      gsap.set("#folderview", { autoAlpha: 0 });
+      gsap.set(target, { transformOrigin: "center center" });
+      // folder grid hidden, staged for cascade
+      gsap.set(gridCards, { autoAlpha: 0, y: 14, scale: 0.97, transformOrigin: "center center" });
+
+      // ---------- timeline ----------
       const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
+
+      // 1) the browser frame fades in
+      tl.to("#frame", { autoAlpha: 1, scale: 1, duration: 0.6, ease: "power2.out" }, 0.15);
+
+      // 2) cursor enters and hovers the folder
+      tl.to(cursor, { autoAlpha: 1, duration: 0.2 }, 0.9);
+      tl.to(cursor, { x: 900, y: 470, duration: 0.9, ease: "power2.inOut" }, 0.9);
+
+      // 3) the folder card lifts — shadow deepens, subtle scale up
+      tl.to(target, {
+        scale: 1.045, backgroundColor: "#ffffff",
+        boxShadow: "0 10px 26px rgba(20,28,46,0.20)",
+        duration: 0.28, ease: "power2.out",
+      }, 1.85);
+
+      // 4) click
+      tl.to(cursor, { scale: 0.9, duration: 0.1, transformOrigin: "0 0" }, 2.15);
+      tl.to(cursor, { scale: 1, duration: 0.12 }, 2.25);
+
+      // 5) the folder opens — home view clears, folder view appears
+      tl.to(target, { scale: 1, boxShadow: "0 0 0 rgba(0,0,0,0)", duration: 0.2 }, 2.35);
+      tl.to("#home", { autoAlpha: 0, duration: 0.25, ease: "power2.in" }, 2.35);
+      tl.set("#folderview", { autoAlpha: 1 }, 2.6);
+
+      // 6) the grid of files cascades in — each card 4 frames after the previous, L→R, T→B
+      gridCards.forEach((c, i) => {
+        const t = 2.7 + i * (4 / 30);
+        tl.to(c, { autoAlpha: 1, y: 0, scale: 1, duration: 0.3, ease: "power2.out" }, t);
+      });
+      const doneT = 2.7 + gridCards.length * (4 / 30); // ~4.3s
+
+      // 7) cursor moves away
+      tl.to(cursor, { x: 1660, y: 880, duration: 0.9, ease: "power2.inOut" }, doneT + 0.1);
+
+      // 8) the contents breathe — a slow, subtle living pulse, looping to the end
+      tl.to("#grid", {
+        scale: 1.006, transformOrigin: "center top",
+        duration: 1.6, ease: "sine.inOut", repeat: 3, yoyo: true,
+      }, doneT + 0.5);
+
       window.__timelines["main"] = tl;
     </script>
   </body>
