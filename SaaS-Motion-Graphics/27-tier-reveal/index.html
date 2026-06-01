@@ -5,46 +5,258 @@
     <meta name="viewport" content="width=1920, height=1080" />
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
     <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        margin: 0; width: 1920px; height: 1080px; overflow: hidden;
+        background: #ffffff; font-family: "Inter", system-ui, sans-serif;
       }
-      html,
-      body {
-        margin: 0;
-        width: 1920px;
-        height: 1080px;
-        overflow: hidden;
-        background: #000;
+      .stage { position: absolute; inset: 0; overflow: hidden; }
+      #world { position: absolute; inset: 0; }
+
+      .card {
+        position: absolute; width: 360px; height: 548px; background: #ffffff;
+        border: 1px solid #e7e9ef; border-radius: 22px; padding: 34px 32px;
+        box-shadow: 0 14px 40px rgba(20,28,46,0.07);
       }
+      .card.pro { border: 2px solid #2563eb; box-shadow: 0 26px 60px rgba(37,99,235,0.18); }
+      .tname { font-size: 22px; font-weight: 700; color: #5b6472; }
+      .card.pro .tname { color: #2563eb; }
+      .price { margin-top: 14px; font-size: 56px; font-weight: 800; color: #141a26; }
+      .price .per { font-size: 22px; font-weight: 600; color: #9aa3b2; }
+      .cta { margin-top: 22px; height: 54px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+        font-size: 18px; font-weight: 700; }
+      .cta.ghost { background: #f1f3f7; color: #2b3650; }
+      .cta.solid { background: #2563eb; color: #fff; }
+      .divider { margin: 24px 0 6px; height: 1px; background: #eef0f4; }
+      .frow { display: flex; align-items: center; gap: 16px; height: 46px; }
+      .ficon { width: 26px; height: 26px; flex: none; display: flex; align-items: center; justify-content: center; }
+      .flabel { font-size: 17px; color: #3b4452; }
+      .flabel.off { color: #aab1bd; }
+
+      .badge {
+        position: absolute; height: 44px; padding: 0 20px; background: #2563eb; color: #fff;
+        border-radius: 22px; display: flex; align-items: center; gap: 9px; font-size: 16px; font-weight: 800;
+        letter-spacing: 0.4px; box-shadow: 0 10px 24px rgba(37,99,235,0.4); white-space: nowrap; z-index: 9;
+        transform-origin: center center;
+      }
+
+      #shockwave { position: absolute; border: 16px solid #ffffff; border-radius: 50%;
+        width: 120px; height: 120px; transform: translate(-50%,-50%); z-index: 41;
+        box-shadow: 0 0 26px rgba(255,255,255,0.95); }
+      #debris { position: absolute; inset: 0; z-index: 42; }
+      .frag { position: absolute; }
+
+      #under { position: absolute; inset: 0; background: #0a0e17; z-index: 40; }
+      #flash { position: absolute; inset: 0; background: #ffffff; z-index: 45; }
     </style>
   </head>
   <body>
-    <div
-      id="root"
-      data-composition-id="main"
-      data-start="0"
-      data-duration="10"
-      data-width="1920"
-      data-height="1080"
-    >
-      
-      
+    <div id="root" data-composition-id="main" data-start="0" data-duration="12" data-width="1920" data-height="1080">
+      <div class="stage" id="stage">
+        <svg width="0" height="0" style="position:absolute">
+          <defs>
+            <filter id="vblur" x="-50%" y="-80%" width="200%" height="260%"><feGaussianBlur stdDeviation="0 18"/></filter>
+            <filter id="chroma" x="-10%" y="-10%" width="120%" height="120%">
+              <feColorMatrix in="SourceGraphic" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="r"/>
+              <feOffset in="r" dx="-4" dy="-1" result="ro"/>
+              <feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="g"/>
+              <feOffset in="g" dx="3" dy="2" result="go"/>
+              <feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="b"/>
+              <feOffset in="b" dx="1" dy="-3" result="bo"/>
+              <feBlend in="ro" in2="go" mode="screen" result="rg"/>
+              <feBlend in="rg" in2="bo" mode="screen"/>
+            </filter>
+          </defs>
+        </svg>
 
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
+        <div id="world" data-layout-allow-overflow>
+          <div id="cards" data-layout-allow-overflow></div>
         </div>
-      -->
+        <div id="under"></div>
+        <div id="shockwave" data-layout-allow-overflow></div>
+        <div id="debris" data-layout-allow-overflow></div>
+        <div id="flash"></div>
+      </div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
+      const F = (n) => n / 30; // frame -> seconds
+      const cardsRoot = document.getElementById("cards");
+      const debrisRoot = document.getElementById("debris");
+      const SVGNS = "http://www.w3.org/2000/svg";
+
+      // ---------- pricing data ----------
+      const FEATURES = ["Up to 5 projects", "Advanced analytics", "Priority support", "Custom domains", "SSO & SAML", "Dedicated manager"];
+      const TIERS = [
+        { name: "Free", price: "$0", x: 380, y: 296, cta: "Get started", cs: "ghost", inc: [1,0,0,0,0,0] },
+        { name: "Pro", price: "$24", x: 780, y: 272, cta: "Start free trial", cs: "solid", inc: [1,1,1,1,0,0], pro: true },
+        { name: "Enterprise", price: "$99", x: 1180, y: 296, cta: "Contact sales", cs: "ghost", inc: [1,1,1,1,1,1] },
+      ];
+
+      function checkSVG(blue) {
+        const c = blue ? "#2563eb" : "#9aa3b2";
+        return '<svg class="ck" width="26" height="26" viewBox="0 0 26 26" fill="none">' +
+          '<path class="ckp" d="M5 13.5 L11 19 L21 7" stroke="' + c + '" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" pathLength="1" style="stroke-dasharray:1;stroke-dashoffset:1"/></svg>';
+      }
+      function dashSVG() {
+        return '<svg width="26" height="26" viewBox="0 0 26 26"><line x1="6" y1="13" x2="20" y2="13" stroke="#cfd4dd" stroke-width="3" stroke-linecap="round"/></svg>';
+      }
+
+      const cardEls = [], rowEls = [], checkPaths = [];
+      TIERS.forEach((t, ti) => {
+        const card = document.createElement("div");
+        card.className = "card" + (t.pro ? " pro" : "");
+        card.style.left = t.x + "px"; card.style.top = t.y + "px";
+        card.style.transformOrigin = "center bottom";
+        let rows = '<div class="tname">' + t.name + '</div>' +
+          '<div class="price">' + t.price + '<span class="per">/mo</span></div>' +
+          '<div class="cta ' + t.cs + '">' + t.cta + '</div><div class="divider"></div>';
+        FEATURES.forEach((f, fi) => {
+          const on = t.inc[fi];
+          rows += '<div class="frow" data-r="' + fi + '"><div class="ficon">' +
+            (on ? checkSVG(t.pro) : dashSVG()) + '</div><div class="flabel' + (on ? "" : " off") + '">' + f + "</div></div>";
+        });
+        card.innerHTML = rows;
+        cardsRoot.appendChild(card);
+        cardEls.push(card);
+        const rs = card.querySelectorAll(".frow");
+        rs.forEach((r, fi) => { rowEls.push({ el: r, ti, fi, on: t.inc[fi], pro: t.pro }); });
+        checkPaths[ti] = card.querySelectorAll(".ckp");
+      });
+      const proCard = cardEls[1];
+
+      // ---------- badge (the impacting object) ----------
+      const badge = document.createElement("div");
+      badge.className = "badge";
+      badge.innerHTML = '<span>★</span> MOST POPULAR';
+      document.getElementById("world").appendChild(badge);
+      // ---------- impact geometry ----------
+      const PX = 960, PY = 268; // impact point: top-centre of the Pro card
+      // rest position: centered on the Pro card's top edge
+      badge.style.left = (PX - badge.getBoundingClientRect().width / 2) + "px";
+      badge.style.top = "250px";
+
+      // ---------- debris fragments ----------
+      const NFRAG = 16;
+      const frags = [];
+      const COLORS = ["#2563eb", "#5b8cff", "#c2c8d2", "#ffffff", "#9aa3b2"];
+      for (let i = 0; i < NFRAG; i++) {
+        const sz = 7 + (i * 5) % 11;                       // 7..17 px
+        const ang = (-160 + (i / (NFRAG - 1)) * 140) * Math.PI / 180; // upward fan
+        const dist = 360 + (17 - sz) * 26 + (i % 4) * 40;  // smaller -> farther
+        const apex = 120 + (i % 5) * 55;
+        const floor = 868 + (i % 6) * 22;                  // settles below the cards
+        const tf = 0.62 + (i % 5) * 0.12;
+        const fe = document.createElement("div");
+        fe.className = "frag";
+        fe.style.left = PX + "px"; fe.style.top = PY + "px";
+        fe.style.width = sz + "px"; fe.style.height = sz + "px";
+        fe.style.background = COLORS[i % COLORS.length];
+        fe.style.borderRadius = (i % 3 === 0 ? "2px" : "50%");
+        debrisRoot.appendChild(fe);
+        frags.push({ el: fe, dx: Math.cos(ang) * dist, apex, floorDy: floor - PY, tf, spin: (i % 2 ? 1 : -1) * (200 + i * 36) });
+      }
+
+      // ---------- initial states ----------
+      gsap.set(cardEls, { y: 20, autoAlpha: 0 });
+      gsap.set(".frow", { autoAlpha: 0, x: -8 });
+      gsap.set(badge, { autoAlpha: 0, y: -180, scale: 1 });
+      gsap.set("#shockwave", { left: PX, top: PY, scale: 0, autoAlpha: 0, borderWidth: 16 });
+      gsap.set(".frag", { autoAlpha: 0 });
+      gsap.set("#flash", { autoAlpha: 0 });
+      gsap.set("#under", { autoAlpha: 0 });
+
+      // ---------- timeline ----------
       const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
+
+      // === THE TIER REVEAL ===
+      // 1) three cards slide up from below + fade in, spring eased, settling into a row
+      tl.to(cardEls, { y: (i) => (i === 1 ? -24 : 0), autoAlpha: 1, duration: 0.85, ease: "back.out(1.7)" }, 0.25);
+
+      // 2) feature rows build top->bottom, staggered 6 frames per row; checks draw, dashes fade
+      rowEls.forEach((r) => {
+        const t = 1.3 + r.fi * F(6);
+        tl.to(r.el, { autoAlpha: 1, x: 0, duration: 0.28, ease: "power2.out" }, t);
+        if (r.on) {
+          const path = cardEls[r.ti].querySelectorAll(".ckp")[0]; // not used; per-row below
+        }
+      });
+      // draw each included check on its row's build frame
+      cardEls.forEach((card, ti) => {
+        const cks = card.querySelectorAll(".ckp");
+        let k = 0;
+        TIERS[ti].inc.forEach((on, fi) => {
+          if (on) {
+            const path = cks[k++];
+            const t = 1.3 + fi * F(6) + 0.1;
+            tl.to(path, { strokeDashoffset: 0, duration: 0.26, ease: "power1.inOut" }, t);
+          }
+        });
+      });
+
+      // ===========================================================
+      //                THE CINEMATIC HIT (impact = frame 180 / 6.0s)
+      // ===========================================================
+      const HIT = F(180);
+
+      // -- impacting object: badge falls, motion-blurred for the 3 frames before impact, sharp on contact
+      tl.to(badge, { autoAlpha: 1, duration: F(1) }, F(165));
+      tl.to(badge, { y: 0, duration: 0.5, ease: "power3.in" }, F(165));
+      tl.set(badge, { attr: {} }, F(165)); // noop guard
+      tl.set(badge, { filter: "url(#vblur)" }, F(177));
+      tl.set(badge, { filter: "none" }, HIT);                       // cuts to perfect sharpness on contact
+      // post-impact settle: 1.0 -> 1.06 -> 1.0, single overshoot
+      tl.to(badge, { scale: 1.06, duration: F(2), ease: "power2.out" }, HIT);
+      tl.to(badge, { scale: 1.0, duration: F(6), ease: "back.out(2.2)" }, HIT + F(2));
+
+      // (1) white flash — hard overexposure for 2 frames
+      tl.set("#flash", { autoAlpha: 1 }, HIT);
+      tl.set("#flash", { autoAlpha: 0 }, F(182));
+
+      // (2) radial shockwave — thin ring, expands to the edges in 8 frames, thick -> thin
+      tl.set("#shockwave", { autoAlpha: 1 }, HIT);
+      tl.fromTo("#shockwave", { scale: 0.05, borderWidth: 18 },
+        { scale: 22, borderWidth: 1, duration: F(8), ease: "power2.out" }, HIT);
+      tl.to("#shockwave", { autoAlpha: 0, duration: F(2) }, HIT + F(6));
+
+      // (3) canvas shifts 6px in the direction of the force (down), snapping back next frame
+      tl.set("#world", { y: 6 }, HIT);
+      tl.set("#world", { y: 0 }, F(181));
+
+      // (4) the subject squashes 15% on the impact axis, stretches 8% perpendicular, then springs back
+      tl.set(proCard, { scaleY: 0.85, scaleX: 1.08 }, HIT);
+      tl.to(proCard, { scaleY: 1, scaleX: 1, duration: 0.55, ease: "elastic.out(1,0.45)" }, HIT);
+
+      // (5) chromatic aberration — RGB split for 3 frames, re-converged by frame 4
+      tl.set("#cards", { filter: "url(#chroma)" }, HIT);
+      tl.set("#cards", { filter: "none" }, F(183));
+
+      // (6) the shadow that follows the light — half-stop underexposure for 4 frames, then recover
+      tl.set("#under", { autoAlpha: 0.34 }, F(182));
+      tl.to("#under", { autoAlpha: 0, duration: F(3), ease: "power1.in" }, F(186));
+
+      // (7) debris launches the frame after the flash — correct arcs, decelerating, bounce once at 40%, settle
+      const LAUNCH = F(182);
+      frags.forEach((fr, i) => {
+        const lt = LAUNCH + (i % 3) * F(1);
+        const up = fr.tf * 0.42, down = fr.tf * 0.95;
+        tl.set(fr.el, { autoAlpha: 1 }, lt);
+        gsap.set(fr.el, { filter: "blur(11px)" });
+        tl.to(fr.el, { filter: "blur(0px)", duration: 0.3, ease: "power2.out" }, lt);
+        // horizontal drift, decelerating
+        tl.to(fr.el, { x: fr.dx, duration: fr.tf * 1.5, ease: "power1.out" }, lt);
+        // vertical arc: up to apex, down to floor
+        tl.to(fr.el, { y: -fr.apex, duration: up, ease: "power2.out" }, lt);
+        tl.to(fr.el, { y: fr.floorDy, duration: down, ease: "power2.in" }, lt + up);
+        // bounce once at 40% energy, then settle
+        tl.to(fr.el, { y: fr.floorDy - fr.apex * 0.4, duration: 0.2, ease: "power2.out" }, lt + up + down);
+        tl.to(fr.el, { y: fr.floorDy, duration: 0.26, ease: "power2.in" }, lt + up + down + 0.2);
+        // spin while airborne
+        tl.to(fr.el, { rotation: fr.spin, duration: fr.tf * 1.5, ease: "power1.out", transformOrigin: "center center" }, lt);
+      });
+
+      // === stillness. the kind that only exists after something violent. ===
       window.__timelines["main"] = tl;
     </script>
   </body>
