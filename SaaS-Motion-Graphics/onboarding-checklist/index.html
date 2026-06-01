@@ -12,11 +12,182 @@
       }
       html,
       body {
-        margin: 0;
         width: 1920px;
         height: 1080px;
         overflow: hidden;
-        background: #000;
+        background: #ffffff;
+        font-family: "Inter", Helvetica, Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        color: #0f1115;
+      }
+      .stage {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+      }
+
+      /* ---------- faint product backdrop (de-emphasized) ---------- */
+      .product {
+        position: absolute;
+        inset: 0;
+        opacity: 0.5;
+      }
+      .pnav {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 84px;
+        background: #fbfbfc;
+        border-bottom: 1px solid #eef0f3;
+      }
+      .pblock {
+        position: absolute;
+        background: #f1f2f5;
+        border: 1px solid #eef0f3;
+        border-radius: 16px;
+      }
+
+      /* ---------- onboarding checklist card ---------- */
+      .card {
+        position: absolute;
+        left: 130px;
+        top: 196px;
+        width: 560px;
+        background: #ffffff;
+        border: 1px solid #e9eaee;
+        border-radius: 22px;
+        padding: 38px 40px 34px;
+        box-shadow:
+          0 2px 4px rgba(16, 17, 21, 0.04),
+          0 30px 70px -20px rgba(16, 17, 21, 0.2),
+          0 10px 30px -12px rgba(16, 17, 21, 0.1);
+      }
+      .card h1 {
+        font-size: 28px;
+        font-weight: 680;
+        letter-spacing: -0.6px;
+      }
+      .card .sub {
+        font-size: 16px;
+        color: #6b7280;
+        margin-top: 6px;
+        letter-spacing: -0.1px;
+      }
+      .progress {
+        margin: 26px 0 30px;
+      }
+      .ptrack {
+        height: 10px;
+        border-radius: 6px;
+        background: #eef0f3;
+        overflow: hidden;
+      }
+      .pfill {
+        height: 100%;
+        width: 20%;
+        border-radius: 6px;
+        background: linear-gradient(90deg, #3b82f6, #2563eb);
+      }
+      .pmeta {
+        position: relative;
+        height: 20px;
+        margin-top: 12px;
+        font-size: 14px;
+        font-weight: 560;
+        color: #9ca3af;
+      }
+      .pcount,
+      .ppct {
+        position: absolute;
+        top: 0;
+        height: 20px;
+      }
+      .pcount { left: 0; }
+      .ppct { right: 0; }
+      .metaState { position: absolute; top: 0; white-space: nowrap; }
+      .pcount .metaState { left: 0; }
+      .ppct .metaState { right: 0; }
+
+      .items {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .item {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        padding: 14px 12px;
+        border-radius: 12px;
+      }
+      .box {
+        position: relative;
+        width: 32px;
+        height: 32px;
+        flex-shrink: 0;
+        border-radius: 9px;
+        border: 2px solid #d1d5db;
+        background: #ffffff;
+      }
+      .box svg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+      .lbl {
+        position: relative;
+        font-size: 19px;
+        font-weight: 580;
+        color: #1f2430;
+        letter-spacing: -0.2px;
+      }
+      .lbl .txt {
+        display: inline-block;
+      }
+      .strike {
+        position: absolute;
+        left: 0;
+        top: 52%;
+        height: 2.5px;
+        background: #9ca3af;
+        transform-origin: 0% 50%;
+        transform: scaleX(0);
+        border-radius: 2px;
+      }
+
+      /* brighten flash overlay on the card */
+      .flash {
+        position: absolute;
+        inset: 0;
+        border-radius: 22px;
+        background: #ffffff;
+        opacity: 0;
+        pointer-events: none;
+        z-index: 6;
+      }
+
+      /* confetti squares */
+      .confetti {
+        position: absolute;
+        z-index: 8;
+      }
+      .sq {
+        position: absolute;
+        width: 13px;
+        height: 13px;
+        border-radius: 3px;
+        margin: -6px 0 0 -6px;
+      }
+
+      /* ---------- cursor ---------- */
+      #cursor {
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 50;
+        filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.28));
       }
     </style>
   </head>
@@ -25,26 +196,244 @@
       id="root"
       data-composition-id="main"
       data-start="0"
-      data-duration="10"
+      data-duration="11"
       data-width="1920"
       data-height="1080"
     >
-      
-      
-
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
+      <div class="stage">
+        <!-- faint product behind the checklist -->
+        <div class="product">
+          <div class="pnav"></div>
+          <div class="pblock" style="left: 770px; top: 150px; width: 470px; height: 150px"></div>
+          <div class="pblock" style="left: 1270px; top: 150px; width: 470px; height: 150px"></div>
+          <div class="pblock" style="left: 770px; top: 330px; width: 970px; height: 320px"></div>
+          <div class="pblock" style="left: 770px; top: 680px; width: 470px; height: 250px"></div>
+          <div class="pblock" style="left: 1270px; top: 680px; width: 470px; height: 250px"></div>
         </div>
-      -->
+
+        <!-- checklist -->
+        <div class="card" id="card">
+          <h1>Getting started</h1>
+          <div class="sub">Finish setup to launch your workspace.</div>
+          <div class="progress">
+            <div class="ptrack"><div class="pfill" id="pfill"></div></div>
+            <div class="pmeta"><span class="pcount" id="pcount"></span><span class="ppct" id="ppct"></span></div>
+          </div>
+          <div class="items" id="items"></div>
+          <div class="flash" id="flash"></div>
+        </div>
+
+        <!-- confetti origin (top center of card) -->
+        <div class="confetti" id="confetti"></div>
+
+        <!-- OS cursor -->
+        <div id="cursor">
+          <svg viewBox="0 0 20 32" width="27" height="43" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0 0 L0 27 L6.3 20.7 L10.5 30 L13.9 28.5 L9.75 19.5 L18 18.9 Z" fill="#0a0a0a" />
+          </svg>
+        </div>
+      </div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
+      const $ = (id) => document.getElementById(id);
+
+      const BLUE = "#2563eb";
+      const DIM = "#9ca3af";
+
+      const STEPS = [
+        "Create your account",
+        "Invite your team",
+        "Connect a data source",
+        "Customize your workspace",
+        "Deploy your first project",
+      ];
+
+      // ---------- build checklist items ----------
+      const itemsEl = $("items");
+      const items = [];
+      STEPS.forEach((label, i) => {
+        const item = document.createElement("div");
+        item.className = "item";
+
+        const box = document.createElement("div");
+        box.className = "box";
+        box.innerHTML =
+          '<svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 l4.5 4.5 l9 -10.5" /></svg>';
+        item.appendChild(box);
+
+        const lbl = document.createElement("div");
+        lbl.className = "lbl";
+        const txt = document.createElement("span");
+        txt.className = "txt";
+        txt.textContent = label;
+        const strike = document.createElement("span");
+        strike.className = "strike";
+        lbl.appendChild(txt);
+        lbl.appendChild(strike);
+        item.appendChild(lbl);
+
+        itemsEl.appendChild(item);
+        items.push({ item, box, check: box.querySelector("path"), lbl, txt, strike });
+      });
+
+      // size each strikethrough to its label text
+      items.forEach((it) => (it.strike.style.width = it.txt.offsetWidth + "px"));
+
+      // pre-build the progress label states (toggled with tl.set — seek-safe, no callbacks)
+      const countSpans = [];
+      const pctSpans = [];
+      for (let c = 1; c <= 5; c++) {
+        const a = document.createElement("span");
+        a.className = "metaState";
+        a.textContent = c + " of 5 complete";
+        $("pcount").appendChild(a);
+        countSpans.push(a);
+        const b = document.createElement("span");
+        b.className = "metaState";
+        b.textContent = c * 20 + "%";
+        $("ppct").appendChild(b);
+        pctSpans.push(b);
+      }
+
+      // prep checkmark draw (dash the path so it can draw itself)
+      items.forEach((it) => {
+        const L = it.check.getTotalLength();
+        it.checkLen = L;
+        gsap.set(it.check, { strokeDasharray: L, strokeDashoffset: L });
+      });
+
+      // ---------- build confetti (12 colored squares, deterministic spread) ----------
+      const COLORS = ["#2563eb", "#16a34a", "#f59e0b", "#ec4899", "#8b5cf6", "#06b6d4"];
+      const confEl = $("confetti");
+      const cardRect = $("card").getBoundingClientRect();
+      confEl.style.left = cardRect.left + cardRect.width / 2 + "px";
+      confEl.style.top = cardRect.top + 14 + "px";
+      const squares = [];
+      for (let k = 0; k < 12; k++) {
+        const sq = document.createElement("div");
+        sq.className = "sq";
+        sq.style.background = COLORS[k % COLORS.length];
+        confEl.appendChild(sq);
+        squares.push(sq);
+      }
+
+      // ---------- cursor target helper ----------
+      const tipOf = (el, fx, fy) => {
+        const r = el.getBoundingClientRect();
+        return { x: r.left + r.width * fx, y: r.top + r.height * fy };
+      };
+
+      // ---------- timeline ----------
       const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
+      const cursor = $("cursor");
+      const cur = { x: 1320, y: 300 };
+      gsap.set(cursor, { x: cur.x, y: cur.y, autoAlpha: 1 });
+      gsap.set("#card", { autoAlpha: 0, y: 12 });
+      gsap.set(squares, { autoAlpha: 0, x: 0, y: 0, rotation: 0 });
+      // progress starts at 20% (one step already complete)
+      gsap.set([countSpans, pctSpans].flat(), { autoAlpha: 0 });
+      gsap.set([countSpans[0], pctSpans[0]], { autoAlpha: 1 });
+
+      // first item is already complete
+      gsap.set(items[0].box, { backgroundColor: BLUE, borderColor: BLUE });
+      gsap.set(items[0].check, { strokeDashoffset: 0 });
+      gsap.set(items[0].strike, { scaleX: 1 });
+      gsap.set(items[0].lbl, { color: DIM });
+
+      // human-like cursor motion: ballistic bow + small overshoot + correction
+      let moveCount = 0;
+      function moveTo(tx, ty, at, dur, bow) {
+        bow = bow == null ? 24 : bow;
+        const dx = tx - cur.x, dy = ty - cur.y;
+        const dist = Math.hypot(dx, dy) || 1;
+        const ux = dx / dist, uy = dy / dist;
+        const px = -uy, py = ux;
+        const side = moveCount % 2 === 0 ? 1 : -1;
+        moveCount++;
+        const k = Math.min(1, dist / 600);
+        tl.to(
+          cursor,
+          { keyframes: [
+              { x: cur.x + dx * 0.52 + px * bow * side * k, y: cur.y + dy * 0.52 + py * bow * side * k, duration: dur * 0.46, ease: "power1.inOut" },
+              { x: tx + ux * 12, y: ty + uy * 12, duration: dur * 0.36, ease: "power2.out" },
+              { x: tx, y: ty, duration: dur * 0.18, ease: "power2.inOut" },
+            ] },
+          at
+        );
+        cur.x = tx; cur.y = ty;
+      }
+      function click(at) {
+        tl.to(
+          cursor.querySelector("svg"),
+          { transformOrigin: "0% 0%", keyframes: [
+              { scale: 0.8, duration: 0.06, ease: "power2.in" },
+              { scale: 1, duration: 0.13, ease: "back.out(2.5)" },
+            ] },
+          at
+        );
+      }
+
+      // complete an item: box fills blue, check draws itself, strikethrough sweeps in
+      function completeItem(i, at) {
+        const it = items[i];
+        tl.to(it.box, { backgroundColor: BLUE, borderColor: BLUE, duration: 0.18, ease: "power2.out" }, at);
+        tl.to(it.box, { keyframes: [
+            { scale: 1.16, duration: 0.12, ease: "power2.out" },
+            { scale: 1, duration: 0.16, ease: "power2.inOut" },
+          ] }, at);
+        tl.to(it.check, { strokeDashoffset: 0, duration: 0.42, ease: "power1.inOut" }, at + 0.06);
+        tl.to(it.strike, { scaleX: 1, duration: 0.34, ease: "power2.out" }, at + 0.1);
+        tl.to(it.lbl, { color: DIM, duration: 0.3 }, at + 0.1);
+      }
+      // c = new completed count (2..5). Swaps the visible label state + grows the bar.
+      function progressTo(c, at) {
+        tl.set([countSpans[c - 2], pctSpans[c - 2]], { autoAlpha: 0 }, at);
+        tl.set([countSpans[c - 1], pctSpans[c - 1]], { autoAlpha: 1 }, at);
+        tl.to("#pfill", { width: c * 20 + "%", duration: 0.45, ease: "power2.out" }, at);
+      }
+
+      // ===== sequence =====
+      tl.to("#card", { autoAlpha: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0);
+
+      // items 2, 3, 4 — click → draw → progress
+      const order = [1, 2, 3];
+      let t = 0.8;
+      order.forEach((i, n) => {
+        const target = tipOf(items[i].box, 0.5, 0.5);
+        moveTo(target.x + 4, target.y + 4, t, 0.75, 26);
+        const clickAt = t + 0.8;
+        click(clickAt);
+        completeItem(i, clickAt + 0.05);
+        progressTo(i + 1, clickAt + 0.1);
+        t = clickAt + 1.0;
+      });
+
+      // last item — hover, pause, then click
+      const last = tipOf(items[4].box, 0.5, 0.5);
+      moveTo(last.x + 4, last.y + 4, t, 0.75, 26);
+      const lastClick = t + 0.8 + 1.0; // arrive, then a deliberate pause before committing
+      click(lastClick);
+      completeItem(4, lastClick + 0.05);
+      progressTo(5, lastClick + 0.1);
+
+      // brighten pulse — all items flash for ~4 frames
+      const pulseAt = lastClick + 0.6;
+      tl.to("#flash", { opacity: 0.5, duration: 0.13, ease: "none" }, pulseAt);
+      tl.to("#flash", { opacity: 0, duration: 0.18, ease: "power1.out" }, pulseAt + 0.13);
+
+      // confetti burst from the top of the checklist — 12 squares scatter and fade
+      const burstAt = pulseAt + 0.05;
+      squares.forEach((sq, k) => {
+        const tx = (k - 5.5) * 33; // even spread left↔right
+        const ty = 150 + ((k * 53) % 175); // varied fall depth
+        const rot = (k % 2 ? 1 : -1) * (130 + ((k * 37) % 230));
+        tl.set(sq, { autoAlpha: 1 }, burstAt);
+        tl.to(sq, { x: tx, y: ty, rotation: rot, duration: 1.0, ease: "power1.in" }, burstAt);
+        tl.to(sq, { autoAlpha: 0, duration: 0.5, ease: "power1.in" }, burstAt + 0.5);
+      });
+
       window.__timelines["main"] = tl;
     </script>
   </body>
