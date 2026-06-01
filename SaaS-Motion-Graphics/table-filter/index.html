@@ -5,19 +5,79 @@
     <meta name="viewport" content="width=1920, height=1080" />
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
     <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        margin: 0; width: 1920px; height: 1080px; overflow: hidden;
+        background: #f7f8fa;
+        font-family: "Inter", system-ui, sans-serif;
       }
-      html,
-      body {
-        margin: 0;
-        width: 1920px;
-        height: 1080px;
+      .stage { position: absolute; inset: 0; overflow: hidden; }
+
+      /* search bar */
+      .searchbar {
+        position: absolute; left: 210px; top: 96px; width: 760px; height: 58px;
+        background: #ffffff; border: 2px solid #e3e6ea; border-radius: 12px;
+        display: flex; align-items: center; padding: 0 20px;
+      }
+      .searchbar.focus { border-color: #2563eb; }
+      .mag { width: 22px; height: 22px; margin-right: 14px; flex: none; }
+      .qclip { position: relative; height: 36px; overflow: hidden; white-space: nowrap; }
+      .qtext {
+        font-family: "JetBrains Mono", monospace; font-size: 28px; color: #1f2430;
+        line-height: 36px; white-space: pre;
+      }
+      .caret {
+        position: absolute; top: 4px; width: 2px; height: 30px; background: #2563eb;
+      }
+
+      .chip {
+        position: absolute; left: 1010px; top: 96px; height: 58px;
+        background: #ffffff; border: 2px solid #e3e6ea; border-radius: 12px;
+        display: flex; align-items: center; gap: 12px; padding: 0 20px;
+        font-size: 22px; font-weight: 600; color: #46505f;
+      }
+      .chip .chev { font-size: 16px; color: #97a0af; }
+
+      .dropdown {
+        position: absolute; left: 1010px; top: 168px; width: 280px;
+        background: #ffffff; border: 1px solid #e3e6ea; border-radius: 12px;
+        box-shadow: 0 16px 40px rgba(9,30,66,0.18); padding: 8px; z-index: 30;
+        transform-origin: top center;
+      }
+      .ddopt {
+        height: 52px; display: flex; align-items: center; padding: 0 16px;
+        font-size: 22px; color: #1f2430; border-radius: 8px;
+      }
+
+      /* table */
+      .table {
+        position: absolute; left: 210px; top: 230px; width: 1500px;
+        background: #ffffff; border: 1px solid #e7e9ee; border-radius: 14px;
         overflow: hidden;
-        background: #000;
       }
+      .thead {
+        display: flex; align-items: center; height: 52px;
+        background: #fbfbfc; border-bottom: 1px solid #eceef2;
+        font-size: 16px; font-weight: 700; color: #8a93a2; letter-spacing: 0.6px;
+      }
+      .row {
+        display: flex; align-items: center; height: 32px;
+        border-bottom: 1px solid #f0f1f4; overflow: hidden;
+      }
+      .cell { padding: 0 22px; font-size: 16px; color: #303642; white-space: nowrap; overflow: hidden; }
+      .c-name { width: 360px; font-weight: 600; }
+      .c-role { width: 360px; color: #5b6472; }
+      .c-team { width: 260px; color: #5b6472; }
+      .c-status { width: 260px; }
+      .c-date { width: 260px; color: #97a0af; }
+      .pill {
+        display: inline-flex; align-items: center; height: 24px; padding: 0 12px;
+        border-radius: 12px; font-size: 14px; font-weight: 700;
+      }
+      .pill.active { background: #e6f4ea; color: #1e8e3e; }
+      .pill.inactive { background: #eceef1; color: #80868b; }
+
+      #cursor { position: absolute; left: 0; top: 0; z-index: 50; }
     </style>
   </head>
   <body>
@@ -25,26 +85,172 @@
       id="root"
       data-composition-id="main"
       data-start="0"
-      data-duration="10"
+      data-duration="8"
       data-width="1920"
       data-height="1080"
     >
-      
-      
-
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
+      <div class="stage" id="stage">
+        <div class="searchbar" id="searchbar">
+          <svg class="mag" viewBox="0 0 24 24" fill="none" stroke="#97a0af" stroke-width="2.4" stroke-linecap="round">
+            <circle cx="10.5" cy="10.5" r="7"/><line x1="16" y1="16" x2="21" y2="21"/>
+          </svg>
+          <div class="qclip" id="qclip" data-layout-allow-overflow><span class="qtext" id="qtext" data-layout-allow-overflow>active design lead</span></div>
+          <div class="caret" id="caret" style="left:50px"></div>
         </div>
-      -->
+
+        <div class="chip" id="chip"><span id="chiplabel">Status</span><span class="chev">▾</span></div>
+
+        <div class="dropdown" id="dropdown">
+          <div class="ddopt" data-i="0">All statuses</div>
+          <div class="ddopt" data-i="1" id="ddActive">Active</div>
+          <div class="ddopt" data-i="2">Inactive</div>
+        </div>
+
+        <div class="table" id="table">
+          <div class="thead">
+            <div class="cell c-name">NAME</div>
+            <div class="cell c-role">ROLE</div>
+            <div class="cell c-team">TEAM</div>
+            <div class="cell c-status">STATUS</div>
+            <div class="cell c-date">JOINED</div>
+          </div>
+          <div id="tbody"></div>
+        </div>
+
+        <div id="cursor">
+          <svg width="38" height="44" viewBox="0 0 24 28">
+            <path d="M3,2 L3,22 L8.5,16.8 L12,24.5 L15.4,23 L11.9,15.3 L19,15.3 Z"
+              fill="#ffffff" stroke="#1b1b22" stroke-width="1.6" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
+      const tbody = document.getElementById("tbody");
+
+      // ---------- data: dozens of rows; 8 are "Design" (survive the query) ----------
+      const FIRST = ["Maya","Liam","Aria","Noah","Eden","Kai","Ivy","Omar","Lena","Theo",
+        "Nina","Sam","Rosa","Dev","Cleo","Mara","Jonas","Tess","Hugo","Vera","Pia","Ravi","Cora","Ada"];
+      const LAST = ["Cole","Park","Ito","Reyes","Hahn","Vance","Ng","Diaz","Roth","Wu",
+        "Bell","Frost","Kaur","Shah","Brio","Lund","Maes","Quinn","Voss","Ola","Sato","Mire","Fenn","Hale"];
+      const OTHER_ROLES = ["Backend Engineer","Data Analyst","Product Manager","QA Engineer","Growth Lead","DevOps"];
+      const OTHER_TEAMS = ["Platform","Data","Growth","Mobile","Infra"];
+      const DESIGN_ROLES = ["Product Designer","UX Designer","Design Lead","Brand Designer"];
+
+      // which rows survive the query (Design team), and which of those are inactive
+      const KEEP = [2, 4, 7, 9, 12, 15, 18, 21];          // 8 design rows
+      const KEEP_INACTIVE = [4, 12, 21];                  // 3 of them inactive (cut by chip)
+      // removal order during typing for the 16 non-design rows (3 waves)
+      const NON = [];
+      for (let i = 0; i < 24; i++) if (!KEEP.includes(i)) NON.push(i);
+
+      const rowEls = [];
+      for (let i = 0; i < 24; i++) {
+        const keep = KEEP.includes(i);
+        const active = keep ? !KEEP_INACTIVE.includes(i) : i % 3 !== 0;
+        const role = keep ? DESIGN_ROLES[i % DESIGN_ROLES.length] : OTHER_ROLES[i % OTHER_ROLES.length];
+        const team = keep ? "Design" : OTHER_TEAMS[i % OTHER_TEAMS.length];
+        const mo = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][i % 12];
+        const day = ((i * 7) % 27) + 1;
+        const r = document.createElement("div");
+        r.className = "row";
+        r.innerHTML =
+          '<div class="cell c-name">' + FIRST[i] + " " + LAST[i] + "</div>" +
+          '<div class="cell c-role">' + role + "</div>" +
+          '<div class="cell c-team">' + team + "</div>" +
+          '<div class="cell c-status"><span class="pill ' + (active ? "active" : "inactive") + '">' +
+            (active ? "Active" : "Inactive") + "</span></div>" +
+          '<div class="cell c-date">' + mo + " " + day + ", 2025</div>";
+        tbody.appendChild(r);
+        rowEls.push(r);
+      }
+
+      // ---------- helpers ----------
+      const cursor = document.getElementById("cursor");
+      const caret = document.getElementById("caret");
+      const qtext = document.getElementById("qtext");
+      const QUERY = "active design lead";
+      const CHARW = qtext.getBoundingClientRect().width / QUERY.length;
+      const QX0 = 50; // caret/text origin inside the searchbar (after the magnifier)
+
+      gsap.set(cursor, { x: 1500, y: 880 });
+      gsap.set("#dropdown", { autoAlpha: 0, scaleY: 0.85, y: -6 });
+      gsap.set("#ddActive", { backgroundColor: "rgba(37,99,235,0)" });
+      gsap.set(caret, { autoAlpha: 0 });
+      gsap.set("#qclip", { width: 0 });
+
+      function collapse(tl, idxs, t, dur) {
+        idxs.forEach((i, k) => {
+          tl.to(rowEls[i], {
+            height: 0, autoAlpha: 0, borderBottomWidth: 0,
+            duration: dur, ease: "power2.inOut",
+          }, t + k * 0.03);
+        });
+      }
+
+      // ---------- timeline ----------
       const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
+
+      // 1) cursor clicks into the search bar
+      tl.to(cursor, { x: 360, y: 130, duration: 0.9, ease: "power2.inOut" }, 0.2);
+      tl.to(cursor, { scale: 0.9, duration: 0.1, transformOrigin: "0 0" }, 1.05);
+      tl.to(cursor, { scale: 1, duration: 0.12 }, 1.15);
+      tl.set("#searchbar", { borderColor: "#2563eb" }, 1.1);
+      tl.set(caret, { autoAlpha: 1 }, 1.15);
+      // caret blink
+      tl.to(caret, { autoAlpha: 0, duration: 0.42, repeat: 2, yoyo: true, ease: "power1.inOut" }, 1.2);
+
+      // 2) the query types itself — deliberate pace
+      const TYPE_T = 1.7, TYPE_DUR = 2.2;
+      const typer = { n: 0 };
+      tl.to(typer, {
+        n: QUERY.length, duration: TYPE_DUR, ease: "none",
+        onUpdate: () => {
+          const c = Math.min(QUERY.length, Math.floor(typer.n + 1e-6));
+          const w = c * CHARW;
+          document.getElementById("qclip").style.width = w + "px";
+          caret.style.left = QX0 + w + "px";
+        },
+      }, TYPE_T);
+      tl.set(caret, { autoAlpha: 1 }, TYPE_T);
+
+      // 3) starting as the 3rd character lands, rows filter in real time (3 waves)
+      const t3 = TYPE_T + (3 / QUERY.length) * TYPE_DUR; // ~3rd char
+      collapse(tl, NON.slice(0, 6), t3, 0.4);
+      collapse(tl, NON.slice(6, 12), TYPE_T + 0.9, 0.4);
+      collapse(tl, NON.slice(12, 16), TYPE_T + 1.55, 0.42);
+
+      // caret stops blinking once typed
+      tl.set(caret, { autoAlpha: 0 }, TYPE_T + TYPE_DUR + 0.05);
+
+      // 4) the eight survivors relax into generous, readable spacing
+      const survivors = KEEP.map((i) => rowEls[i]);
+      tl.to(survivors, { height: 76, duration: 0.5, ease: "power2.out" }, TYPE_T + TYPE_DUR + 0.1);
+
+      // 5) cursor clicks the filter chip → dropdown opens
+      tl.to(cursor, { x: 1070, y: 130, duration: 0.7, ease: "power2.inOut" }, 4.4);
+      tl.to(cursor, { scale: 0.9, duration: 0.1, transformOrigin: "0 0" }, 5.1);
+      tl.to(cursor, { scale: 1, duration: 0.12 }, 5.2);
+      tl.to("#dropdown", { autoAlpha: 1, scaleY: 1, y: 0, duration: 0.3, ease: "power2.out" }, 5.2);
+
+      // 6) a category is selected, then the dropdown closes
+      tl.to(cursor, { x: 1130, y: 246, duration: 0.45, ease: "power2.inOut" }, 5.6);
+      tl.to("#ddActive", { backgroundColor: "rgba(37,99,235,0.12)", duration: 0.2 }, 5.95);
+      tl.to(cursor, { scale: 0.9, duration: 0.1, transformOrigin: "0 0" }, 6.1);
+      tl.to(cursor, { scale: 1, duration: 0.12 }, 6.2);
+      // chip reflects the active filter
+      tl.to("#chip", { borderColor: "#2563eb", color: "#2563eb", duration: 0.25 }, 6.25);
+      tl.to("#dropdown", { autoAlpha: 0, scaleY: 0.85, y: -6, duration: 0.22, ease: "power2.in" }, 6.35);
+      tl.set("#searchbar", { borderColor: "#e3e6ea" }, 6.35);
+
+      // 7) three more rows (the inactive designers) disappear → five remain
+      collapse(tl, KEEP_INACTIVE, 6.5, 0.42);
+
+      // 8) the cursor moves away; the clean, filtered table holds
+      tl.to(cursor, { x: 1640, y: 760, duration: 0.9, ease: "power2.inOut" }, 7.0);
+
       window.__timelines["main"] = tl;
     </script>
   </body>
