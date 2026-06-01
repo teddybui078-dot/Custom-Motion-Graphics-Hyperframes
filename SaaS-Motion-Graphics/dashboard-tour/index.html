@@ -5,46 +5,253 @@
     <meta name="viewport" content="width=1920, height=1080" />
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
     <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        margin: 0; width: 1920px; height: 1080px; overflow: hidden;
+        background: #ffffff; font-family: "Inter", system-ui, sans-serif;
       }
-      html,
-      body {
-        margin: 0;
-        width: 1920px;
-        height: 1080px;
-        overflow: hidden;
-        background: #000;
+      .stage { position: absolute; inset: 0; overflow: hidden; }
+
+      #frame {
+        position: absolute; left: 120px; top: 88px; width: 1680px; height: 904px;
+        background: #f8fafc; border-radius: 16px; overflow: hidden; border: 1px solid #e7eaef;
+        box-shadow: 0 30px 80px rgba(20,28,46,0.16), 0 6px 18px rgba(20,28,46,0.08);
       }
+      .titlebar { position: absolute; top: 0; left: 0; width: 100%; height: 52px;
+        background: #eef1f5; display: flex; align-items: center; padding: 0 20px; }
+      .dot { width: 13px; height: 13px; border-radius: 50%; margin-right: 9px; }
+      .addr { margin-left: 22px; height: 32px; max-width: 640px; background: #fff; border-radius: 16px;
+        display: flex; align-items: center; padding: 0 16px; color: #5f6b7c; font-size: 15px; gap: 8px; }
+
+      .appbar { position: absolute; top: 52px; left: 0; width: 100%; height: 60px; background: #ffffff;
+        border-bottom: 1px solid #eaedf2; display: flex; align-items: center; padding: 0 30px; gap: 28px; }
+      .brand { font-size: 21px; font-weight: 800; color: #1f2a44; display: flex; align-items: center; gap: 10px; }
+      .brand .mk { width: 26px; height: 26px; border-radius: 8px; background: linear-gradient(135deg,#4f7cff,#8a5bff); }
+      .navtab { font-size: 16px; color: #76808f; font-weight: 600; }
+      .navtab.on { color: #2563eb; }
+      .appbar .ava { margin-left: auto; width: 36px; height: 36px; border-radius: 50%; background: #4f7cff;
+        color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+
+      .htitle { position: absolute; left: 32px; top: 146px; font-size: 28px; font-weight: 800; color: #1f2a44; }
+      .ctl { position: absolute; height: 46px; top: 142px; border-radius: 12px; background: #fff; border: 1.5px solid #e2e7ee;
+        display: flex; align-items: center; gap: 10px; padding: 0 18px; font-size: 17px; font-weight: 600; color: #44506a; }
+      .ctl .chev { color: #9aa6b6; font-size: 14px; }
+      .lblwrap { position: relative; display: inline-block; }
+      .lblwrap .ln2 { position: absolute; left: 0; top: 0; opacity: 0; white-space: nowrap; }
+
+      .kpi { position: absolute; top: 220px; height: 128px; width: 386px; background: #fff; border: 1px solid #eaedf2; border-radius: 16px; padding: 20px 22px; }
+      .kpi .kl { font-size: 15px; color: #76808f; font-weight: 600; }
+      .kpi .kv { font-size: 36px; font-weight: 800; color: #1f2a44; margin-top: 8px; }
+      .kpi .kd { font-size: 15px; font-weight: 700; margin-top: 8px; }
+      .up { color: #12a150; } .down { color: #e5484d; }
+
+      .panel { position: absolute; top: 372px; height: 470px; background: #fff; border: 1px solid #eaedf2; border-radius: 16px; }
+      .ptitle { position: absolute; left: 24px; top: 20px; font-size: 19px; font-weight: 700; color: #1f2a44; }
+
+      .bar { position: absolute; width: 70px; border-radius: 8px 8px 0 0; background: linear-gradient(180deg,#6f9bff,#4f7cff); }
+      .gl { position: absolute; height: 1px; background: #eef1f6; left: 90px; width: 1020px; }
+      .glab { position: absolute; left: 40px; font-size: 13px; color: #98a2b3; }
+      .xlab { position: absolute; font-size: 14px; color: #76808f; font-weight: 600; width: 70px; text-align: center; }
+
+      .tooltip { position: absolute; background: #1f2a44; color: #fff; border-radius: 10px; padding: 10px 14px;
+        font-size: 14px; box-shadow: 0 10px 24px rgba(20,28,46,0.28); z-index: 80; }
+      .tooltip .tv { font-size: 20px; font-weight: 800; margin: 3px 0; }
+      .tooltip .td { color: #7ee0a6; font-weight: 700; font-size: 13px; }
+
+      .pop { position: absolute; background: #fff; border: 1px solid #e6eaf0; border-radius: 14px;
+        box-shadow: 0 20px 50px rgba(20,28,46,0.20); z-index: 60; padding: 8px; transform-origin: top center; }
+      .opt { height: 46px; display: flex; align-items: center; padding: 0 16px; border-radius: 9px; font-size: 17px; color: #2b3650; }
+
+      .cal { width: 360px; padding: 16px; }
+      .calhead { display: flex; align-items: center; justify-content: space-between; padding: 4px 8px 12px; font-weight: 700; color: #1f2a44; font-size: 18px; }
+      .calgrid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+      .cald { height: 42px; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #44506a; border-radius: 10px; position: relative; }
+      .cald.dow { color: #98a2b3; font-size: 13px; font-weight: 700; height: 28px; }
+      .cald .rg { position: absolute; inset: 2px; border-radius: 8px; background: #dbe6ff; opacity: 0; }
+      .cald .ec { position: absolute; inset: 2px; border-radius: 9px; background: #2563eb; opacity: 0; }
+      .cald .num { position: relative; z-index: 2; }
+      .cald.sel .num { color: #fff; }
+
+      #cursor { position: absolute; left: 0; top: 0; z-index: 90; }
     </style>
   </head>
   <body>
-    <div
-      id="root"
-      data-composition-id="main"
-      data-start="0"
-      data-duration="10"
-      data-width="1920"
-      data-height="1080"
-    >
-      
-      
+    <div id="root" data-composition-id="main" data-start="0" data-duration="14" data-width="1920" data-height="1080">
+      <div class="stage" id="stage">
+        <div id="frame">
+          <div class="titlebar">
+            <div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div>
+            <div class="addr"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5f6b7c" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>app.northstar.io/analytics</div>
+          </div>
+          <div class="appbar">
+            <div class="brand"><div class="mk"></div>Northstar</div>
+            <div class="navtab on">Overview</div><div class="navtab">Reports</div><div class="navtab">Audiences</div><div class="navtab">Settings</div>
+            <div class="ava">A</div>
+          </div>
 
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
+          <div class="htitle">Analytics overview</div>
+          <div class="ctl" id="filterBtn" style="left:1070px">Region:&nbsp;<span class="lblwrap" style="min-width:120px"><span id="fl1">All</span><span class="ln2" id="fl2">N. America</span></span><span class="chev">▾</span></div>
+          <div class="ctl" id="dateBtn" style="left:1372px"><span class="lblwrap"><span id="dl1">Jan – Jun 2025</span><span class="ln2" id="dl2">Apr 1 – 30</span></span><span class="chev">▾</span></div>
+
+          <div class="pop" id="filterPop" style="opacity:0; left:1070px; top:202px; width:280px;">
+            <div class="opt" data-i="0">All regions</div><div class="opt" id="optNA">North America</div><div class="opt">EMEA</div><div class="opt">APAC</div>
+          </div>
+          <div class="pop cal" id="calPop" style="opacity:0; left:1262px; top:202px;">
+            <div class="calhead"><span>‹</span><span>April 2025</span><span>›</span></div>
+            <div class="calgrid" id="calgrid"></div>
+          </div>
         </div>
-      -->
+
+        <div id="cursor"><svg width="38" height="44" viewBox="0 0 24 28"><path d="M3,2 L3,22 L8.5,16.8 L12,24.5 L15.4,23 L11.9,15.3 L19,15.3 Z" fill="#ffffff" stroke="#1b1b22" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+      </div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
+      const stage = document.getElementById("stage");
+      const frame = document.getElementById("frame");
+
+      // ---------- KPI cards ----------
+      const KPIS = [
+        ["Revenue", "$284.6k", "▲ 12.4%", "up"], ["Active Users", "18,204", "▲ 8.1%", "up"],
+        ["Conversion", "3.42%", "▼ 1.2%", "down"], ["Avg. Order", "$52.40", "▲ 4.6%", "up"],
+      ];
+      const kpiEls = [];
+      KPIS.forEach((k, i) => {
+        const c = document.createElement("div"); c.className = "kpi"; c.style.left = 32 + i * 410 + "px";
+        c.innerHTML = '<div class="kl">' + k[0] + '</div><div class="kv">' + k[1] + '</div><div class="kd ' + k[3] + '">' + k[2] + ' vs last period</div>';
+        frame.appendChild(c); kpiEls.push(c);
+      });
+
+      // ---------- panels ----------
+      const chart = document.createElement("div"); chart.className = "panel"; chart.style.cssText = "left:32px; top:372px; width:1150px; height:470px;";
+      chart.innerHTML = '<div class="ptitle">Revenue by month</div>'; frame.appendChild(chart);
+      const side = document.createElement("div"); side.className = "panel"; side.style.cssText = "left:1206px; top:372px; width:442px; height:470px;";
+      side.innerHTML = '<div class="ptitle">Traffic sources</div>' +
+        '<svg width="190" height="190" viewBox="0 0 42 42" style="position:absolute; left:34px; top:130px;">' +
+        '<circle cx="21" cy="21" r="15.9" fill="none" stroke="#eef1f6" stroke-width="7"/>' +
+        '<circle cx="21" cy="21" r="15.9" fill="none" stroke="#4f7cff" stroke-width="7" stroke-dasharray="46 54" stroke-dashoffset="25"/>' +
+        '<circle cx="21" cy="21" r="15.9" fill="none" stroke="#8a5bff" stroke-width="7" stroke-dasharray="30 70" stroke-dashoffset="79"/>' +
+        '<circle cx="21" cy="21" r="15.9" fill="none" stroke="#34c6a8" stroke-width="7" stroke-dasharray="24 76" stroke-dashoffset="49"/></svg>' +
+        '<div style="position:absolute; left:250px; top:150px; font-size:16px; color:#44506a; line-height:2.5">' +
+        '<div><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#4f7cff;margin-right:10px"></span>Organic 46%</div>' +
+        '<div><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#8a5bff;margin-right:10px"></span>Direct 30%</div>' +
+        '<div><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#34c6a8;margin-right:10px"></span>Referral 24%</div></div>';
+      frame.appendChild(side);
+
+      // ---------- bar chart (panel-local coords) ----------
+      const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug"];
+      const D0 = [32,41,38,48,44,52,49,58], D1 = [22,27,25,33,30,36,34,41], D2 = [41,45,49,46,53,57,60,64];
+      const BASE = 410, PXV = 300 / 65, BX0 = 100, BSTEP = 128;
+      [0,20,40,60].forEach((v) => {
+        const y = BASE - v * PXV;
+        const g = document.createElement("div"); g.className = "gl"; g.style.top = y + "px"; chart.appendChild(g);
+        const l = document.createElement("div"); l.className = "glab"; l.style.top = (y - 9) + "px"; l.textContent = "$" + v + "k"; chart.appendChild(l);
+      });
+      const bars = [];
+      MONTHS.forEach((m, i) => {
+        const b = document.createElement("div"); b.className = "bar";
+        b.style.left = BX0 + i * BSTEP + "px"; b.style.top = (BASE - D0[i] * PXV) + "px"; b.style.height = D0[i] * PXV + "px";
+        chart.appendChild(b); bars.push(b);
+        const x = document.createElement("div"); x.className = "xlab"; x.style.left = (BX0 + i * BSTEP) + "px"; x.style.top = (BASE + 14) + "px"; x.textContent = m; chart.appendChild(x);
+      });
+      function redraw(tl, data, t) {
+        bars.forEach((b, i) => tl.to(b, { height: data[i] * PXV, top: BASE - data[i] * PXV, duration: 20 / 30, ease: "power2.inOut" }, t));
+      }
+
+      // ---------- calendar (April 2025: starts Tue, 30 days) ----------
+      const calgrid = document.getElementById("calgrid");
+      ["S","M","T","W","T","F","S"].forEach((d) => { const e = document.createElement("div"); e.className = "cald dow"; e.textContent = d; calgrid.appendChild(e); });
+      const dayEls = {};
+      for (let i = 0; i < 2; i++) calgrid.appendChild(document.createElement("div"));
+      for (let d = 1; d <= 30; d++) {
+        const e = document.createElement("div"); e.className = "cald";
+        e.innerHTML = '<div class="rg"></div><div class="ec"></div><div class="num">' + d + "</div>";
+        calgrid.appendChild(e); dayEls[d] = e;
+      }
+
+      // ---------- measure cursor targets from layout (stage coords) ----------
+      const cursor = document.getElementById("cursor");
+      const C = (el) => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
+      const barTop = (el, dy) => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + (dy || 0) }; };
+
+      const pBar = barTop(bars[3], 26), pCard = C(kpiEls[1]), pFilter = C(document.getElementById("filterBtn")),
+        pOptNA = C(document.getElementById("optNA")), pDate = C(document.getElementById("dateBtn")),
+        pDay1 = C(dayEls[1]), pDay30 = C(dayEls[30]);
+
+      // tooltip above bar 3
+      const br = bars[3].getBoundingClientRect();
+      const tip = document.createElement("div"); tip.className = "tooltip";
+      tip.innerHTML = '<div>April 2025</div><div class="tv">$48.0k</div><div class="td">▲ 12% MoM</div>';
+      tip.style.left = br.left - 18 + "px"; tip.style.top = br.top - 96 + "px"; stage.appendChild(tip);
+
+      // ---------- initial states ----------
+      gsap.set("#frame", { autoAlpha: 0, scale: 0.99, transformOrigin: "center center" });
+      gsap.set(cursor, { x: 70, y: 600, autoAlpha: 0 });
+      gsap.set(tip, { autoAlpha: 0, y: 8 });
+      gsap.set("#filterPop", { autoAlpha: 0, scaleY: 0.85, y: -6, transformOrigin: "top center" });
+      gsap.set("#calPop", { autoAlpha: 0, scaleY: 0.9, y: -6, transformOrigin: "top center" });
+
+      const click = (tl, t) => { tl.to(cursor, { scale: 0.88, duration: 0.1, transformOrigin: "0 0" }, t); tl.to(cursor, { scale: 1, duration: 0.12 }, t + 0.1); };
+      const moveTo = (tl, p, t, dur) => tl.to(cursor, { x: p.x, y: p.y, duration: dur, ease: "power2.inOut" }, t);
+
+      // ---------- timeline ----------
       const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
+      tl.to("#frame", { autoAlpha: 1, scale: 1, duration: 0.55, ease: "power2.out" }, 0.1);
+
+      // cursor enters from the left edge → hovers a chart bar; tooltip appears
+      tl.to(cursor, { autoAlpha: 1, duration: 0.2 }, 0.7);
+      moveTo(tl, pBar, 0.7, 1.0);
+      tl.to(bars[3], { filter: "brightness(1.12)", duration: 0.2 }, 1.7);
+      tl.to(tip, { autoAlpha: 1, y: 0, duration: 0.3, ease: "power2.out" }, 1.75);
+
+      // → metric card; it brightens slightly
+      tl.to(tip, { autoAlpha: 0, duration: 0.25 }, 3.0);
+      tl.to(bars[3], { filter: "brightness(1)", duration: 0.2 }, 3.0);
+      moveTo(tl, pCard, 3.05, 0.85);
+      tl.to(kpiEls[1], { backgroundColor: "#f3f8ff", borderColor: "#cdddff", boxShadow: "0 12px 26px rgba(79,124,255,0.18)", scale: 1.025, transformOrigin: "center center", duration: 0.3 }, 3.85);
+
+      // → filter dropdown; click; options appear
+      moveTo(tl, pFilter, 4.7, 0.8);
+      tl.to(kpiEls[1], { backgroundColor: "#ffffff", borderColor: "#eaedf2", boxShadow: "0 0 0 rgba(0,0,0,0)", scale: 1, duration: 0.3 }, 5.1);
+      click(tl, 5.5);
+      tl.to("#filterPop", { autoAlpha: 1, scaleY: 1, y: 0, duration: 0.25, ease: "power2.out" }, 5.55);
+
+      // select "North America" → close → chart redraws (20-frame transition)
+      moveTo(tl, pOptNA, 5.95, 0.5);
+      tl.to("#optNA", { backgroundColor: "#eef4ff", duration: 0.18 }, 6.3);
+      click(tl, 6.45);
+      tl.to("#filterPop", { autoAlpha: 0, scaleY: 0.85, y: -6, duration: 0.2 }, 6.6);
+      tl.to("#fl1", { autoAlpha: 0, duration: 0.2 }, 6.65); tl.to("#fl2", { autoAlpha: 1, duration: 0.2 }, 6.65);
+      redraw(tl, D1, 6.85);
+
+      // → date range picker; click; calendar appears
+      moveTo(tl, pDate, 7.7, 0.8);
+      click(tl, 8.35);
+      tl.to("#calPop", { autoAlpha: 1, scaleY: 1, y: 0, duration: 0.25, ease: "power2.out" }, 8.4);
+
+      // select a range (Apr 1 → Apr 30)
+      moveTo(tl, pDay1, 8.75, 0.45);
+      click(tl, 9.1);
+      tl.add(() => {}, 9.1);
+      tl.to(dayEls[1].querySelector(".ec"), { autoAlpha: 1, duration: 0.15 }, 9.15);
+      tl.set(dayEls[1], { className: "cald sel" }, 9.15);
+      moveTo(tl, pDay30, 9.25, 0.5);
+      click(tl, 9.75);
+      tl.to(dayEls[30].querySelector(".ec"), { autoAlpha: 1, duration: 0.15 }, 9.8);
+      tl.set(dayEls[30], { className: "cald sel" }, 9.8);
+      const rg = []; for (let d = 2; d <= 29; d++) rg.push(dayEls[d].querySelector(".rg"));
+      tl.to(rg, { autoAlpha: 1, duration: 0.3, stagger: 0.006 }, 9.55);
+
+      // close calendar → swap date label → chart redraws again
+      tl.to("#calPop", { autoAlpha: 0, scaleY: 0.9, y: -6, duration: 0.22 }, 10.2);
+      tl.to("#dl1", { autoAlpha: 0, duration: 0.2 }, 10.25); tl.to("#dl2", { autoAlpha: 1, duration: 0.2 }, 10.25);
+      redraw(tl, D2, 10.4);
+
+      // cursor moves away and exits the right edge of the frame
+      tl.to(cursor, { x: 1880, y: 470, duration: 1.2, ease: "power2.in" }, 11.2);
+      tl.to(cursor, { autoAlpha: 0, duration: 0.2 }, 12.2);
+
       window.__timelines["main"] = tl;
     </script>
   </body>
