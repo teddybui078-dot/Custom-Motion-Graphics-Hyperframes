@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #ffffff;
+        font-family: "Inter", Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; color: #14151a; }
+      .stage { position: absolute; inset: 0; overflow: hidden; background: #ffffff; }
+
+      /* coordinate origin — everything is translated from this point */
+      #scene { position: absolute; left: 50%; top: 45%; width: 0; height: 0; }
+
+      /* the logo character */
+      #logo { position: absolute; left: 0; top: 0; width: 124px; height: 124px; border-radius: 34px;
+        background: linear-gradient(150deg, #6d78ff 0%, #5b51e8 55%, #7c3aed 100%);
+        box-shadow: 0 22px 44px -16px rgba(91,81,232,.6), inset 0 2px 5px rgba(255,255,255,.35);
+        z-index: 6; }
+      #logo .ring { position: absolute; left: 50%; top: 50%; width: 58px; height: 58px; margin: -29px 0 0 -29px;
+        border: 4px solid rgba(255,255,255,.92); border-radius: 50%; }
+      #logo .planet { position: absolute; left: 50%; top: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px;
+        border-radius: 50%; background: #fff; box-shadow: 0 0 0 5px rgba(255,255,255,.18); }
+      #logo .moon { position: absolute; left: 50%; top: 50%; width: 11px; height: 11px; margin: -5.5px 0 0 -5.5px;
+        transform: translate(29px, 0); border-radius: 50%; background: #c7d2fe; }
+      #logo .glow { position: absolute; inset: -30px; border-radius: 50%; z-index: -1;
+        background: radial-gradient(circle, rgba(109,120,255,.28) 0%, rgba(109,120,255,0) 70%); }
+      /* eyes (blink) — sit just above the mark */
+      .eyes { position: absolute; left: 0; right: 0; top: -26px; display: flex; justify-content: center; gap: 18px; }
+      .eye { width: 22px; height: 13px; border: 4px solid #4f46e5; border-bottom: none; border-radius: 14px 14px 0 0; }
+
+      /* comet trail ghosts */
+      .ghost { position: absolute; left: 0; top: 0; width: 108px; height: 108px; border-radius: 30px;
+        background: #6d78ff; z-index: 1; }
+
+      /* falling UI elements */
+      .el { position: absolute; left: 0; top: 0; z-index: 3; filter: drop-shadow(0 14px 26px rgba(16,17,21,.16)); }
+      .btnp { background: #0d9488; color: #fff; font-size: 19px; font-weight: 660; padding: 16px 28px; border-radius: 14px; box-shadow: inset 0 2px 4px rgba(255,255,255,.2); white-space: nowrap; }
+      .bell { width: 78px; height: 78px; border-radius: 20px; background: #fff; border: 1px solid #eef0f4; display: flex; align-items: center; justify-content: center; position: relative; }
+      .bell .bdg { position: absolute; right: 16px; top: 14px; width: 14px; height: 14px; border-radius: 50%; background: #ef4444; border: 2px solid #fff; }
+      .chart { width: 168px; height: 116px; background: #fff; border: 1px solid #eef0f4; border-radius: 16px; padding: 16px 16px 0; display: flex; align-items: flex-end; gap: 11px; }
+      .chart i { flex: 1; border-radius: 5px 5px 0 0; display: block; }
+      .dcard { width: 186px; background: #fff; border: 1px solid #eef0f4; border-radius: 16px; padding: 16px 18px; }
+      .dcard .dl { font-size: 13px; font-weight: 580; color: #9ca3af; }
+      .dcard .dv { font-size: 30px; font-weight: 780; letter-spacing: -1px; margin-top: 4px; }
+      .dcard .dup { font-size: 13px; font-weight: 700; color: #16a34a; margin-top: 3px; }
+      .tgl { width: 188px; background: #fff; border: 1px solid #eef0f4; border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; font-size: 15px; font-weight: 600; color: #3a4150; }
+      .tgl .sw { margin-left: auto; width: 46px; height: 26px; border-radius: 14px; background: #16a34a; position: relative; }
+      .tgl .sw::after { content: ""; position: absolute; right: 3px; top: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; }
+
+      /* tagline */
+      #tagline { position: absolute; left: 50%; top: 64%; text-align: center; opacity: 0; white-space: nowrap; }
+      #tagline .tg { font-size: 44px; font-weight: 720; letter-spacing: -1.2px; color: #14151a; }
+      #tagline .tg b { color: #5b51e8; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="20" data-width="1920" data-height="1080">
+      <div class="stage" data-layout-allow-overflow>
+        <div id="scene">
+          <!-- comet trail ghosts (filled in by script) -->
+
+          <!-- falling UI elements -->
+          <div class="el" id="el0" data-layout-allow-overflow><div class="btnp">Get started</div></div>
+          <div class="el" id="el1" data-layout-allow-overflow><div class="bell">
+            <svg viewBox="0 0 24 24" width="38" height="38"><path d="M12 2.6c-2.8 0-5 2.2-5 5v3.2l-1.7 2.6c-.4.6 0 1.4.8 1.4h11.8c.8 0 1.2-.8.8-1.4L17 10.8V7.6c0-2.8-2.2-5-5-5z" fill="#f59e0b"/><path d="M9.8 18.2a2.2 2.2 0 0 0 4.4 0z" fill="#f59e0b"/></svg>
+            <div class="bdg"></div></div></div>
+          <div class="el" id="el2" data-layout-allow-overflow><div class="chart">
+            <i style="height:44px;background:#c7d2fe"></i><i style="height:72px;background:#a5b4fc"></i><i style="height:56px;background:#818cf8"></i><i style="height:88px;background:#5b51e8"></i></div></div>
+          <div class="el" id="el3" data-layout-allow-overflow><div class="dcard">
+            <div class="dl">Monthly revenue</div><div class="dv">$24.8k</div><div class="dup">▲ 12.4%</div></div></div>
+          <div class="el" id="el4" data-layout-allow-overflow><div class="tgl">Auto-sync<div class="sw"></div></div></div>
+
+          <!-- the character -->
+          <div id="logo" data-layout-allow-overflow>
+            <div class="glow"></div>
+            <div class="ring"></div><div class="planet"></div><div class="moon"></div>
+            <div class="eyes" id="eyes" data-layout-allow-overflow><span class="eye"></span><span class="eye"></span></div>
+          </div>
+        </div>
+
+        <div id="tagline"><div class="tg"><b>Orbit.</b> Everything in one place.</div></div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      const scene = document.getElementById("scene");
+
+      const motionStart = 1.7;
+      // [x, y, dur, ease, absorbIndex?]
+      const WP = [
+        [-860,  30, 1.10, "power2.inOut"],          // find LEFT edge
+        [-720,  10, 0.55, "back.out(2.2)"],         // bounce back
+        [-120, -430, 1.00, "power2.inOut"],         // find TOP edge
+        [-120, -320, 0.50, "bounce.out"],           // bounce off top
+        [ 360, -150, 0.85, "sine.inOut"],           // drift right, exploring
+        [ 120,  120, 0.60, "sine.inOut"],           // wander
+        [-380,  150, 0.95, "power2.inOut", 0],      // -> button
+        [-380,  150, 0.30, "none"],
+        [-320, -210, 1.05, "power2.inOut", 1],      // -> bell
+        [-320, -210, 0.30, "none"],
+        [ 340, -170, 1.15, "power2.inOut", 2],      // -> chart
+        [ 340, -170, 0.30, "none"],
+        [ 470,  190, 1.00, "power2.inOut", 3],      // -> data card
+        [ 470,  190, 0.30, "none"],
+        [ 150,  270, 0.95, "power2.inOut", 4],      // -> toggle
+        [ 150,  270, 0.30, "none"],
+        [   0,    0, 1.20, "back.out(1.3)"],        // bounce back to CENTER
+      ];
+      // build keyframes + record absorb arrival times
+      function makeKeyframes() { return WP.map((w) => ({ x: w[0], y: w[1], duration: w[2], ease: w[3] })); }
+      const absorbAt = {};
+      { let cum = 0; WP.forEach((w) => { cum += w[2]; if (w.length > 4) absorbAt[w[4]] = motionStart + cum; }); }
+      const motionEnd = motionStart + WP.reduce((s, w) => s + w[2], 0);
+
+      // ---- comet trail: ghost copies replay the SAME path, time-delayed ----
+      const GHOSTS = 6;
+      for (let i = 0; i < GHOSTS; i++) {
+        const g = document.createElement("div");
+        g.className = "ghost"; g.id = "g" + i;
+        scene.insertBefore(g, scene.firstChild);
+        const f = (i + 1) / GHOSTS;                 // 0..1 along the tail
+        gsap.set(g, { xPercent: -50, yPercent: -50, x: 0, y: 0, scale: 0.9 - f * 0.45, autoAlpha: 0.16 * (1 - f) + 0.03 });
+        tl.to(g, { keyframes: makeKeyframes(), transformPerspective: 0 }, motionStart + (i + 1) * 0.05);
+      }
+
+      // ---- initial states ----
+      gsap.set("#logo", { xPercent: -50, yPercent: -50, x: 0, y: 0, scale: 1, transformOrigin: "50% 50%" });
+      gsap.set("#eyes", { scaleY: 0, autoAlpha: 0, transformOrigin: "50% 100%" });
+      gsap.set("#tagline", { xPercent: -50, autoAlpha: 0, y: 14 });
+      const ELP = [[-380, 150], [-320, -210], [340, -170], [470, 190], [150, 270]];
+      ELP.forEach((p, k) => gsap.set("#el" + k, { xPercent: -50, yPercent: -50, x: p[0], y: p[1] - 950, autoAlpha: 0, scale: 1, transformOrigin: "50% 50%" }));
+
+      // ===== blink: it's alive =====
+      function blink(at, hold) { hold = hold == null ? 0.16 : hold;
+        tl.to("#eyes", { scaleY: 1, autoAlpha: 1, duration: 0.13, ease: "power2.out", overwrite: "auto" }, at);
+        tl.to("#eyes", { scaleY: 0, autoAlpha: 0, duration: 0.13, ease: "power2.in", overwrite: "auto" }, at + 0.13 + hold);
+      }
+      blink(0.7); blink(1.15);
+
+      // ===== the journey =====
+      tl.to("#logo", { keyframes: makeKeyframes() }, motionStart);
+
+      // ===== UI elements fall from above with a spring bounce =====
+      ELP.forEach((p, k) => {
+        const at = 3.4 + k * 0.55;
+        tl.to("#el" + k, { autoAlpha: 1, duration: 0.15 }, at);
+        tl.to("#el" + k, { y: p[1], duration: 0.95, ease: "bounce.out" }, at);
+      });
+
+      // ===== absorb: logo reaches each element, grows, element vanishes inside =====
+      const sizes = [1.17, 1.34, 1.52, 1.70, 1.88];
+      [0, 1, 2, 3, 4].forEach((k) => {
+        const at = absorbAt[k];
+        // element gets pulled in + disappears
+        tl.to("#el" + k, { x: 0, y: 0, scale: 0.15, autoAlpha: 0, duration: 0.34, ease: "power2.in" }, at - 0.06);
+        // logo squashes then grows a notch
+        tl.to("#logo", { keyframes: [
+          { scale: sizes[k] * 0.9, duration: 0.10, ease: "power2.in" },
+          { scale: sizes[k] * 1.06, duration: 0.16, ease: "power2.out" },
+          { scale: sizes[k], duration: 0.22, ease: "back.out(2.2)" },
+        ], transformOrigin: "50% 50%" }, at - 0.02);
+        // a little absorb glow ping
+        tl.set("#logo .glow", { scale: 1, autoAlpha: 0.8 }, at - 0.02);
+        tl.to("#logo .glow", { scale: 1.5, autoAlpha: 0.2, duration: 0.4, ease: "power2.out", overwrite: "auto" }, at - 0.02);
+      });
+
+      // ===== settle at center, tagline, happy pulse =====
+      tl.fromTo("#tagline", { xPercent: -50, autoAlpha: 0, y: 14 }, { xPercent: -50, autoAlpha: 1, y: 0, duration: 0.8, ease: "power3.out" }, motionEnd + 0.5);
+      // happy eyes
+      blink(motionEnd + 1.6, 0.5);
+      // happy pulse
+      tl.to("#logo", { keyframes: [
+        { scale: 1.88 * 1.1, duration: 0.28, ease: "power2.out" },
+        { scale: 1.88, duration: 0.5, ease: "back.out(2.6)" },
+      ], transformOrigin: "50% 50%" }, motionEnd + 1.7);
+      tl.set("#logo .glow", { scale: 1, autoAlpha: 0.6 }, motionEnd + 1.7);
+      tl.to("#logo .glow", { scale: 1.6, autoAlpha: 0.15, duration: 0.7, ease: "power2.out", overwrite: "auto" }, motionEnd + 1.7);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
