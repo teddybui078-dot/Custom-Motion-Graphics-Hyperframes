@@ -5,45 +5,350 @@
     <meta name="viewport" content="width=1920, height=1080" />
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
     <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-      html,
-      body {
-        margin: 0;
-        width: 1920px;
-        height: 1080px;
-        overflow: hidden;
-        background: #000;
-      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #ffffff;
+        font-family: "Inter", Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; color: #131722; }
+      .stage { position: absolute; inset: 0; overflow: hidden; background: #ffffff; }
+
+      /* clock */
+      .clock { position: absolute; top: 34px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; z-index: 30; }
+      .clock .cic { width: 46px; height: 46px; border-radius: 50%; border: 3px solid #2563eb; position: relative; }
+      .clock .cic::before, .clock .cic::after { content: ""; position: absolute; left: 50%; top: 50%; background: #2563eb; border-radius: 2px; transform-origin: 0 0; }
+      .clock .cic::before { width: 3px; height: 14px; transform: translate(-50%, -100%); }
+      .clock .cic::after { width: 3px; height: 10px; transform: translate(-50%, -100%) rotate(95deg); }
+      .clock .ctime { position: relative; width: 200px; height: 44px; }
+      .clock .ctime span { position: absolute; left: 0; top: 0; width: 200px; font-size: 34px; font-weight: 760; letter-spacing: -0.8px; color: #131722; opacity: 0; }
+
+      /* browser frame */
+      .browser { position: absolute; left: 200px; top: 126px; width: 1520px; height: 900px; background: #fff; border: 1px solid #e6e8ec; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 4px rgba(16,17,21,.04), 0 36px 80px -26px rgba(16,17,21,.22); transform-origin: 50% 60%; }
+      .titlebar { height: 50px; background: #f3f4f6; border-bottom: 1px solid #e8eaed; display: flex; align-items: center; padding: 0 16px; gap: 9px; }
+      .titlebar i { width: 12px; height: 12px; border-radius: 50%; display: block; }
+      .titlebar .r{background:#ff5f57}.titlebar .y{background:#febc2e}.titlebar .g{background:#28c840}
+      .work { position: absolute; top: 50px; left: 0; right: 0; bottom: 0; display: flex; background: #f7f8fa; }
+      .side { width: 236px; background: #fff; border-right: 1px solid #ececf1; padding: 22px 16px; flex-shrink: 0; }
+      .side .lg { display: flex; align-items: center; gap: 11px; margin-bottom: 28px; }
+      .side .lg .d { width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg,#3b82f6,#2563eb); }
+      .side .lg b { font-size: 18px; font-weight: 720; letter-spacing: -0.4px; }
+      .nav { display: flex; flex-direction: column; gap: 4px; }
+      .ni { height: 42px; border-radius: 9px; display: flex; align-items: center; gap: 11px; padding: 0 12px; font-size: 14.5px; font-weight: 560; color: #5b6170; }
+      .ni.on { background: #eef2ff; color: #2563eb; }
+      .ni .b { width: 17px; height: 17px; border-radius: 5px; background: currentColor; opacity: .85; }
+      .avs { position: absolute; bottom: 22px; left: 16px; display: flex; gap: 8px; align-items: center; }
+      .av { width: 36px; height: 36px; border-radius: 50%; color: #fff; font-size: 13px; font-weight: 680; display: flex; align-items: center; justify-content: center; }
+      .main { flex: 1; position: relative; overflow: hidden; }
+      .scene { position: absolute; inset: 0; padding: 30px 36px; visibility: hidden; }
+      .h1 { font-size: 26px; font-weight: 720; letter-spacing: -0.6px; }
+      .h1 span { display: block; font-size: 15px; font-weight: 500; color: #6b7280; margin-top: 4px; }
+      .panel { background: #fff; border: 1px solid #ececf1; border-radius: 16px; padding: 20px 22px; }
+      .ph { font-size: 13px; font-weight: 660; color: #9ca3af; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 14px; }
+      .row2 { display: flex; gap: 22px; margin-top: 24px; }
+      .item { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; font-size: 15px; font-weight: 540; color: #3a4150; }
+      .item .dot { width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0; }
+      .task { display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid #ececf1; border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
+      .task .ck { width: 22px; height: 22px; border-radius: 6px; border: 2px solid #cfd4dd; flex-shrink: 0; }
+      .task .tt { flex: 1; font-size: 16px; font-weight: 580; }
+      .badge { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 8px; }
+      .badge.blk { background: #fde2e1; color: #d23b35; }
+      .badge.due { background: #fef0d6; color: #b9821a; }
+      .cmt { display: flex; gap: 10px; align-items: center; margin-top: 4px; margin-bottom: 12px; padding-left: 34px; }
+      .cmt .box { flex: 1; height: 44px; border: 2px solid #2563eb; border-radius: 10px; display: flex; align-items: center; padding: 0 14px; box-shadow: 0 0 0 4px rgba(37,99,235,.12); font-size: 15px; }
+      .cmt .box .ch { display: none; white-space: pre; }
+      .cmt .caret { display: inline-block; width: 2px; height: 20px; background: #2563eb; }
+      .cmt .send { height: 44px; padding: 0 18px; border-radius: 10px; background: #2563eb; color: #fff; font-weight: 620; font-size: 14.5px; display: flex; align-items: center; }
+      .btn { height: 48px; padding: 0 22px; border-radius: 11px; font-size: 16px; font-weight: 620; display: inline-flex; align-items: center; gap: 9px; }
+      .btn.blue { background: #2563eb; color: #fff; box-shadow: 0 10px 22px -8px rgba(37,99,235,.6); }
+      .btn.green { background: #16a34a; color: #fff; box-shadow: 0 10px 22px -8px rgba(22,163,74,.55); }
+      .menu { position: absolute; background: #fff; border: 1px solid #e6e8ec; border-radius: 12px; box-shadow: 0 20px 44px -16px rgba(16,17,21,.3); padding: 8px; width: 220px; }
+      .menu .mi { height: 42px; border-radius: 8px; display: flex; align-items: center; padding: 0 12px; font-size: 14.5px; font-weight: 560; color: #3a4150; gap: 10px; }
+      .menu .mi .sw { width: 18px; height: 18px; border-radius: 5px; }
+      .pdf { position: absolute; right: 30px; top: 84px; width: 420px; height: 540px; background: #fff; border: 1px solid #e6e8ec; border-radius: 12px; box-shadow: 0 30px 60px -20px rgba(16,17,21,.35); padding: 26px; }
+      .pdf .pbar { height: 12px; width: 60%; background: #2563eb; border-radius: 4px; margin-bottom: 18px; }
+      .pdf .pl { height: 9px; border-radius: 4px; background: #e6e9ef; margin-bottom: 11px; }
+      .pdf .pblock { height: 120px; border-radius: 8px; background: #eef2ff; margin: 16px 0; }
+      .toast { position: absolute; right: 28px; top: 24px; background: #fff; border: 1px solid #eef0f3; border-radius: 12px; padding: 14px 18px; display: flex; align-items: center; gap: 12px; box-shadow: 0 16px 36px -12px rgba(16,17,21,.22); font-size: 15px; font-weight: 580; }
+      .toast .ti { width: 30px; height: 30px; border-radius: 8px; background: #d6f3e1; flex-shrink: 0; }
+      .rpanel { position: absolute; right: 30px; top: 84px; width: 420px; bottom: 30px; background: #fff; border: 1px solid #ececf1; border-radius: 14px; padding: 20px; }
+      .chip { display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid #ececf1; border-radius: 11px; padding: 12px 14px; margin-bottom: 11px; font-size: 15px; font-weight: 560; }
+      .chip .asg { margin-left: auto; font-size: 13px; font-weight: 680; color: #2563eb; }
+      .metric { background: #fff; border: 1px solid #ececf1; border-radius: 16px; padding: 22px 24px; flex: 1; }
+      .metric .ml { font-size: 14.5px; color: #6b7280; font-weight: 560; }
+      .mval { height: 60px; overflow: hidden; margin-top: 10px; }
+      .strip { display: flex; flex-direction: column; }
+      .strip span { height: 60px; line-height: 60px; font-size: 50px; font-weight: 800; letter-spacing: -1.5px; color: #16a34a; }
+
+      /* outro */
+      .outro { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; z-index: 40; }
+      .outro h1 { font-size: 62px; font-weight: 760; letter-spacing: -1.6px; opacity: 0; }
+      .outro .olog { display: flex; align-items: center; gap: 14px; opacity: 0; }
+      .outro .olog .d { width: 40px; height: 40px; border-radius: 11px; background: linear-gradient(135deg,#3b82f6,#2563eb); }
+      .outro .olog b { font-size: 30px; font-weight: 720; letter-spacing: -0.6px; }
+      .outro .cta { height: 66px; padding: 0 38px; border-radius: 14px; background: #2563eb; color: #fff; font-size: 22px; font-weight: 660; display: flex; align-items: center; box-shadow: 0 16px 34px -10px rgba(37,99,235,.6); opacity: 0; }
+
+      #cursor { position: absolute; top: 0; left: 0; z-index: 50; filter: drop-shadow(0 1px 1.5px rgba(0,0,0,.3)); }
     </style>
   </head>
   <body>
-    <div
-      id="root"
-      data-composition-id="main"
-      data-start="0"
-      data-duration="10"
-      data-width="1920"
-      data-height="1080"
-    >
-
-
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
+    <div id="root" data-composition-id="main" data-start="0" data-duration="30" data-width="1920" data-height="1080">
+      <div class="stage">
+        <div class="clock" id="clock">
+          <div class="cic"></div>
+          <div class="ctime"><span id="t9">9:00 AM</span><span id="t11">11:00 AM</span><span id="t2">2:00 PM</span><span id="t5">5:00 PM</span></div>
         </div>
-      -->
+
+        <div class="browser" id="browser">
+          <div class="titlebar"><i class="r"></i><i class="y"></i><i class="g"></i></div>
+          <div class="work">
+            <div class="side">
+              <div class="lg"><div class="d"></div><b>Flowdesk</b></div>
+              <div class="nav">
+                <div class="ni on"><div class="b"></div>Home</div>
+                <div class="ni"><div class="b"></div>Tasks</div>
+                <div class="ni"><div class="b"></div>Reports</div>
+                <div class="ni"><div class="b"></div>Team</div>
+                <div class="ni"><div class="b"></div>Settings</div>
+              </div>
+              <div class="avs">
+                <div class="av" style="background:#2563eb">SK</div>
+                <div class="av" style="background:#8b5cf6">JD</div>
+                <div class="av" style="background:#f59e0b">MR</div>
+                <div class="av" id="newav" style="background:#16a34a">AL</div>
+              </div>
+            </div>
+            <div class="main">
+              <!-- SCENE 1 — 9:00 morning standup -->
+              <div class="scene" id="s1">
+                <div class="h1">Good morning, Sam<span>Here's where things stand</span></div>
+                <div class="row2">
+                  <div class="panel" style="flex:1">
+                    <div class="ph">Yesterday's activity</div>
+                    <div class="item"><div class="dot" style="background:#e9e0fc"></div>Jordan merged the API branch</div>
+                    <div class="item"><div class="dot" style="background:#fde7c2"></div>Maria closed 3 design tickets</div>
+                    <div class="item"><div class="dot" style="background:#d6f3e1"></div>Standup notes posted</div>
+                  </div>
+                  <div style="flex:1.1">
+                    <div class="ph">Today · 3 flagged</div>
+                    <div class="task"><div class="ck"></div><div class="tt">Finalize Q3 deck</div><div class="badge due">DUE</div></div>
+                    <div class="task" id="blkTask"><div class="ck"></div><div class="tt">Ship onboarding fix</div><div class="badge blk">BLOCKED</div></div>
+                    <div class="cmt" id="cmtRow"><div class="box"><span class="ch-host"></span><span class="caret" id="cmtCaret"></span></div><div class="send" id="cmtSend">Send</div></div>
+                    <div class="task"><div class="ck"></div><div class="tt">Review pull requests</div><div class="badge due">DUE</div></div>
+                  </div>
+                </div>
+                <div class="toast" id="s1toast"><div class="ti"></div>Comment sent</div>
+              </div>
+
+              <!-- SCENE 2 — 11:00 client report -->
+              <div class="scene" id="s2">
+                <div class="h1">Reports<span>Weekly client deliverable</span></div>
+                <div class="panel" style="margin-top:22px; width:560px">
+                  <div class="ph">Acme Corp · Q3 Progress</div>
+                  <div class="item"><div class="dot" style="background:#eef2ff"></div>Last exported 7 days ago</div>
+                  <div class="btn blue" id="exportBtn" style="margin-top:8px">⬆ Export report</div>
+                </div>
+                <div class="menu" id="tplMenu" style="left:60px; top:300px">
+                  <div class="mi"><div class="sw" style="background:#94a3b8"></div>Summary</div>
+                  <div class="mi" id="tplPick"><div class="sw" style="background:#2563eb"></div>Branded client report</div>
+                  <div class="mi"><div class="sw" style="background:#16a34a"></div>Detailed</div>
+                </div>
+                <div class="pdf" id="pdf">
+                  <div class="pbar"></div>
+                  <div class="pl" style="width:90%"></div><div class="pl" style="width:80%"></div><div class="pl" style="width:86%"></div>
+                  <div class="pblock"></div>
+                  <div class="pl" style="width:70%"></div><div class="pl" style="width:88%"></div><div class="pl" style="width:60%"></div>
+                  <div class="btn green" id="sendBtn" style="position:absolute; bottom:22px; right:22px; height:42px; font-size:14.5px">Send to client</div>
+                </div>
+                <div class="toast" id="s2toast"><div class="ti"></div>Report emailed to Acme Corp</div>
+              </div>
+
+              <!-- SCENE 3 — 2:00 new teammate -->
+              <div class="scene" id="s3">
+                <div class="h1">Team<span>Onboard &amp; assign</span></div>
+                <div class="panel" id="profCard" style="margin-top:22px; width:560px; display:flex; align-items:center; gap:16px">
+                  <div class="av" style="width:54px;height:54px;background:#16a34a;font-size:18px">AL</div>
+                  <div><div style="font-size:19px;font-weight:680">Alex Lee</div><div style="font-size:14px;color:#16a34a;font-weight:620">Just joined · Engineer</div></div>
+                </div>
+                <div class="ph" style="margin-top:24px; width:560px">Starter tasks</div>
+                <div style="width:560px">
+                  <div class="chip" id="chip0"><div class="dot" style="width:14px;height:14px;border-radius:4px;background:#2563eb"></div>Set up dev environment<div class="asg" id="asg0">Assign →</div></div>
+                  <div class="chip" id="chip1"><div class="dot" style="width:14px;height:14px;border-radius:4px;background:#8b5cf6"></div>Read team handbook<div class="asg" id="asg1">Assign →</div></div>
+                  <div class="chip" id="chip2"><div class="dot" style="width:14px;height:14px;border-radius:4px;background:#f59e0b"></div>Pair on first ticket<div class="asg" id="asg2">Assign →</div></div>
+                </div>
+                <div class="rpanel" id="rpanel"><div class="ph">Alex's tasks · live</div><div id="rlist"></div></div>
+              </div>
+
+              <!-- SCENE 4 — 5:00 weekly summary -->
+              <div class="scene" id="s4">
+                <div class="h1">Wrapping up<span>Your week at a glance</span></div>
+                <div class="btn blue" id="summaryBtn" style="margin-top:20px">View weekly summary</div>
+                <div class="row2" id="metrics" style="margin-top:30px">
+                  <div class="metric"><div class="ml">Tasks completed</div><div class="mval" data-layout-allow-overflow><div class="strip" id="m1"><span>0</span><span>14</span><span>26</span><span>38</span><span>47</span></div></div></div>
+                  <div class="metric"><div class="ml">Time saved</div><div class="mval" data-layout-allow-overflow><div class="strip" id="m2"><span>0h</span><span>2h</span><span>4h</span><span>5.5h</span><span>6.5h</span></div></div></div>
+                  <div class="metric"><div class="ml">Goals hit</div><div class="mval" data-layout-allow-overflow><div class="strip" id="m3"><span>0/8</span><span>3/8</span><span>5/8</span><span>7/8</span><span>8/8</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- outro -->
+        <div class="outro" id="outro">
+          <h1 id="oh">A full day's work, actually finished.</h1>
+          <div class="olog" id="olog"><div class="d"></div><b>Flowdesk</b></div>
+          <div class="cta" id="octa">Start your free trial</div>
+        </div>
+
+        <div id="cursor">
+          <svg viewBox="0 0 20 32" width="27" height="43"><path d="M0 0 L0 27 L6.3 20.7 L10.5 30 L13.9 28.5 L9.75 19.5 L18 18.9 Z" fill="#0a0a0a"/></svg>
+        </div>
+      </div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
+      const $ = (id) => document.getElementById(id);
+      const FR = 1 / 30;
       const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
+      const cursor = $("cursor");
+      const cur = { x: 1500, y: 300 };
+      const tip = (el, fx, fy) => { const r = el.getBoundingClientRect(); return { x: r.left + r.width * (fx == null ? .5 : fx), y: r.top + r.height * (fy == null ? .5 : fy) }; };
+
+      let mc = 0;
+      function moveTo(tx, ty, at, dur, bow) {
+        bow = bow == null ? 22 : bow;
+        const dx = tx - cur.x, dy = ty - cur.y, d = Math.hypot(dx, dy) || 1;
+        const ux = dx / d, uy = dy / d, px = -uy, py = ux, side = mc++ % 2 ? -1 : 1, k = Math.min(1, d / 600);
+        tl.to(cursor, { keyframes: [
+          { x: cur.x + dx * 0.5 + px * bow * side * k, y: cur.y + dy * 0.5 + py * bow * side * k, duration: dur * 0.46, ease: "power1.inOut" },
+          { x: tx + ux * 10, y: ty + uy * 10, duration: dur * 0.36, ease: "power2.out" },
+          { x: tx, y: ty, duration: dur * 0.18, ease: "power2.inOut" },
+        ] }, at);
+        cur.x = tx; cur.y = ty;
+      }
+      const click = (at) => tl.to(cursor.querySelector("svg"), { transformOrigin: "0% 0%", keyframes: [{ scale: 0.8, duration: .06, ease: "power2.in" }, { scale: 1, duration: .13, ease: "back.out(2.5)" }] }, at);
+      function press(sel, at) { tl.to(sel, { keyframes: [{ scale: .96, duration: .07 }, { scale: 1, duration: .15, ease: "back.out(2)" }], transformOrigin: "50% 50%" }, at); }
+      function blink(sel, at, until) { tl.set(sel, { opacity: 1 }, at); tl.to(sel, { opacity: 0, duration: .45, ease: "steps(1)", repeat: Math.max(1, Math.round((until - at) / .9)) * 2, yoyo: true }, at + .1); }
+      function buildChars(host, caret, str) { const s = []; [...str].forEach((c) => { const e = document.createElement("span"); e.className = "ch"; e.textContent = c === " " ? " " : c; caret.parentNode.insertBefore(e, caret); s.push(e); }); return s; }
+      const type = (sp, at, per) => { sp.forEach((s, i) => tl.set(s, { display: "inline" }, at + i * per)); return at + sp.length * per; };
+
+      // measure targets (all scenes laid out — only visibility hidden)
+      const T = {
+        blk: tip($("blkTask"), .5, .5), send: tip($("cmtSend")),
+        exp: tip($("exportBtn")), tplPick: tip($("tplPick")), sendBtn: tip($("sendBtn")),
+        newav: tip($("newav")),
+        asg0: tip($("asg0")), asg1: tip($("asg1")), asg2: tip($("asg2")),
+        chip0: tip($("chip0"), .5), chip1: tip($("chip1"), .5), chip2: tip($("chip2"), .5),
+        summary: tip($("summaryBtn")),
+      };
+
+      // ---------- initial states ----------
+      gsap.set(cursor, { x: cur.x, y: cur.y, autoAlpha: 0 });
+      gsap.set("#browser", { autoAlpha: 0, scale: 0.985 });
+      gsap.set([".clock .ctime span"], { autoAlpha: 0 });
+      gsap.set(["#cmtRow"], { autoAlpha: 0, height: 0, marginBottom: 0, overflow: "hidden" });
+      gsap.set("#cmtCaret", { opacity: 0 });
+      gsap.set(["#s1toast", "#s2toast"], { autoAlpha: 0, x: 30 });
+      gsap.set("#tplMenu", { autoAlpha: 0, y: -10 });
+      gsap.set("#pdf", { autoAlpha: 0, x: 460 });
+      gsap.set("#newav", { scale: 0, autoAlpha: 0, transformOrigin: "50% 50%" });
+      gsap.set(["#profCard", "#rpanel"], { autoAlpha: 0 });
+      gsap.set("#rpanel #rlist", {});
+      gsap.set("#metrics", { autoAlpha: 0, y: 12 });
+      gsap.set(["#m1", "#m2", "#m3"], { y: 0 });
+      gsap.set("#outro", { autoAlpha: 0 });
+      gsap.set(["#oh", "#olog", "#octa"], { autoAlpha: 0 });
+      const cmtSpans = buildChars(null, $("cmtCaret"), "On it — unblocking now");
+
+      function showScene(sel, at) { ["#s1", "#s2", "#s3", "#s4"].forEach((s) => tl.set(s, { visibility: s === sel ? "visible" : "hidden" }, at)); }
+      function clockTo(sel, at) {
+        tl.set([".clock .ctime span"], { autoAlpha: 0 }, at);
+        tl.to(sel, { autoAlpha: 1, duration: 0.25 }, at);
+        tl.to("#clock .cic", { keyframes: [{ scale: 1.18, duration: .08 }, { scale: 1, duration: .16, ease: "back.out(2)" }], transformOrigin: "50% 50%" }, at);
+      }
+
+      // ===== open =====
+      tl.to("#browser", { autoAlpha: 1, scale: 1, duration: 0.5, ease: "power2.out" }, 0.1);
+      tl.to($("t9"), { autoAlpha: 1, duration: 0.4 }, 0.15);
+      showScene("#s1", 0.1);
+      tl.to(cursor, { autoAlpha: 1, duration: 0.2 }, 0.5);
+
+      // ===== SCENE 1 (0–4.5) morning standup =====
+      moveTo(900, 360, 0.7, 0.7, 18); // glance over activity
+      moveTo(T.blk.x, T.blk.y, 1.5, 0.7, 18);
+      click(2.2);
+      press("#blkTask", 2.2);
+      tl.to("#cmtRow", { autoAlpha: 1, height: 60, marginBottom: 12, duration: 0.3, ease: "power2.out" }, 2.35);
+      blink("#cmtCaret", 2.6, 3.4);
+      type(cmtSpans, 2.7, 0.032);
+      moveTo(T.send.x, T.send.y, 3.5, 0.5, 14);
+      click(3.95); press("#cmtSend", 3.95);
+      tl.to("#s1toast", { autoAlpha: 1, x: 0, duration: 0.4, ease: "back.out(1.7)" }, 4.05);
+
+      // hard cut → 11:00
+      showScene("#s2", 4.5); clockTo($("t11"), 4.5);
+
+      // ===== SCENE 2 (4.5–11) client report =====
+      moveTo(T.exp.x, T.exp.y, 4.9, 0.7, 18);
+      click(5.6); press("#exportBtn", 5.6);
+      tl.to("#tplMenu", { autoAlpha: 1, y: 0, duration: 0.3, ease: "power2.out" }, 5.7);
+      moveTo(T.tplPick.x, T.tplPick.y, 6.0, 0.5, 14);
+      click(6.5); tl.to("#tplPick", { backgroundColor: "#eef2ff", duration: .2 }, 6.5);
+      tl.to("#tplMenu", { autoAlpha: 0, duration: 0.25 }, 6.7);
+      // PDF generates + slides in from the right (2s)
+      tl.to("#pdf", { autoAlpha: 1, x: 0, duration: 2.0, ease: "power3.out" }, 6.8);
+      moveTo(T.sendBtn.x, T.sendBtn.y, 9.0, 0.7, 16);
+      click(9.7); press("#sendBtn", 9.7);
+      tl.to("#s2toast", { autoAlpha: 1, x: 0, duration: 0.4, ease: "back.out(1.7)" }, 9.85);
+      moveTo(700, 700, 10.3, 0.6, 20); // cursor moves away
+
+      // hard cut → 2:00
+      showScene("#s3", 11.0); clockTo($("t2"), 11.0);
+
+      // ===== SCENE 3 (11–16.5) new teammate =====
+      tl.to("#newav", { scale: 1, autoAlpha: 1, duration: 0.45, ease: "back.out(2.2)" }, 11.3);
+      tl.to("#newav", { keyframes: [{ scale: 1.15, duration: .25 }, { scale: 1, duration: .3 }], repeat: 1, ease: "sine.inOut" }, 11.4);
+      moveTo(T.newav.x, T.newav.y, 11.6, 0.7, 20);
+      click(12.25);
+      tl.to(["#profCard", "#rpanel"], { autoAlpha: 1, duration: 0.4, ease: "power2.out" }, 12.35);
+      // assign 3 starter tasks — two clicks each — populating the right panel live
+      const tasks3 = [["#asg0", "Set up dev environment", "#2563eb"], ["#asg1", "Read team handbook", "#8b5cf6"], ["#asg2", "Pair on first ticket", "#f59e0b"]];
+      let a3 = 12.8;
+      tasks3.forEach((t, i) => {
+        const tg = tip($(t[0].slice(1)));
+        moveTo(tg.x, tg.y, a3, 0.5, 12);
+        click(a3 + 0.5); // select
+        click(a3 + 0.78); // assign
+        press("#chip" + i, a3 + 0.5);
+        // appears in right panel
+        const li = document.createElement("div");
+        li.className = "chip"; li.id = "rl" + i;
+        li.innerHTML = '<div class="dot" style="width:13px;height:13px;border-radius:4px;background:' + t[2] + '"></div>' + t[1];
+        $("rlist").appendChild(li);
+        gsap.set(li, { autoAlpha: 0, y: 12 });
+        tl.to(li, { autoAlpha: 1, y: 0, duration: 0.35, ease: "back.out(1.8)" }, a3 + 0.9);
+        a3 += 1.15;
+      });
+
+      // hard cut → 5:00
+      showScene("#s4", 16.5); clockTo($("t5"), 16.5);
+
+      // ===== SCENE 4 (16.5–23) weekly summary + close laptop =====
+      moveTo(T.summary.x, T.summary.y, 16.9, 0.7, 18);
+      click(17.5); press("#summaryBtn", 17.5);
+      tl.to("#metrics", { autoAlpha: 1, y: 0, duration: 0.4, ease: "power2.out" }, 17.65);
+      // three metrics count up simultaneously (scroll strips), landing on green
+      [["#m1", 4], ["#m2", 4], ["#m3", 4]].forEach(([m, n]) => {
+        tl.to(m, { y: -n * 60, duration: 1.3, ease: "power2.out" }, 17.9);
+      });
+      moveTo(960, 540, 19.6, 0.7, 16);
+      // close the laptop — browser tab closes, white canvas + clock remain
+      tl.to("#browser", { autoAlpha: 0, scale: 0.92, y: 20, duration: 0.5, ease: "power2.in" }, 21.0);
+      tl.to(cursor, { autoAlpha: 0, duration: 0.3 }, 21.0);
+
+      // ===== OUTRO (23–30) =====
+      tl.to("#outro", { autoAlpha: 1, duration: 0.01 }, 22.9);
+      tl.fromTo("#oh", { autoAlpha: 0, y: 18 }, { autoAlpha: 1, y: 0, duration: 0.7, ease: "power3.out" }, 23.2);
+      tl.to("#olog", { autoAlpha: 1, duration: 0.5, ease: "power2.out" }, 24.0);
+      tl.fromTo("#octa", { scale: 0.6, autoAlpha: 0 }, { scale: 1, autoAlpha: 1, duration: 0.6, ease: "back.out(2.2)" }, 24.6);
+
       window.__timelines["main"] = tl;
     </script>
   </body>
