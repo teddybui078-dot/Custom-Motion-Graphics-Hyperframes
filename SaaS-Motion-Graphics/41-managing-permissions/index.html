@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #eef0f4; font-family: "Inter", system-ui, sans-serif; }
+      .stage { position: absolute; inset: 0; overflow: hidden; background: #f5f6f9; }
+
+      .appbar { position: absolute; left: 0; top: 0; width: 100%; height: 66px; background: #fff; border-bottom: 1px solid #e8eaf0; display: flex; align-items: center; padding: 0 32px; z-index: 8; }
+      .brand { display: flex; align-items: center; gap: 12px; font-size: 19px; font-weight: 800; color: #1d2740; }
+      .brand .mk { width: 26px; height: 26px; border-radius: 8px; background: linear-gradient(135deg,#7c3aed,#2563eb); }
+      .me { margin-left: auto; width: 36px; height: 36px; border-radius: 50%; background: #7c3aed; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; }
+
+      .phead { position: absolute; left: 420px; top: 96px; width: 1080px; }
+      .ptitle { font-size: 30px; font-weight: 800; color: #1d2740; }
+      .psub { font-size: 15px; color: #8a93a7; margin-top: 5px; }
+
+      .tabs { position: absolute; left: 420px; top: 178px; width: 1080px; height: 44px; border-bottom: 1.5px solid #e8eaf0; display: flex; gap: 34px; z-index: 6; }
+      .tab { font-size: 16px; font-weight: 700; color: #8a93a7; height: 44px; display: flex; align-items: center; }
+      .tab.on { color: #1d2740; }
+      #tabline { position: absolute; bottom: -1.5px; height: 2.5px; background: #2563eb; border-radius: 2px; }
+
+      .panel { position: absolute; left: 420px; top: 248px; width: 1080px; }
+      .card { background: #fff; border: 1px solid #e9ebf1; border-radius: 16px; box-shadow: 0 12px 36px rgba(20,28,46,0.06); overflow: visible; }
+
+      /* members */
+      .mrow { display: flex; align-items: center; height: 78px; padding: 0 28px; border-bottom: 1px solid #f1f3f7; }
+      .mrow:last-child { border-bottom: none; }
+      .av { width: 44px; height: 44px; border-radius: 50%; color: #fff; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex: none; }
+      .minfo { margin-left: 16px; flex: 1; }
+      .mname { font-size: 17px; font-weight: 700; color: #1d2740; }
+      .memail { font-size: 14px; color: #98a1b5; margin-top: 2px; }
+      .badge { position: relative; height: 34px; min-width: 96px; padding: 0 16px; border-radius: 18px; display: flex; align-items: center; justify-content: center; cursor: default; }
+      .blabel { position: absolute; font-size: 14.5px; font-weight: 700; }
+
+      .rdrop { position: absolute; width: 186px; background: #fff; border: 1px solid #e7eaf1; border-radius: 12px; box-shadow: 0 20px 50px rgba(20,28,46,0.22); padding: 6px; z-index: 40; }
+      .ropt { display: flex; align-items: center; gap: 11px; height: 40px; padding: 0 12px; border-radius: 8px; font-size: 15px; font-weight: 600; color: #2a3350; }
+      .ropt .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+      .ropt .chk { margin-left: auto; color: #2563eb; font-weight: 800; }
+
+      /* permissions matrix */
+      .mx { width: 100%; border-collapse: collapse; }
+      .mxhead { display: flex; align-items: center; height: 62px; padding: 0 30px; border-bottom: 1.5px solid #eef0f5; }
+      .mxhead .feat { flex: 1; font-size: 13px; font-weight: 800; color: #8a93a7; text-transform: uppercase; letter-spacing: 0.5px; }
+      .mxhead .rcol { width: 168px; text-align: center; font-size: 14px; font-weight: 800; }
+      .mxrow { display: flex; align-items: center; height: 66px; padding: 0 30px; border-bottom: 1px solid #f3f5f8; }
+      .mxrow:last-child { border-bottom: none; }
+      .mxrow .feat { flex: 1; font-size: 16px; font-weight: 600; color: #25304a; }
+      .mxrow .fdesc { font-size: 12.5px; color: #a0a8b8; font-weight: 500; margin-top: 1px; }
+      .cell { width: 168px; display: flex; justify-content: center; }
+      .tog { width: 48px; height: 27px; border-radius: 14px; background: #d2d7e1; position: relative; }
+      .knob { width: 21px; height: 21px; border-radius: 50%; background: #fff; position: absolute; top: 3px; left: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+
+      .mxfoot { display: flex; align-items: center; padding: 20px 30px; gap: 14px; }
+      .mxfoot .note { font-size: 14px; color: #98a1b5; }
+      #saveBtn { margin-left: auto; height: 46px; padding: 0 24px; border-radius: 11px; background: linear-gradient(135deg,#2563eb,#1d4ed8); color: #fff; font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 9px; box-shadow: 0 8px 22px rgba(37,99,235,0.3); }
+
+      #toast { position: absolute; left: 50%; bottom: 48px; transform: translateX(-50%); height: 56px; background: #14203a; color: #fff; display: flex; align-items: center; gap: 13px; padding: 0 26px; border-radius: 14px; font-size: 17px; font-weight: 600; box-shadow: 0 20px 55px rgba(10,16,32,0.4); z-index: 60; opacity: 0; }
+      #toast .ck { width: 26px; height: 26px; border-radius: 50%; background: #22c55e; display: flex; align-items: center; justify-content: center; }
+
+      #ring { position: absolute; width: 44px; height: 44px; border-radius: 50%; border: 2.5px solid rgba(37,99,235,0.6); z-index: 88; opacity: 0; }
+      #glow { position: absolute; width: 92px; height: 92px; border-radius: 50%; z-index: 87; opacity: 0; background: radial-gradient(circle, rgba(37,99,235,0.5) 0%, rgba(37,99,235,0) 70%); }
+      #cursor { position: absolute; left: 0; top: 0; z-index: 90; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="18" data-width="1920" data-height="1080">
+      <div class="stage" id="stage">
+        <div class="appbar">
+          <div class="brand"><div class="mk"></div>Acme Workspace</div>
+          <div class="me">DK</div>
+        </div>
+        <div class="phead">
+          <div class="ptitle">Team Settings</div>
+          <div class="psub">Manage who can access your workspace and what they can do</div>
+        </div>
+        <div class="tabs" id="tabs">
+          <div class="tab on" data-t="members">Members</div>
+          <div class="tab" data-t="perms">Permissions</div>
+          <div class="tab" data-t="billing">Billing</div>
+          <div id="tabline"></div>
+        </div>
+
+        <div class="panel" id="membersPanel"><div class="card" id="membersCard"></div></div>
+        <div class="panel" id="permsPanel"><div class="card" id="permsCard"></div></div>
+
+        <div id="toast"><div class="ck"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div>Permissions saved</div>
+
+        <div id="ring" data-layout-allow-overflow></div>
+        <div id="glow" data-layout-allow-overflow></div>
+        <div id="cursor"><svg width="34" height="40" viewBox="0 0 24 28"><path d="M3,2 L3,22 L8.5,16.8 L12,24.5 L15.4,23 L11.9,15.3 L19,15.3 Z" fill="#ffffff" stroke="#1b1b22" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const ROLE = { Admin: ["#7c3aed", "#f1ebfe"], Editor: ["#2563eb", "#e7f0fc"], Viewer: ["#5a6478", "#edeff3"] };
+      const AVC = ["#2563eb", "#16a34a", "#e0457b", "#f59e0b", "#8b5cf6", "#06b6d4", "#ef4444", "#0ea5e9"];
+      const initials = (n) => n.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+
+      // ---------- members ----------
+      const MEMBERS = [
+        ["Sarah Chen", "sarah.chen@acme.co", "Admin"],
+        ["Marcus Webb", "marcus@acme.co", "Editor"],
+        ["Priya Nair", "priya.nair@acme.co", "Viewer"],
+        ["James Okoro", "j.okoro@acme.co", "Viewer"],     // -> Editor
+        ["Elena Volkov", "elena.v@acme.co", "Editor"],
+        ["David Kim", "david.kim@acme.co", "Editor"],      // -> Viewer
+        ["Aisha Rahman", "aisha.r@acme.co", "Viewer"],     // -> Admin
+        ["Tom Brooks", "tom.brooks@acme.co", "Viewer"],
+      ];
+      const CHANGES = { 3: "Editor", 5: "Viewer", 6: "Admin" };
+
+      const mcard = document.getElementById("membersCard");
+      const badgeEls = [];
+      MEMBERS.forEach((m, i) => {
+        const [name, email, role] = m;
+        const row = document.createElement("div"); row.className = "mrow";
+        const target = CHANGES[i];
+        const labels = '<span class="blabel cur" style="color:' + ROLE[role][0] + '">' + role + '</span>' +
+          (target ? '<span class="blabel nxt" style="color:' + ROLE[target][0] + ';opacity:0">' + target + '</span>' : '');
+        row.innerHTML =
+          '<div class="av" style="background:' + AVC[i % AVC.length] + '">' + initials(name) + '</div>' +
+          '<div class="minfo"><div class="mname">' + name + '</div><div class="memail">' + email + '</div></div>' +
+          '<div class="badge" style="background:' + ROLE[role][1] + '">' + labels + '</div>';
+        mcard.appendChild(row);
+        badgeEls.push(row.querySelector(".badge"));
+      });
+
+      // role dropdowns for the three changing badges
+      const stage = document.getElementById("stage");
+      const dropdowns = {};
+      Object.keys(CHANGES).forEach((idx) => {
+        const i = +idx, cur = MEMBERS[i][2];
+        const dd = document.createElement("div"); dd.className = "rdrop";
+        ["Admin", "Editor", "Viewer"].forEach((r) => {
+          const o = document.createElement("div"); o.className = "ropt"; o.dataset.role = r;
+          o.innerHTML = '<span class="dot" style="background:' + ROLE[r][0] + '"></span>' + r + (r === cur ? '<span class="chk">✓</span>' : '');
+          dd.appendChild(o);
+        });
+        stage.appendChild(dd);
+        dropdowns[i] = dd;
+      });
+
+      // ---------- permissions matrix ----------
+      const FEATURES = [
+        ["View dashboards", "See reports and analytics", [1, 1, 1]],
+        ["Edit content", "Create and modify pages", [1, 1, 1]],   // Viewer/Edit on -> will turn off
+        ["Invite members", "Add people to the workspace", [1, 1, 0]],
+        ["Export data", "Download records and reports", [1, 1, 1]], // Viewer/Export on -> off
+        ["Manage billing", "Update plan and payment", [1, 1, 0]],   // Editor/Billing on -> off
+        ["Delete projects", "Permanently remove projects", [1, 0, 0]],
+        ["Manage roles", "Assign member permissions", [1, 0, 0]],
+      ];
+      const pcard = document.getElementById("permsCard");
+      const head = document.createElement("div"); head.className = "mxhead";
+      head.innerHTML = '<div class="feat">Feature</div>' +
+        '<div class="rcol" style="color:#7c3aed">Admin</div><div class="rcol" style="color:#2563eb">Editor</div><div class="rcol" style="color:#5a6478">Viewer</div>';
+      pcard.appendChild(head);
+      const togs = [];
+      FEATURES.forEach((f, r) => {
+        const row = document.createElement("div"); row.className = "mxrow";
+        row.innerHTML = '<div class="feat"><div>' + f[0] + '</div><div class="fdesc">' + f[1] + '</div></div>';
+        const trow = [];
+        f[2].forEach((on, c) => {
+          const cell = document.createElement("div"); cell.className = "cell";
+          const tog = document.createElement("div"); tog.className = "tog" + (on ? " on" : "");
+          tog.innerHTML = '<div class="knob"></div>';
+          if (on) { tog.style.background = "#2563eb"; tog.querySelector(".knob").style.left = "24px"; }
+          cell.appendChild(tog); row.appendChild(cell); trow.push(tog);
+        });
+        pcard.appendChild(row); togs.push(trow);
+      });
+      const foot = document.createElement("div"); foot.className = "mxfoot";
+      foot.innerHTML = '<div class="note">Changes apply to everyone with each role.</div><div id="saveBtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>Save changes</div>';
+      pcard.appendChild(foot);
+
+      // ---------- measure targets (everything laid out) ----------
+      const rectC = (e) => { const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
+      const BADGE = {}; Object.keys(CHANGES).forEach((i) => (BADGE[i] = rectC(badgeEls[+i])));
+      // position dropdowns under their badge, then measure the target option
+      const DDOPT = {};
+      Object.keys(CHANGES).forEach((idx) => {
+        const i = +idx; const br = badgeEls[i].getBoundingClientRect();
+        dropdowns[i].style.left = (br.right - 186) + "px";
+        dropdowns[i].style.top = (br.bottom + 8) + "px";
+        const opt = [...dropdowns[i].querySelectorAll(".ropt")].find((o) => o.dataset.role === CHANGES[i]);
+        DDOPT[i] = { center: rectC(opt), el: opt };
+      });
+      const TAB_PERMS = rectC(document.querySelector('.tab[data-t="perms"]'));
+      const TAB_MEM = document.querySelector('.tab[data-t="members"]');
+      const tabsBox = document.getElementById("tabs").getBoundingClientRect();
+      const memBox = TAB_MEM.getBoundingClientRect();
+      const permTabBox = document.querySelector('.tab[data-t="perms"]').getBoundingClientRect();
+      const TOG = { export_v: rectC(togs[3][2]), edit_v: rectC(togs[1][2]), bill_e: rectC(togs[4][1]) };
+      const SAVE = rectC(document.getElementById("saveBtn"));
+
+      // ---------- initial states ----------
+      const cursor = document.getElementById("cursor"), ring = document.getElementById("ring"), glow = document.getElementById("glow");
+      const TIPX = 4.5, TIPY = 3;
+      gsap.set(cursor, { x: 960 - TIPX, y: 360 - TIPY });
+      gsap.set([ring, glow], { autoAlpha: 0, scale: 0.3, left: -400, top: -400, transformOrigin: "center center" });
+      Object.values(dropdowns).forEach((dd) => gsap.set(dd, { autoAlpha: 0, y: -6 }));
+      gsap.set("#permsPanel", { autoAlpha: 0, x: 40 });
+      gsap.set("#toast", { autoAlpha: 0 });
+      // tab underline under Members
+      gsap.set("#tabline", { left: memBox.left - tabsBox.left, width: memBox.width });
+
+      // ---------- helpers ----------
+      const tl = gsap.timeline({ paused: true });
+      const move = (t, p, d = 0.45) => tl.to(cursor, { x: p.x - TIPX, y: p.y - TIPY, duration: d, ease: "power3.inOut" }, t);
+      const click = (t, p) => {
+        tl.to(cursor, { scale: 0.82, duration: 0.08, transformOrigin: "0 0" }, t);
+        tl.to(cursor, { scale: 1, duration: 0.14, ease: "back.out(2.6)" }, t + 0.08);
+        tl.set(glow, { left: p.x - 46, top: p.y - 46 }, t);
+        tl.fromTo(glow, { scale: 0.3, autoAlpha: 0.95 }, { scale: 1.7, autoAlpha: 0, duration: 0.52, ease: "power2.out" }, t);
+        tl.set(ring, { left: p.x - 22, top: p.y - 22 }, t);
+        tl.fromTo(ring, { scale: 0.35, autoAlpha: 0.85 }, { scale: 1.95, autoAlpha: 0, duration: 0.52, ease: "power2.out" }, t);
+      };
+
+      // change a member's role: open dropdown -> click option -> badge crossfades
+      function changeRole(t, i) {
+        const dd = dropdowns[i], opt = DDOPT[i];
+        move(t, BADGE[i], 0.42); t += 0.42;
+        click(t, BADGE[i]);
+        tl.fromTo(dd, { autoAlpha: 0, y: -6, scale: 0.97, transformOrigin: "top right" }, { autoAlpha: 1, y: 0, scale: 1, duration: 0.22, ease: "power2.out" }, t + 0.06);
+        t += 0.46;
+        move(t, opt.center, 0.34); t += 0.34;
+        tl.to(opt.el, { backgroundColor: "#f3f6fc", duration: 0.1 }, t - 0.04);
+        click(t, opt.center);
+        tl.to(dd, { autoAlpha: 0, duration: 0.18 }, t + 0.12);
+        // badge crossfade: bg color + label swap
+        const badge = badgeEls[i], newRole = CHANGES[i];
+        tl.to(badge, { backgroundColor: ROLE[newRole][1], duration: 0.32, ease: "power2.inOut" }, t + 0.14);
+        tl.to(badge.querySelector(".cur"), { autoAlpha: 0, duration: 0.26 }, t + 0.14);
+        tl.to(badge.querySelector(".nxt"), { autoAlpha: 1, duration: 0.3 }, t + 0.18);
+        return t + 0.5;
+      }
+
+      // flip a toggle off (or on) with a spring
+      function flipToggle(t, tog, center, turnOn) {
+        const knob = tog.querySelector(".knob");
+        move(t, center, 0.42); t += 0.42;
+        click(t, center);
+        if (turnOn) {
+          tl.to(tog, { backgroundColor: "#2563eb", duration: 0.2 }, t + 0.02);
+          tl.to(knob, { left: 24, duration: 0.34, ease: "back.out(3.2)" }, t + 0.02);
+        } else {
+          tl.to(tog, { backgroundColor: "#d2d7e1", duration: 0.2 }, t + 0.02);
+          tl.to(knob, { left: 3, duration: 0.34, ease: "back.out(3.2)" }, t + 0.02);
+        }
+        return t + 0.5;
+      }
+
+      // ===================== TIMELINE =====================
+      let t = 0.9;
+      t = changeRole(t, 3);   // James Okoro -> Editor
+      t = changeRole(t, 5);   // David Kim -> Viewer
+      t = changeRole(t, 6);   // Aisha Rahman -> Admin
+      t += 0.25;
+
+      // switch to the Permissions tab -> matrix slides in
+      move(t, TAB_PERMS, 0.5); t += 0.5;
+      click(t, TAB_PERMS);
+      tl.to(TAB_MEM, { color: "#8a93a7", duration: 0.2 }, t);
+      tl.to(document.querySelector('.tab[data-t="perms"]'), { color: "#1d2740", duration: 0.2 }, t);
+      tl.to("#tabline", { left: permTabBox.left - tabsBox.left, width: permTabBox.width, duration: 0.34, ease: "power2.inOut" }, t);
+      tl.to("#membersPanel", { autoAlpha: 0, x: -40, duration: 0.34, ease: "power2.in" }, t + 0.04);
+      tl.fromTo("#permsPanel", { autoAlpha: 0, x: 40 }, { autoAlpha: 1, x: 0, duration: 0.4, ease: "power3.out" }, t + 0.18);
+      t += 0.95;
+
+      // adjust three toggles
+      t += 0.45;                                            // let the matrix breathe
+      t = flipToggle(t, togs[3][2], TOG.export_v, false);   // Viewer / Export data -> off
+      t += 0.3;
+      t = flipToggle(t, togs[4][1], TOG.bill_e, false);     // Editor / Manage billing -> off
+      t += 0.3;
+      t = flipToggle(t, togs[1][2], TOG.edit_v, false);     // Viewer / Edit content -> off
+      t += 0.35;
+
+      // save -> toast
+      move(t, SAVE, 0.5); t += 0.5;
+      tl.to("#saveBtn", { scale: 0.96, duration: 0.1 }, t);
+      tl.to("#saveBtn", { scale: 1, duration: 0.18, ease: "back.out(2.4)" }, t + 0.1);
+      click(t, SAVE);
+      tl.fromTo("#toast", { autoAlpha: 0, y: 22 }, { autoAlpha: 1, y: 0, duration: 0.45, ease: "back.out(1.6)" }, t + 0.2);
+      t += 0.7;
+      // settle; the matrix holds
+      tl.to(cursor, { x: 1180, y: 760, duration: 0.7, ease: "power2.inOut" }, t);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
