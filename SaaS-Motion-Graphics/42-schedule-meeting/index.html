@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #eef0f4;
+        font-family: "Inter", Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; color: #14151a; }
+      .stage { position: absolute; inset: 0; overflow: hidden; background: radial-gradient(1200px 700px at 50% -10%, #f6f7fb 0%, #eaecf2 60%, #e5e7ee 100%); }
+
+      .browser { position: absolute; left: 200px; top: 110px; width: 1520px; height: 870px; background: #fff; border: 1px solid #e6e8ec; border-radius: 18px; overflow: hidden; box-shadow: 0 2px 6px rgba(16,17,21,.05), 0 44px 96px -30px rgba(16,17,21,.28); }
+      .titlebar { height: 50px; background: #f6f7f9; border-bottom: 1px solid #e8eaed; display: flex; align-items: center; padding: 0 18px; gap: 9px; }
+      .titlebar i { width: 12px; height: 12px; border-radius: 50%; display: block; }
+      .titlebar .r{background:#ff5f57}.titlebar .y{background:#febc2e}.titlebar .g{background:#28c840}
+      .titlebar .urlbar { margin-left: 18px; height: 28px; flex: 1; max-width: 420px; background: #eceef2; border-radius: 8px; display:flex; align-items:center; padding: 0 12px; font-size: 12.5px; color:#8a90a0; font-weight: 540; }
+      .main { position: absolute; top: 50px; left: 0; right: 0; bottom: 0; background: #fff; overflow: hidden; }
+
+      .topbar { position:absolute; top:0; left:0; right:0; height:66px; border-bottom:1px solid #ececf1; display:flex; align-items:center; padding:0 24px; gap:14px; z-index:5; }
+      .topbar .wk { font-size:19px; font-weight:740; letter-spacing:-0.4px; }
+      .topbar .nav { display:flex; gap:6px; margin-left:10px; }
+      .topbar .nav .a { width:32px; height:32px; border-radius:8px; border:1px solid #e6e8ec; display:flex; align-items:center; justify-content:center; color:#8a90a0; font-size:15px; }
+      .topbar .today { height:34px; padding:0 14px; border-radius:9px; border:1px solid #e0e3ea; font-size:13.5px; font-weight:600; color:#3a4150; display:flex; align-items:center; }
+      .schedbtn { margin-left:auto; height:42px; padding:0 20px; border-radius:11px; background:#5b51e8; color:#fff; font-size:15px; font-weight:640; display:inline-flex; align-items:center; gap:9px; box-shadow:0 10px 22px -8px rgba(91,81,232,.55); }
+
+      .calwrap { position:absolute; top:66px; left:0; right:0; bottom:0; }
+      .dayhead { position:absolute; top:0; left:0; right:0; height:54px; border-bottom:1px solid #ececf1; }
+      .dcol { position:absolute; top:0; height:54px; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+      .dcol .dn { font-size:12.5px; font-weight:640; color:#9ca3af; text-transform:uppercase; letter-spacing:.4px; }
+      .dcol .dd { font-size:18px; font-weight:720; margin-top:1px; }
+      .grid { position:absolute; top:54px; left:0; right:0; bottom:0; overflow:hidden; }
+      .hline { position:absolute; left:0; right:0; height:1px; background:#f0f1f4; }
+      .vline { position:absolute; top:0; bottom:0; width:1px; background:#f0f1f4; }
+      .hlabel { position:absolute; left:0; width:66px; text-align:right; padding-right:12px; font-size:11.5px; font-weight:600; color:#b3b8c4; }
+
+      .blk { position:absolute; border-radius:9px; padding:7px 10px; overflow:hidden; }
+      .blk.busy { background:#f1f2f6; border-left:3px solid #c3c8d6; }
+      .blk.busy .bt { font-size:13px; font-weight:620; color:#6b7280; }
+      .blk.busy .bh { font-size:11.5px; font-weight:540; color:#9ca3af; margin-top:1px; }
+      .hl { position:absolute; border-radius:9px; background:rgba(91,81,232,.12); border:1.5px dashed #5b51e8; }
+      .meet { position:absolute; border-radius:9px; padding:7px 11px; background:linear-gradient(135deg,#6d78ff,#5b51e8); box-shadow:0 12px 26px -10px rgba(91,81,232,.6); overflow:hidden; }
+      .meet .bt { font-size:13.5px; font-weight:700; color:#fff; }
+      .meet .bh { font-size:11.5px; font-weight:560; color:rgba(255,255,255,.85); margin-top:1px; }
+
+      /* right panel */
+      .panel { position:absolute; right:0; top:0; bottom:0; width:404px; background:#fff; border-left:1px solid #ececf1; box-shadow:-26px 0 54px -30px rgba(16,17,21,.28); z-index:14; padding:24px 24px; }
+      .panel .ph { font-size:19px; font-weight:740; letter-spacing:-0.4px; }
+      .panel .psub { font-size:13px; color:#9ca3af; font-weight:520; margin-top:2px; margin-bottom:20px; }
+      .fl { font-size:12.5px; font-weight:680; color:#6b7280; text-transform:uppercase; letter-spacing:.4px; margin:16px 0 8px; }
+      .field { height:48px; border:1.5px solid #e0e3ea; border-radius:11px; display:flex; align-items:center; padding:0 14px; font-size:15px; font-weight:540; position:relative; }
+      .field.focus { border-color:#5b51e8; box-shadow:0 0 0 4px rgba(91,81,232,.12); }
+      .field .ph2 { color:#b3b8c4; }
+      .ch { display:none; white-space:pre; }
+      .caret { display:inline-block; width:2px; height:20px; background:#5b51e8; vertical-align:-4px; opacity:0; }
+      .dd { height:48px; border:1.5px solid #e0e3ea; border-radius:11px; display:flex; align-items:center; padding:0 14px; font-size:15px; font-weight:560; position:relative; }
+      .dd .car { margin-left:auto; width:0; height:0; border-left:5px solid transparent; border-right:5px solid transparent; border-top:6px solid #9ca3af; }
+      .ddm { position:absolute; left:0; right:0; top:54px; background:#fff; border:1px solid #e6e8ec; border-radius:11px; box-shadow:0 18px 40px -16px rgba(16,17,21,.3); padding:6px; z-index:20; }
+      .ddm .o { height:40px; border-radius:8px; display:flex; align-items:center; padding:0 12px; font-size:14.5px; font-weight:560; color:#3a4150; }
+      .ddm .o.sel { background:#eef0fe; color:#5b51e8; }
+      .attwrap { border:1.5px solid #e0e3ea; border-radius:11px; padding:8px; min-height:48px; }
+      .chips { display:flex; flex-wrap:wrap; gap:7px; }
+      .chip { display:flex; align-items:center; gap:7px; background:#eef0fe; border-radius:8px; padding:5px 9px 5px 6px; font-size:13px; font-weight:580; color:#3a4150; }
+      .chip .av { width:20px; height:20px; border-radius:50%; color:#fff; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+      .attinput { display:flex; align-items:center; padding:6px 6px 2px; font-size:14.5px; }
+
+      .sugsec { margin-top:22px; }
+      .shim { height:64px; border-radius:11px; background:linear-gradient(90deg,#f1f2f6 0%,#e9ebf1 50%,#f1f2f6 100%); margin-bottom:10px; }
+      .sug { border:1.5px solid #e6e8ec; border-radius:12px; padding:12px 14px; margin-bottom:10px; display:flex; align-items:center; gap:12px; }
+      .sug.sel { border-color:#5b51e8; box-shadow:0 0 0 3px rgba(91,81,232,.14); }
+      .sug .sd { font-size:15px; font-weight:680; } .sug .stime { font-size:13px; color:#6b7280; font-weight:540; margin-top:2px; }
+      .sug .avail { margin-left:auto; display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:680; color:#16834a; background:#d6f3e1; border-radius:8px; padding:5px 9px; white-space:nowrap; }
+      .sug .avail .d { width:7px; height:7px; border-radius:50%; background:#16a34a; }
+
+      .toast { position:absolute; right:26px; top:84px; background:#fff; border:1px solid #eef0f3; border-radius:13px; padding:14px 18px; display:flex; align-items:center; gap:12px; box-shadow:0 18px 40px -14px rgba(16,17,21,.24); font-size:15px; font-weight:620; z-index:30; }
+      .toast .tk { width:30px; height:30px; border-radius:50%; background:#16a34a; flex-shrink:0; position:relative; }
+      .toast .tk::after { content:""; position:absolute; left:11px; top:7px; width:6px; height:12px; border:solid #fff; border-width:0 2.6px 2.6px 0; transform:rotate(42deg); }
+
+      #clickGlow { position:absolute; left:0; top:0; width:80px; height:80px; border-radius:50%; z-index:40;
+        background: radial-gradient(circle, rgba(91,81,232,.3) 0%, rgba(91,81,232,.14) 42%, rgba(91,81,232,0) 70%);
+        border:2px solid rgba(91,81,232,.42); opacity:0; }
+      #cursor { position: absolute; top: 0; left: 0; z-index: 50; filter: drop-shadow(0 1px 1.5px rgba(0,0,0,.3)); }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="16" data-width="1920" data-height="1080">
+      <div class="stage">
+        <div class="browser">
+          <div class="titlebar"><i class="r"></i><i class="y"></i><i class="g"></i><div class="urlbar">app.cadence.io / calendar</div></div>
+          <div class="main">
+            <div class="topbar">
+              <div class="wk">June 9 – 13</div>
+              <div class="nav"><div class="a">‹</div><div class="a">›</div></div>
+              <div class="today">Today</div>
+              <div class="schedbtn" id="schedBtn">+ Schedule Meeting</div>
+            </div>
+            <div class="calwrap">
+              <div class="dayhead" id="dayhead"></div>
+              <div class="grid" id="grid"></div>
+            </div>
+
+            <!-- right scheduling panel -->
+            <div class="panel" id="panel" data-layout-allow-overflow>
+              <div class="ph">Schedule Meeting</div>
+              <div class="psub">Smart scheduling finds the best time</div>
+
+              <div class="fl">Meeting title</div>
+              <div class="field" id="titleField"><span class="ph2" id="titlePh">Add a title…</span><span id="titleHost"></span><span class="caret" id="titleCaret"></span></div>
+
+              <div class="fl">Duration</div>
+              <div class="dd" id="durDD"><span style="position:relative"><span id="dur30lbl">30 minutes</span><span id="dur45lbl" style="position:absolute;left:0;top:0;opacity:0">45 minutes</span></span><div class="car"></div>
+                <div class="ddm" id="durMenu">
+                  <div class="o">15 minutes</div>
+                  <div class="o">30 minutes</div>
+                  <div class="o" id="dur45">45 minutes</div>
+                  <div class="o">60 minutes</div>
+                </div>
+              </div>
+
+              <div class="fl">Attendees</div>
+              <div class="attwrap" id="attWrap">
+                <div class="chips" id="attChips"></div>
+                <div class="attinput"><span id="attHost"></span><span class="caret" id="attCaret"></span></div>
+              </div>
+
+              <div class="sugsec" id="sugSec">
+                <div class="fl">Suggested times</div>
+                <div id="sugLoading"><div class="shim"></div><div class="shim" style="width:92%"></div><div class="shim" style="width:96%"></div></div>
+                <div id="sugList"></div>
+              </div>
+            </div>
+
+            <div class="toast" id="toast"><div class="tk"></div>Invites sent</div>
+          </div>
+        </div>
+
+        <div id="clickGlow"></div>
+        <div id="cursor">
+          <svg viewBox="0 0 20 32" width="26" height="42"><path d="M0 0 L0 27 L6.3 20.7 L10.5 30 L13.9 28.5 L9.75 19.5 L18 18.9 Z" fill="#0a0a0a"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const $ = (id) => document.getElementById(id);
+      const tl = gsap.timeline({ paused: true });
+      const cursor = $("cursor");
+      const cur = { x: 1500, y: 250 };
+      const tip = (el, fx, fy) => { const r = el.getBoundingClientRect(); return { x: r.left + r.width * (fx == null ? .5 : fx), y: r.top + r.height * (fy == null ? .5 : fy) }; };
+
+      // ---------- build the calendar ----------
+      const DAYS = [["MON", "9"], ["TUE", "10"], ["WED", "11"], ["THU", "12"], ["FRI", "13"]];
+      const grid = $("grid"), dayhead = $("dayhead");
+      const gridW = grid.getBoundingClientRect().width;
+      const GUT = 66, START = 9, ROWS = 9, ROWH = 70;
+      const colW = (gridW - GUT) / 5;
+      const X = (d) => GUT + d * colW;
+      const Y = (h) => (h - START) * ROWH;
+      // day header
+      DAYS.forEach((d, i) => { const c = document.createElement("div"); c.className = "dcol"; c.style.left = X(i) + "px"; c.style.width = colW + "px"; c.innerHTML = '<div class="dn">' + d[0] + '</div><div class="dd">' + d[1] + '</div>'; dayhead.appendChild(c); });
+      // hour lines + labels
+      for (let r = 0; r <= ROWS; r++) { const ln = document.createElement("div"); ln.className = "hline"; ln.style.top = r * ROWH + "px"; grid.appendChild(ln);
+        if (r < ROWS) { const lb = document.createElement("div"); lb.className = "hlabel"; const hh = START + r; lb.style.top = (r * ROWH + 5) + "px"; lb.textContent = (hh > 12 ? hh - 12 : hh) + (hh >= 12 ? " PM" : " AM"); grid.appendChild(lb); } }
+      // column separators
+      for (let i = 0; i <= 5; i++) { const ln = document.createElement("div"); ln.className = "vline"; ln.style.left = X(i) + "px"; grid.appendChild(ln); }
+      // busy blocks
+      const busy = [[0,9,1,"Standup"],[0,13,1.5,"1:1 — Priya"],[1,10,1,"Design crit"],[1,14,1,"Interview"],[2,11,1,"Roadmap"],[2,15,1,"Team sync"],[3,9,1,"Standup"],[3,13,2,"Workshop"],[4,10,1.5,"Planning"],[4,14,1,"Review"]];
+      const fmt = (h) => { const m = h % 1 ? ":30" : ":00"; const hh = Math.floor(h); return (hh > 12 ? hh - 12 : hh) + m + (hh >= 12 ? " PM" : " AM"); };
+      busy.forEach((b) => { const e = document.createElement("div"); e.className = "blk busy"; e.style.left = (X(b[0]) + 4) + "px"; e.style.top = (Y(b[1]) + 3) + "px"; e.style.width = (colW - 8) + "px"; e.style.height = (b[2] * ROWH - 6) + "px"; e.innerHTML = '<div class="bt">' + b[3] + '</div><div class="bh">' + fmt(b[1]) + '</div>'; grid.appendChild(e); });
+      // suggestion slots (day, hour) — 45 min = 0.75h ; chosen = index 1
+      const SUG = [[0,11,"Mon, Jun 9","11:00 AM"],[2,14,"Wed, Jun 11","2:00 PM"],[3,11,"Thu, Jun 12","11:00 AM"]];
+      const CHOSEN = 1;
+      const hls = SUG.map((s, i) => { const e = document.createElement("div"); e.className = "hl"; e.id = "hl" + i; e.style.left = (X(s[0]) + 4) + "px"; e.style.top = (Y(s[1]) + 3) + "px"; e.style.width = (colW - 8) + "px"; e.style.height = (0.75 * ROWH - 6) + "px"; grid.appendChild(e); return e; });
+      // the new meeting block (at chosen slot)
+      const cs = SUG[CHOSEN]; const meet = document.createElement("div"); meet.className = "meet"; meet.id = "meet";
+      meet.style.left = (X(cs[0]) + 4) + "px"; meet.style.top = (Y(cs[1]) + 3) + "px"; meet.style.width = (colW - 8) + "px"; meet.style.height = (0.75 * ROWH - 6) + "px";
+      meet.innerHTML = '<div class="bt">Product Sync</div><div class="bh">2:00 – 2:45 PM</div>'; grid.appendChild(meet);
+
+      // ---------- build typed text ----------
+      function buildChars(host, caret, str) { const s = []; [...str].forEach((c) => { const e = document.createElement("span"); e.className = "ch"; e.textContent = c; caret.parentNode.insertBefore(e, caret); s.push(e); }); return s; }
+      const titleSpans = buildChars($("titleHost"), $("titleCaret"), "Product Sync");
+      // attendee emails -> typed into host, then converted to chips
+      const EMAILS = [["sarah@acme.co", "#5b51e8", "SA"], ["dev@acme.co", "#0d9488", "DV"], ["lia@acme.co", "#f59e0b", "LI"]];
+      const emailGroups = EMAILS.map((e) => buildChars($("attHost"), $("attCaret"), e[0]));
+      const chips = EMAILS.map((e) => { const c = document.createElement("div"); c.className = "chip"; c.innerHTML = '<div class="av" style="background:' + e[1] + '">' + e[2] + '</div>' + e[0]; $("attChips").appendChild(c); return c; });
+      // suggestion cards
+      const sugCards = SUG.map((s, i) => { const c = document.createElement("div"); c.className = "sug"; c.id = "sug" + i;
+        c.innerHTML = '<div><div class="sd">' + s[2] + '</div><div class="stime">' + s[3] + ' – ' + (s[1] === 11 ? "11:45 AM" : "2:45 PM") + '</div></div><div class="avail"><div class="d"></div>All available</div>';
+        $("sugList").appendChild(c); return c; });
+
+      // ---------- measure targets ----------
+      const T = { sched: tip($("schedBtn")), title: tip($("titleField")), durDD: tip($("durDD")), dur45: tip($("dur45")), att: tip($("attWrap"), .5, .4), sug1: tip(sugCards[1]) };
+
+      // ---------- typing helpers ----------
+      const type = (sp, at, per) => { sp.forEach((s, i) => tl.set(s, { display: "inline" }, at + i * per)); return at + sp.length * per; };
+      const hide = (sp, at) => sp.forEach((s) => tl.set(s, { display: "none" }, at));
+      function blink(sel, at, until) { tl.set(sel, { opacity: 1 }, at); tl.to(sel, { opacity: 0, duration: .4, ease: "steps(1)", repeat: Math.max(1, Math.round((until - at) / .8)) * 2, yoyo: true }, at + .1); }
+      function glow(at, x, y) { const gx = x == null ? cur.x : x, gy = y == null ? cur.y : y; tl.set("#clickGlow", { x: gx, y: gy, scale: 0.34, autoAlpha: 0.55 }, at); tl.to("#clickGlow", { scale: 1.8, autoAlpha: 0, duration: 0.5, ease: "power2.out" }, at); }
+      function click(at) { tl.to(cursor.querySelector("svg"), { transformOrigin: "0% 0%", keyframes: [{ scale: 0.78, duration: .06, ease: "power2.in" }, { scale: 1, duration: .14, ease: "back.out(2.6)" }] }, at); glow(at + 0.02); }
+      function press(sel, at) { tl.to(sel, { keyframes: [{ scale: .96, duration: .07 }, { scale: 1, duration: .15, ease: "back.out(2)" }], transformOrigin: "50% 50%" }, at); }
+      let mc = 0;
+      function moveTo(tx, ty, at, dur, bow) { bow = bow == null ? 16 : bow; const dx = tx - cur.x, dy = ty - cur.y, d = Math.hypot(dx, dy) || 1; const ux = dx/d, uy = dy/d, px = -uy, py = ux, side = mc++ % 2 ? -1 : 1, k = Math.min(1, d/600);
+        tl.to(cursor, { keyframes: [ { x: cur.x + dx*0.5 + px*bow*side*k, y: cur.y + dy*0.5 + py*bow*side*k, duration: dur*0.46, ease:"power1.inOut" }, { x: tx+ux*8, y: ty+uy*8, duration: dur*0.34, ease:"power2.out" }, { x: tx, y: ty, duration: dur*0.20, ease:"power2.inOut" } ] }, at); cur.x = tx; cur.y = ty; }
+
+      // ---------- initial states ----------
+      gsap.set(cursor, { x: cur.x, y: cur.y, autoAlpha: 0 });
+      gsap.set("#clickGlow", { xPercent: -50, yPercent: -50, autoAlpha: 0, scale: 0.3 });
+      gsap.set("#panel", { x: 420, autoAlpha: 0 });
+      gsap.set("#titleCaret", { opacity: 0 }); gsap.set("#attCaret", { opacity: 0 });
+      gsap.set("#durMenu", { autoAlpha: 0, y: -6 });
+      gsap.set("#sugSec", { autoAlpha: 0 });
+      gsap.set("#sugLoading", { autoAlpha: 0 });
+      gsap.set(sugCards, { autoAlpha: 0, y: 10 });
+      gsap.set(chips, { autoAlpha: 0, scale: 0.7, transformOrigin: "0% 50%" });
+      gsap.set(hls, { autoAlpha: 0, scale: 0.92, transformOrigin: "50% 50%" });
+      gsap.set("#meet", { autoAlpha: 0 });
+      gsap.set("#toast", { autoAlpha: 0, x: 24, y: -6 });
+
+      // ===== open =====
+      tl.to(cursor, { autoAlpha: 1, duration: 0.2 }, 0.3);
+
+      // ===== click Schedule Meeting → panel slides in =====
+      moveTo(T.sched.x, T.sched.y, 0.5, 0.7, 16);
+      click(1.05); press("#schedBtn", 1.05);
+      tl.to("#panel", { x: 0, autoAlpha: 1, duration: 0.45, ease: "power3.out" }, 1.2);
+
+      // ===== type meeting title =====
+      moveTo(T.title.x, T.title.y, 1.6, 0.55, 14);
+      click(2.1); tl.set("#titleField", { className: "field focus" }, 2.12);
+      tl.to("#titlePh", { autoAlpha: 0, duration: 0.15 }, 2.15);
+      blink("#titleCaret", 2.25, 3.3);
+      type(titleSpans, 2.35, 0.05);
+      tl.set("#titleField", { className: "field" }, 3.35);
+      tl.set("#titleCaret", { opacity: 0 }, 3.35);
+
+      // ===== select 45 minutes =====
+      moveTo(T.durDD.x, T.durDD.y, 3.5, 0.5, 12);
+      click(3.95); tl.to("#durMenu", { autoAlpha: 1, y: 0, duration: 0.25, ease: "power2.out" }, 4.0);
+      moveTo(T.dur45.x, T.dur45.y, 4.2, 0.4, 8);
+      tl.set("#dur45", { className: "o sel" }, 4.55); click(4.6);
+      tl.set("#dur30lbl", { autoAlpha: 0 }, 4.66); tl.set("#dur45lbl", { autoAlpha: 1 }, 4.66);
+      tl.to("#durMenu", { autoAlpha: 0, y: -6, duration: 0.2 }, 4.72);
+
+      // ===== type three attendees =====
+      moveTo(T.att.x, T.att.y, 4.9, 0.45, 12);
+      click(5.3); tl.to("#attWrap", { borderColor: "#5b51e8", boxShadow: "0 0 0 4px rgba(91,81,232,.12)", duration: 0.15, overwrite: "auto" }, 5.3);
+      let et = 5.4;
+      emailGroups.forEach((g, i) => {
+        tl.set("#attCaret", { opacity: 1 }, et);
+        const end = type(g, et, 0.028);
+        hide(g, end + 0.08);
+        tl.fromTo(chips[i], { autoAlpha: 0, scale: 0.7 }, { autoAlpha: 1, scale: 1, duration: 0.26, ease: "back.out(2.2)" }, end + 0.08);
+        et = end + 0.34;
+      });
+      tl.set("#attCaret", { opacity: 0 }, et);
+      tl.to("#attWrap", { borderColor: "#e0e3ea", boxShadow: "none", duration: 0.2, overwrite: "auto" }, et);
+
+      // ===== panel processes → shimmer → suggestions =====
+      const procAt = et + 0.2;
+      tl.to("#sugSec", { autoAlpha: 1, duration: 0.2 }, procAt);
+      tl.to("#sugLoading", { autoAlpha: 1, duration: 0.2 }, procAt);
+      // shimmer pulse (finite)
+      tl.to("#sugLoading", { opacity: 0.55, duration: 0.4, ease: "sine.inOut", repeat: 2, yoyo: true }, procAt + 0.2);
+      const sugAt = procAt + 1.0;
+      tl.to("#sugLoading", { autoAlpha: 0, duration: 0.2 }, sugAt);
+      sugCards.forEach((c, i) => tl.to(c, { autoAlpha: 1, y: 0, duration: 0.32, ease: "power2.out" }, sugAt + 0.15 + i * 0.12));
+      // calendar highlights the three slots simultaneously
+      hls.forEach((h, i) => tl.to(h, { autoAlpha: 1, scale: 1, duration: 0.35, ease: "back.out(1.8)" }, sugAt + 0.2 + i * 0.06));
+
+      // ===== click the second suggestion → meeting drops in =====
+      const clickAt = sugAt + 1.5;
+      moveTo(T.sug1.x, T.sug1.y, clickAt - 0.6, 0.55, 14);
+      tl.set("#sug1", { className: "sug sel" }, clickAt - 0.05); click(clickAt); press("#sug1", clickAt);
+      // other highlights fade, chosen one yields to the real block
+      tl.to(["#hl0", "#hl2"], { autoAlpha: 0, duration: 0.25 }, clickAt + 0.1);
+      tl.to("#hl1", { autoAlpha: 0, duration: 0.2 }, clickAt + 0.15);
+      // meeting block drops into the slot with a spring bounce
+      tl.fromTo("#meet", { autoAlpha: 0, y: -34, scale: 0.92, transformOrigin: "50% 0%" }, { autoAlpha: 1, y: 0, scale: 1, duration: 0.6, ease: "back.out(2.4)" }, clickAt + 0.18);
+      // invites sent toast
+      tl.to("#toast", { autoAlpha: 1, x: 0, y: 0, duration: 0.4, ease: "back.out(1.7)" }, clickAt + 0.35);
+      // panel closes
+      tl.to("#panel", { x: 420, autoAlpha: 0, duration: 0.45, ease: "power2.in" }, clickAt + 0.6);
+      tl.to(cursor, { autoAlpha: 0, duration: 0.3 }, clickAt + 0.6);
+      // a small settle pulse on the new block
+      tl.to("#meet", { keyframes: [{ scale: 1.05, duration: 0.2 }, { scale: 1, duration: 0.3, ease: "back.out(2)" }], transformOrigin: "50% 50%" }, clickAt + 1.3);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
