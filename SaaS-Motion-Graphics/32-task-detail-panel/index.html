@@ -5,46 +5,299 @@
     <meta name="viewport" content="width=1920, height=1080" />
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
     <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        margin: 0; width: 1920px; height: 1080px; overflow: hidden;
+        background: #f4f5f7; font-family: "Inter", system-ui, sans-serif;
       }
-      html,
-      body {
-        margin: 0;
-        width: 1920px;
-        height: 1080px;
-        overflow: hidden;
-        background: #000;
+      .stage { position: absolute; inset: 0; overflow: hidden; }
+
+      .board { position: absolute; left: 0; top: 0; width: 1280px; height: 1080px; padding: 40px 36px; }
+      .bh { font-size: 30px; font-weight: 800; color: #18213a; margin-bottom: 26px; }
+      .col { position: absolute; top: 130px; width: 372px; }
+      .coltitle { font-size: 16px; font-weight: 700; color: #6b7486; letter-spacing: 0.4px; margin-bottom: 14px; display: flex; gap: 10px; }
+      .coltitle .ct { background: #e4e7ee; color: #6b7486; border-radius: 10px; padding: 0 9px; font-size: 14px; }
+      .tcard {
+        position: relative; background: #fff; border: 1px solid #e9ebf1; border-radius: 12px;
+        padding: 16px 16px 14px; margin-bottom: 14px; box-shadow: 0 1px 2px rgba(20,28,46,0.06);
       }
+      .tlabel { width: 56px; height: 7px; border-radius: 4px; margin-bottom: 12px; }
+      .ttitle { font-size: 18px; font-weight: 600; color: #1f2840; line-height: 1.35; }
+      .tmeta { display: flex; align-items: center; gap: 10px; margin-top: 14px; min-height: 30px; }
+      .ava { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; }
+      .tdue { font-size: 14px; color: #7a8398; font-weight: 600; }
+      .pdot { position: absolute; top: 14px; right: 14px; width: 12px; height: 12px; border-radius: 50%; }
+
+      /* detail panel */
+      #panel {
+        position: absolute; left: 1280px; top: 0; width: 640px; height: 1080px; background: #fff;
+        box-shadow: -24px 0 60px rgba(20,28,46,0.16); padding: 34px 36px; z-index: 30;
+      }
+      .pclose { position: absolute; right: 30px; top: 30px; width: 38px; height: 38px; border-radius: 9px; background: #f1f3f7; display: flex; align-items: center; justify-content: center; }
+      .plabel-sm { font-size: 13px; font-weight: 700; color: #9aa3b4; letter-spacing: 0.5px; text-transform: uppercase; }
+      .ptitle { font-size: 30px; font-weight: 800; color: #18213a; margin: 8px 0 22px; width: 480px; line-height: 1.25; }
+      .field { position: relative; }
+      .frow { display: flex; align-items: center; height: 56px; border-top: 1px solid #eef0f4; }
+      .frow .fl { width: 150px; font-size: 16px; color: #7a8398; font-weight: 600; }
+      .fval { flex: 1; display: flex; align-items: center; gap: 10px; font-size: 16px; color: #aab1c0; font-weight: 600; }
+      .fval.set { color: #1f2840; }
+      .pill { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px; border-radius: 9px; font-size: 15px; font-weight: 700; }
+
+      .desc { border: 1.5px solid #e7eaf1; border-radius: 12px; min-height: 120px; padding: 14px 16px; font-size: 17px; color: #1f2840; line-height: 1.5; position: relative; }
+      .desc.focus { border-color: #2563eb; }
+      .ph { color: #aab1c0; }
+      .dchar { opacity: 0; }
+      #caret { position: absolute; width: 2px; height: 22px; background: #2563eb; z-index: 60; }
+
+      .pop { position: absolute; background: #fff; border: 1px solid #e6eaf1; border-radius: 12px; box-shadow: 0 18px 44px rgba(20,28,46,0.20); z-index: 50; padding: 8px; transform-origin: top center; }
+      .mlist { width: 380px; max-height: 280px; overflow: hidden; }
+      .mscroll { position: relative; }
+      .mitem { display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 12px; border-radius: 9px; font-size: 16px; color: #2b3650; }
+      .opt { height: 48px; display: flex; align-items: center; gap: 12px; padding: 0 14px; border-radius: 8px; font-size: 16px; color: #2b3650; font-weight: 600; }
+      .pdotopt { width: 12px; height: 12px; border-radius: 50%; }
+
+      .cal { width: 360px; padding: 14px; }
+      .calh { text-align: center; font-weight: 700; color: #18213a; font-size: 17px; margin-bottom: 8px; }
+      .cg { display: grid; grid-template-columns: repeat(7,1fr); }
+      .cc { height: 44px; display: flex; align-items: center; justify-content: center; font-size: 15px; color: #3b4658; position: relative; border-radius: 9px; }
+      .cc.dow { color: #9aa3b4; font-size: 12px; font-weight: 700; height: 28px; }
+      .cc .sel { position: absolute; inset: 3px; border-radius: 8px; background: #2563eb; opacity: 0; }
+      .cc.today { color: #2563eb; font-weight: 800; }
+      .cc .n { position: relative; z-index: 2; }
+
+      .comment { display: flex; gap: 12px; margin-bottom: 16px; }
+      .comment .cb { background: #f3f5f9; border-radius: 10px; padding: 10px 14px; font-size: 15px; color: #3b4658; }
+      .comment .cn { font-weight: 700; color: #1f2840; margin-bottom: 2px; font-size: 14px; }
+
+      #cursor { position: absolute; left: 0; top: 0; z-index: 90; }
     </style>
   </head>
   <body>
-    <div
-      id="root"
-      data-composition-id="main"
-      data-start="0"
-      data-duration="10"
-      data-width="1920"
-      data-height="1080"
-    >
-      
-      
-
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
+    <div id="root" data-composition-id="main" data-start="0" data-duration="18" data-width="1920" data-height="1080">
+      <div class="stage" id="stage">
+        <div class="board">
+          <div class="bh">Sprint 14 · Board</div>
         </div>
-      -->
+        <div id="panel" data-layout-allow-overflow></div>
+        <div id="caret"></div>
+        <div id="cursor"><svg width="36" height="42" viewBox="0 0 24 28"><path d="M3,2 L3,22 L8.5,16.8 L12,24.5 L15.4,23 L11.9,15.3 L19,15.3 Z" fill="#ffffff" stroke="#1b1b22" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+      </div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
+      const stage = document.getElementById("stage");
+      const board = document.querySelector(".board");
+
+      // ---------- board columns + cards ----------
+      const COLS = [
+        { t: "To Do", x: 36, cards: [
+          { lab: "#e2483d", title: "Redesign onboarding flow", target: true, ava: ["AK", "#7c3aed"], due: "Jun 6", hidden: true },
+          { lab: "#f59e0b", title: "Audit pricing page copy" },
+          { lab: "#2563eb", title: "Set up error tracking" } ] },
+        { t: "In Progress", x: 454, cards: [
+          { lab: "#7c3aed", title: "Build CSV export", ava: ["ML", "#2563eb"], due: "Jun 2" },
+          { lab: "#0f9d58", title: "Migrate auth service", ava: ["PN", "#0f9d58"], due: "Jun 9" } ] },
+        { t: "Done", x: 872, cards: [
+          { lab: "#0f9d58", title: "Ship dark mode", ava: ["TB", "#06b6d4"], due: "May 28" },
+          { lab: "#2563eb", title: "Fix billing webhook", ava: ["DR", "#e0457b"], due: "May 30" } ] },
+      ];
+      let targetCard = null;
+      COLS.forEach((c) => {
+        const col = document.createElement("div"); col.className = "col"; col.style.left = c.x + "px";
+        col.innerHTML = '<div class="coltitle">' + c.t + '<span class="ct">' + c.cards.length + "</span></div>";
+        board.appendChild(col);
+        c.cards.forEach((cd) => {
+          const card = document.createElement("div"); card.className = "tcard";
+          let meta = "";
+          if (cd.ava || cd.due) {
+            const avaOp = cd.hidden ? 0 : 1, dueOp = cd.hidden ? 0 : 1;
+            meta = '<div class="tmeta">' +
+              '<div class="ava av" style="background:' + cd.ava[1] + '; opacity:' + avaOp + '">' + cd.ava[0] + "</div>" +
+              '<div class="tdue dueitem" style="opacity:' + dueOp + '">' + (cd.due || "") + "</div></div>";
+          }
+          card.innerHTML = '<div class="tlabel" style="background:' + cd.lab + '"></div>' +
+            '<div class="ttitle">' + cd.title + "</div>" + meta +
+            '<div class="pdot" style="background:#f59e0b; opacity:0"></div>';
+          col.appendChild(card);
+          if (cd.target) targetCard = card;
+        });
+      });
+
+      // ---------- detail panel ----------
+      const panel = document.getElementById("panel");
+      const MEMBERS = [
+        ["Marcus Lee", "ML", "#2563eb"], ["Priya Nair", "PN", "#0f9d58"], ["Tom Becker", "TB", "#06b6d4"],
+        ["Sara Chen", "SC", "#e0457b"], ["Diego Ruiz", "DR", "#f97316"], ["Aisha Khan", "AK", "#7c3aed"],
+        ["Noah Park", "NP", "#0ea5e9"], ["Lena Roth", "LR", "#16a34a"],
+      ];
+      const PICK = 5; // Aisha Khan
+      let mlistHTML = "";
+      MEMBERS.forEach((m, i) => {
+        mlistHTML += '<div class="mitem" data-i="' + i + '"><div class="ava" style="background:' + m[2] + '">' + m[1] + "</div>" + m[0] + "</div>";
+      });
+      panel.innerHTML =
+        '<div class="pclose"><svg width="16" height="16" viewBox="0 0 24 24" stroke="#6b7686" stroke-width="2.4" stroke-linecap="round"><path d="M6 6 L18 18 M18 6 L6 18"/></svg></div>' +
+        '<div class="plabel-sm">ONB-204 · To Do</div>' +
+        '<div class="ptitle">Redesign onboarding flow</div>' +
+        '<div class="plabel-sm" style="margin-bottom:8px">Description</div>' +
+        '<div class="desc" id="desc"><span class="ph" id="ph">Add a description…</span><span id="dtext"></span></div>' +
+        '<div class="field">' +
+          '<div class="frow"><div class="fl">Assignee</div><div class="fval" id="asgVal" style="cursor:pointer"><span id="asgUn">Unassigned</span></div></div>' +
+          '<div class="frow"><div class="fl">Due date</div><div class="fval" id="dueVal"><span id="dueUn">No due date</span></div></div>' +
+          '<div class="frow"><div class="fl">Priority</div><div class="fval" id="prioVal" style="position:relative"><span class="pill" id="prioNone" style="background:#eef0f4; color:#7a8398">None</span><span class="pill" id="prioHighPill" style="position:absolute; left:0; background:#fef3c7; color:#b45309; opacity:0"><span class="pdotopt" style="background:#f59e0b"></span>High</span></div></div>' +
+        '</div>' +
+        '<div class="plabel-sm" style="margin:26px 0 14px">Comments</div>' +
+        '<div class="comment"><div class="ava" style="background:#2563eb">ML</div><div><div class="cn">Marcus Lee</div><div class="cb">Can we cut the second screen entirely?</div></div></div>' +
+        '<div class="comment"><div class="ava" style="background:#0f9d58">PN</div><div><div class="cn">Priya Nair</div><div class="cb">Agreed — fewer steps converts better.</div></div></div>' +
+        // popovers
+        '<div class="pop" id="asgPop" style="opacity:0; left:186px; top:430px"><div class="mlist"><div class="mscroll" id="mscroll">' + mlistHTML + '</div></div></div>' +
+        '<div class="pop cal" id="calPop" style="opacity:0; left:186px; top:486px"></div>' +
+        '<div class="pop" id="prioPop" style="opacity:0; left:186px; top:540px; width:240px">' +
+          '<div class="opt"><span class="pdotopt" style="background:#9aa3b4"></span>None</div>' +
+          '<div class="opt"><span class="pdotopt" style="background:#2563eb"></span>Low</div>' +
+          '<div class="opt"><span class="pdotopt" style="background:#0f9d58"></span>Medium</div>' +
+          '<div class="opt" id="prioHigh"><span class="pdotopt" style="background:#f59e0b"></span>High</div>' +
+          '<div class="opt"><span class="pdotopt" style="background:#e2483d"></span>Urgent</div>' +
+        '</div>';
+      stage.insertBefore(panel, document.getElementById("caret"));
+
+      // calendar (June 2025, today = Jun 1, pick Jun 6 = 5 days out)
+      const calPop = document.getElementById("calPop");
+      let cg = '<div class="calh">June 2025</div><div class="cg">';
+      ["S","M","T","W","T","F","S"].forEach((d) => cg += '<div class="cc dow">' + d + "</div>");
+      const dayEls = {};
+      cg += "</div>"; calPop.innerHTML = cg;
+      const grid = document.createElement("div"); grid.className = "cg"; calPop.appendChild(grid);
+      for (let d = 1; d <= 30; d++) {
+        const e = document.createElement("div"); e.className = "cc" + (d === 1 ? " today" : "");
+        e.innerHTML = '<div class="sel"></div><div class="n">' + d + "</div>";
+        grid.appendChild(e); dayEls[d] = e;
+      }
+
+      // ---------- description typing (measured at panel rest) ----------
+      const DESC = "Rework the first-run setup to remove three steps. Ship the new flow before the Q3 launch review.";
+      const dtext = document.getElementById("dtext");
+      const dchars = [];
+      for (const ch of DESC) {
+        const s = document.createElement("span"); s.className = "dchar"; s.textContent = ch;
+        dtext.appendChild(s); dchars.push(s);
+      }
+
+      // ---------- cursor + measured targets (panel at rest) ----------
+      const cursor = document.getElementById("cursor");
+      const caret = document.getElementById("caret");
+      const C = (el) => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
+      const pTarget = C(targetCard);
+      const pAsg = C(document.getElementById("asgVal"));
+      const pAsgPick = C(panel.querySelectorAll(".mitem")[PICK]);
+      const pDue = C(document.getElementById("dueVal"));
+      const pDay = C(dayEls[6]);
+      const pPrio = C(document.getElementById("prioVal"));
+      const pHigh = C(document.getElementById("prioHigh"));
+      const pDesc = C(document.getElementById("desc"));
+      const charPos = dchars.map((s) => { const r = s.getBoundingClientRect(); return { x: r.right, y: r.top + 4 }; });
+      const pOutside = { x: 620, y: 540 };
+
+      // ---------- initial states ----------
+      gsap.set(cursor, { x: 200, y: 980, autoAlpha: 0 });
+      gsap.set(panel, { x: 640 });               // slid off to the right
+      gsap.set(caret, { autoAlpha: 0 });
+      gsap.set(["#asgPop", "#calPop", "#prioPop"], { autoAlpha: 0, scaleY: 0.9, y: -6 });
+      gsap.set("#mscroll", { y: 0 });
+      gsap.set(document.querySelectorAll(".av, .dueitem, .pdot"), {}); // board metas keep their inline opacity
+      // target card has no meta yet — give it placeholders to reveal later
+      const tAva = targetCard.querySelector(".av"), tDue = targetCard.querySelector(".dueitem"), tDot = targetCard.querySelector(".pdot");
+
+      const click = (tl, t) => { tl.to(cursor, { scale: 0.85, duration: 0.08, transformOrigin: "0 0" }, t); tl.to(cursor, { scale: 1, duration: 0.1 }, t + 0.08); };
+      const move = (tl, p, t, d) => tl.to(cursor, { x: p.x, y: p.y, duration: d, ease: "power2.inOut" }, t);
+
+      // ---------- timeline ----------
       const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
+
+      // cursor enters and clicks the target card -> panel slides in from the right
+      tl.to(cursor, { autoAlpha: 1, duration: 0.2 }, 0.4);
+      move(tl, pTarget, 0.4, 1.0);
+      click(tl, 1.45);
+      tl.to(panel, { x: 0, duration: 0.6, ease: "power3.out" }, 1.6);
+
+      // === assignee ===
+      move(tl, pAsg, 2.3, 0.6);
+      click(tl, 3.0);
+      tl.to("#asgPop", { autoAlpha: 1, scaleY: 1, y: 0, duration: 0.25, ease: "power2.out" }, 3.05);
+      // scroll the list, then click a name
+      tl.to("#mscroll", { y: -130, duration: 0.6, ease: "power2.inOut" }, 3.5);
+      move(tl, { x: pAsgPick.x, y: pAsgPick.y - 130 }, 3.6, 0.5);
+      click(tl, 4.2);
+      tl.to(panel.querySelectorAll(".mitem")[PICK], { backgroundColor: "#eef4ff", duration: 0.15 }, 4.25);
+      tl.to("#asgPop", { autoAlpha: 0, duration: 0.2 }, 4.45);
+      // populate assignee chip
+      tl.set("#asgUn", { display: "none" }, 4.5);
+      tl.set("#asgVal", { className: "fval set" }, 4.5);
+      const asgChip = document.createElement("span"); asgChip.innerHTML = '<span class="ava" style="background:#7c3aed">AK</span>';
+      asgChip.style.display = "flex"; asgChip.style.alignItems = "center"; asgChip.style.gap = "10px"; asgChip.innerHTML += "Aisha Khan";
+      document.getElementById("asgVal").appendChild(asgChip);
+      gsap.set(asgChip, { autoAlpha: 0 });
+      tl.to(asgChip, { autoAlpha: 1, duration: 0.25, ease: "power2.out" }, 4.5);
+
+      // === due date ===
+      move(tl, pDue, 4.8, 0.55);
+      click(tl, 5.45);
+      tl.to("#calPop", { autoAlpha: 1, scaleY: 1, y: 0, duration: 0.25, ease: "power2.out" }, 5.5);
+      move(tl, pDay, 5.7, 0.5);
+      click(tl, 6.3);
+      tl.to(dayEls[6].querySelector(".sel"), { autoAlpha: 1, duration: 0.15 }, 6.35);
+      tl.to(dayEls[6].querySelector(".n"), { color: "#fff", duration: 0.1 }, 6.35);
+      tl.to("#calPop", { autoAlpha: 0, duration: 0.2 }, 6.6);
+      tl.set("#dueUn", { display: "none" }, 6.65);
+      tl.set("#dueVal", { className: "fval set" }, 6.65);
+      const dueTxt = document.createElement("span"); dueTxt.textContent = "Jun 6, 2025";
+      document.getElementById("dueVal").appendChild(dueTxt); gsap.set(dueTxt, { autoAlpha: 0 });
+      tl.to(dueTxt, { autoAlpha: 1, duration: 0.25 }, 6.65);
+
+      // === priority ===
+      move(tl, pPrio, 6.95, 0.55);
+      click(tl, 7.6);
+      tl.to("#prioPop", { autoAlpha: 1, scaleY: 1, y: 0, duration: 0.25, ease: "power2.out" }, 7.65);
+      move(tl, pHigh, 7.8, 0.4);
+      click(tl, 8.25);
+      tl.to("#prioHigh", { backgroundColor: "#fff7ed", duration: 0.15 }, 8.3);
+      tl.to("#prioPop", { autoAlpha: 0, duration: 0.2 }, 8.5);
+      // field turns amber: crossfade None -> High pill
+      tl.to("#prioNone", { autoAlpha: 0, duration: 0.25 }, 8.55);
+      tl.to("#prioHighPill", { autoAlpha: 1, duration: 0.3, ease: "power2.out" }, 8.55);
+
+      // === description: click in, type two sentences ===
+      move(tl, pDesc, 8.9, 0.5);
+      click(tl, 9.5);
+      tl.to("#desc", { className: "desc focus", duration: 0.01 }, 9.55);
+      tl.set("#ph", { autoAlpha: 0 }, 9.55);
+      tl.set(caret, { autoAlpha: 1, x: charPos.length ? 0 : 0 }, 9.55);
+      tl.to(caret, { autoAlpha: 0, duration: 0.4, repeat: 9, yoyo: true, ease: "power1.inOut" }, 9.6);
+      const TYPE_S = 9.7, DT = 0.033;
+      dchars.forEach((s, i) => {
+        const t = TYPE_S + i * DT;
+        tl.set(s, { autoAlpha: 1 }, t);
+        tl.set(caret, { x: charPos[i].x, y: charPos[i].y }, t);
+      });
+      const typeEnd = TYPE_S + dchars.length * DT;
+      tl.set(caret, { autoAlpha: 0 }, typeEnd + 0.1);
+
+      // === click outside -> panel slides closed ===
+      move(tl, pOutside, typeEnd + 0.3, 0.7);
+      click(tl, typeEnd + 1.0);
+      tl.to(panel, { x: 640, duration: 0.55, ease: "power3.in" }, typeEnd + 1.1);
+
+      // === the card on the board has updated ===
+      const upd = typeEnd + 1.5;
+      tl.fromTo(tAva, { autoAlpha: 0, scale: 0.6 }, { autoAlpha: 1, scale: 1, duration: 0.35, ease: "back.out(2.2)" }, upd);
+      tl.to(tDue, { autoAlpha: 1, duration: 0.3 }, upd + 0.12);
+      tl.fromTo(tDot, { autoAlpha: 0, scale: 0 }, { autoAlpha: 1, scale: 1.3, duration: 0.25, ease: "back.out(3)" }, upd + 0.24);
+      tl.to(tDot, { scale: 1, duration: 0.2 }, upd + 0.4);
+
+      // cursor moves away; the owned card holds.
+      tl.to(cursor, { x: 300, y: 920, duration: 0.8, ease: "power2.inOut" }, upd + 0.8);
+
       window.__timelines["main"] = tl;
     </script>
   </body>
