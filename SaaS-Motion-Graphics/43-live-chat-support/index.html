@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #eef0f4;
+        font-family: "Inter", Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; color: #14151a; }
+      .stage { position: absolute; inset: 0; overflow: hidden; background: radial-gradient(1200px 700px at 50% -10%, #f6f7fb 0%, #eaecf2 60%, #e5e7ee 100%); }
+
+      .browser { position: absolute; left: 200px; top: 110px; width: 1520px; height: 870px; background: #fff; border: 1px solid #e6e8ec; border-radius: 18px; overflow: hidden; box-shadow: 0 2px 6px rgba(16,17,21,.05), 0 44px 96px -30px rgba(16,17,21,.28); }
+      .titlebar { height: 50px; background: #f6f7f9; border-bottom: 1px solid #e8eaed; display: flex; align-items: center; padding: 0 18px; gap: 9px; }
+      .titlebar i { width: 12px; height: 12px; border-radius: 50%; display: block; }
+      .titlebar .r{background:#ff5f57}.titlebar .y{background:#febc2e}.titlebar .g{background:#28c840}
+      .titlebar .urlbar { margin-left: 18px; height: 28px; flex: 1; max-width: 420px; background: #eceef2; border-radius: 8px; display:flex; align-items:center; padding: 0 12px; font-size: 12.5px; color:#8a90a0; font-weight: 540; }
+      .main { position: absolute; top: 50px; left: 0; right: 0; bottom: 0; display: flex; }
+
+      /* ---- inbox ---- */
+      .inbox { width: 372px; border-right: 1px solid #ececf1; background: #fcfcfd; flex-shrink: 0; position: relative; }
+      .ibhead { height: 64px; border-bottom: 1px solid #ececf1; display: flex; align-items: center; padding: 0 20px; font-size: 17px; font-weight: 740; letter-spacing: -0.3px; }
+      .ibhead .ct { margin-left: auto; font-size: 12.5px; font-weight: 640; color: #8a90a0; background: #f1f2f6; border-radius: 8px; padding: 4px 9px; }
+      .iblist { position: absolute; top: 64px; left: 0; right: 0; bottom: 0; }
+      .cv { position: absolute; left: 0; right: 0; height: 88px; padding: 15px 18px; border-bottom: 1px solid #f2f3f6; display: flex; gap: 12px; }
+      .cv .av { width: 42px; height: 42px; border-radius: 50%; color: #fff; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+      .cv .cvb { flex: 1; min-width: 0; }
+      .cv .nm { font-size: 14.5px; font-weight: 680; display: flex; align-items: center; }
+      .cv .nm .tm { margin-left: auto; font-size: 11.5px; font-weight: 540; color: #b3b8c4; }
+      .cv .pv { font-size: 13px; color: #8a90a0; font-weight: 520; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .cv .badge { margin-top: 7px; display: inline-block; font-size: 11px; font-weight: 720; padding: 3px 9px; border-radius: 7px; }
+      .badge.open { background: #fef0d6; color: #b9821a; }
+      .badge.res { background: #d6f3e1; color: #16834a; }
+      .cv .act { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: #2563eb; opacity: 0; }
+      .cv.active { background: #eef4ff; }
+
+      /* ---- conversation ---- */
+      .conv { flex: 1; display: flex; flex-direction: column; min-width: 0; position: relative; }
+      .cvhead { height: 72px; border-bottom: 1px solid #ececf1; display: flex; align-items: center; padding: 0 24px; gap: 13px; }
+      .cvhead .av { width: 44px; height: 44px; border-radius: 50%; background: #2563eb; color: #fff; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+      .cvhead .nm { font-size: 17px; font-weight: 720; }
+      .cvhead .status { font-size: 13px; font-weight: 580; margin-top: 2px; position: relative; height: 17px; width: 180px; }
+      .cvhead .status span { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+      .cvhead .status .sd { width: 7px; height: 7px; border-radius: 50%; }
+      .resolveBtn { margin-left: auto; height: 40px; padding: 0 18px; border-radius: 10px; border: 1.5px solid #cfe9d8; background: #fff; color: #16834a; font-size: 14px; font-weight: 660; display: inline-flex; align-items: center; gap: 8px; }
+
+      .thread { flex: 1; padding: 26px 30px; overflow: hidden; background: #fafbfc; position: relative; }
+      .msg { display: flex; margin-bottom: 18px; }
+      .msg.them { justify-content: flex-start; }
+      .msg.me { justify-content: flex-end; }
+      .bubble { max-width: 560px; padding: 14px 18px; border-radius: 16px; font-size: 15.5px; line-height: 1.5; font-weight: 500; }
+      .bubble .meta { font-size: 11.5px; font-weight: 580; margin-top: 7px; opacity: .7; }
+      .them .bubble { background: #2f6bff; color: #fff; border-bottom-left-radius: 5px; }
+      .me .bubble { background: #eceef2; color: #1c2230; border-bottom-right-radius: 5px; }
+      .typing { display: inline-flex; align-items: center; gap: 6px; background: #2f6bff; padding: 16px 18px; border-radius: 16px; border-bottom-left-radius: 5px; }
+      .typing .td { width: 9px; height: 9px; border-radius: 50%; background: #fff; }
+
+      /* ---- response area ---- */
+      .respwrap { border-top: 1px solid #ececf1; background: #fff; padding: 16px 24px 20px; }
+      .resptools { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+      .tbtn { height: 36px; padding: 0 14px; border-radius: 9px; font-size: 13.5px; font-weight: 620; display: inline-flex; align-items: center; gap: 7px; }
+      .tbtn.ai { background: linear-gradient(135deg,#7c5cff,#5b51e8); color: #fff; box-shadow: 0 8px 18px -7px rgba(91,81,232,.55); }
+      .tbtn.ai .spark { width: 14px; height: 14px; border-radius: 4px; background: #fff; }
+      .tbtn.edit { background: #fff; border: 1.5px solid #e0e3ea; color: #3a4150; }
+      .respbox { border: 1.5px solid #e0e3ea; border-radius: 13px; height: 150px; padding: 14px 16px; position: relative; overflow: hidden; }
+      .respbox.focus { border-color: #2563eb; box-shadow: 0 0 0 4px rgba(37,99,235,.1); }
+      #respText { font-size: 15.5px; line-height: 1.62; font-weight: 500; color: #1c2230; }
+      #respText .ch { display: none; white-space: pre; }
+      #respPh { position: absolute; left: 16px; top: 14px; color: #b3b8c4; font-size: 15.5px; font-weight: 500; }
+      .caret { display: inline-block; width: 2px; height: 19px; background: #2563eb; vertical-align: -4px; opacity: 0; }
+      #respCaret0 { position: absolute; left: 16px; top: 15px; }
+      .sendrow { display: flex; align-items: center; margin-top: 12px; }
+      .sendBtn { margin-left: auto; height: 42px; padding: 0 22px; border-radius: 11px; background: #2563eb; color: #fff; font-size: 15px; font-weight: 660; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 10px 22px -8px rgba(37,99,235,.55); }
+
+      #clickGlow { position:absolute; left:0; top:0; width:78px; height:78px; border-radius:50%; z-index:40;
+        background: radial-gradient(circle, rgba(37,99,235,.3) 0%, rgba(37,99,235,.13) 42%, rgba(37,99,235,0) 70%);
+        border:2px solid rgba(37,99,235,.42); opacity:0; }
+      #cursor { position: absolute; top: 0; left: 0; z-index: 50; filter: drop-shadow(0 1px 1.5px rgba(0,0,0,.3)); }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="16" data-width="1920" data-height="1080">
+      <div class="stage">
+        <div class="browser">
+          <div class="titlebar"><i class="r"></i><i class="y"></i><i class="g"></i><div class="urlbar">app.helpline.io / inbox</div></div>
+          <div class="main">
+
+            <!-- inbox -->
+            <div class="inbox">
+              <div class="ibhead">Inbox<div class="ct" style="position:relative"><span id="ct5">5 open</span><span id="ct4" style="position:absolute;left:9px;top:4px;opacity:0">4 open</span></div></div>
+              <div class="iblist" id="iblist">
+                <div class="cv" id="cv0"><div class="act"></div><div class="av" style="background:#8b5cf6">MP</div><div class="cvb"><div class="nm">Maya Patel<span class="tm">2m</span></div><div class="pv">How do I export my data to CSV?</div><span class="badge open">Open</span></div></div>
+                <div class="cv active" id="cv1"><div class="act" style="opacity:1"></div><div class="av" style="background:#2563eb">JL</div><div class="cvb"><div class="nm">Jordan Lee<span class="tm">now</span></div><div class="pv">I was charged twice this month…</div><span style="position:relative;display:inline-block"><span class="badge open" id="cv1badge">Open</span><span class="badge res" id="cv1badgeRes" style="position:absolute;left:0;top:0;opacity:0">Resolved</span></span></div></div>
+                <div class="cv" id="cv2"><div class="act"></div><div class="av" style="background:#0d9488">TR</div><div class="cvb"><div class="nm">Tom Rivera<span class="tm">8m</span></div><div class="pv">Can't log into my account</div><span class="badge open">Open</span></div></div>
+                <div class="cv" id="cv3"><div class="act"></div><div class="av" style="background:#f59e0b">SK</div><div class="cvb"><div class="nm">Sara Kim<span class="tm">15m</span></div><div class="pv">Is there a team plan?</div><span class="badge open">Open</span></div></div>
+                <div class="cv" id="cv4"><div class="act"></div><div class="av" style="background:#ef4444">DB</div><div class="cvb"><div class="nm">Devon Brooks<span class="tm">22m</span></div><div class="pv">What's my refund status?</div><span class="badge open">Open</span></div></div>
+              </div>
+            </div>
+
+            <!-- conversation -->
+            <div class="conv">
+              <div class="cvhead">
+                <div class="av">JL</div>
+                <div><div class="nm">Jordan Lee</div>
+                  <div class="status">
+                    <span id="stOnline"><span class="sd" style="background:#16a34a"></span>Online</span>
+                    <span id="stReading" style="opacity:0"><span class="sd" style="background:#2563eb"></span>Reading…</span>
+                    <span id="stTyping" style="opacity:0"><span class="sd" style="background:#f59e0b"></span>Typing…</span>
+                  </div>
+                </div>
+                <div class="resolveBtn" id="resolveBtn">✓ Resolve</div>
+              </div>
+
+              <div class="thread" id="thread" data-layout-allow-overflow>
+                <div class="msg them"><div class="bubble">Hi! I was charged twice for my subscription this month — can you help me sort out a refund?<div class="meta">Jordan · 10:42 AM</div></div></div>
+                <div class="msg me" id="aMsg"><div class="bubble" id="aBubble">Hi Jordan! So sorry about the double charge. I've issued a full refund for the duplicate payment, which will arrive in 3–5 business days. Anything else I can help with?<div class="meta">You · 10:43 AM · Delivered</div></div></div>
+                <div class="msg them" id="typingMsg"><div class="typing"><span class="td" id="td0"></span><span class="td" id="td1"></span><span class="td" id="td2"></span></div></div>
+                <div class="msg them" id="rMsg"><div class="bubble">Perfect — thank you so much!<div class="meta">Jordan · 10:44 AM</div></div></div>
+              </div>
+
+              <div class="respwrap">
+                <div class="resptools">
+                  <div class="tbtn ai" id="aiBtn"><div class="spark"></div>AI Suggest</div>
+                  <div class="tbtn edit" id="editBtn">✎ Edit</div>
+                </div>
+                <div class="respbox" id="respBox" data-layout-allow-overflow>
+                  <span id="respPh">Write a reply…</span>
+                  <span class="caret" id="respCaret0"></span>
+                  <span id="respText"></span>
+                </div>
+                <div class="sendrow"><div class="sendBtn" id="sendBtn">Send ➤</div></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div id="clickGlow"></div>
+        <div id="cursor">
+          <svg viewBox="0 0 20 32" width="26" height="42"><path d="M0 0 L0 27 L6.3 20.7 L10.5 30 L13.9 28.5 L9.75 19.5 L18 18.9 Z" fill="#0a0a0a"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const $ = (id) => document.getElementById(id);
+      const tl = gsap.timeline({ paused: true });
+      const cursor = $("cursor");
+      const cur = { x: 1480, y: 880 };
+      const tip = (el, fx, fy) => { const r = el.getBoundingClientRect(); return { x: r.left + r.width * (fx == null ? .5 : fx), y: r.top + r.height * (fy == null ? .5 : fy) }; };
+
+      // ---- inbox layout (absolute, so we can reorder) ----
+      const ITEMH = 88;
+      ["cv0","cv1","cv2","cv3","cv4"].forEach((id, i) => { $(id).style.top = (i * ITEMH) + "px"; });
+
+      // ---- build the AI reply as segments (so two words can be edited mid-string) ----
+      function build(host, str, hidden) { const s = []; [...str].forEach((c) => { const e = document.createElement("span"); e.className = "ch"; e.textContent = c; host.appendChild(e); s.push(e); }); return s; }
+      const RT = $("respText");
+      const preSpans = build(RT, "Hi Jordan! So sorry about the double charge. I've issued a full refund for the duplicate payment, which ");
+      const oldSpans = build(RT, "should land");
+      const editCaret = document.createElement("span"); editCaret.className = "caret"; editCaret.id = "respCaret1"; RT.appendChild(editCaret);
+      const newSpans = build(RT, "will arrive");
+      const sufSpans = build(RT, " in 3–5 business days. Anything else I can help with?");
+
+      // ---- helpers ----
+      const reveal = (sp, at, per) => { sp.forEach((s, i) => tl.set(s, { display: "inline" }, at + i * per)); return at + sp.length * per; };
+      const hideBack = (sp, at, per) => { const n = sp.length; sp.forEach((s, i) => tl.set(s, { display: "none" }, at + (n - 1 - i) * per)); return at + n * per; };
+      function blink(sel, at, until) { tl.set(sel, { opacity: 1 }, at); tl.to(sel, { opacity: 0, duration: .4, ease: "steps(1)", repeat: Math.max(1, Math.round((until - at) / .8)) * 2, yoyo: true }, at + .1); }
+      function glow(at, x, y) { const gx = x == null ? cur.x : x, gy = y == null ? cur.y : y; tl.set("#clickGlow", { x: gx, y: gy, scale: 0.34, autoAlpha: 0.55 }, at); tl.to("#clickGlow", { scale: 1.8, autoAlpha: 0, duration: 0.5, ease: "power2.out" }, at); }
+      function click(at) { tl.to(cursor.querySelector("svg"), { transformOrigin: "0% 0%", keyframes: [{ scale: 0.78, duration: .06, ease: "power2.in" }, { scale: 1, duration: .14, ease: "back.out(2.6)" }] }, at); glow(at + 0.02); }
+      function press(sel, at) { tl.to(sel, { keyframes: [{ scale: .95, duration: .07 }, { scale: 1, duration: .15, ease: "back.out(2)" }], transformOrigin: "50% 50%" }, at); }
+      let mc = 0;
+      function moveTo(tx, ty, at, dur, bow) { bow = bow == null ? 16 : bow; const dx = tx - cur.x, dy = ty - cur.y, d = Math.hypot(dx, dy) || 1; const ux = dx/d, uy = dy/d, px = -uy, py = ux, side = mc++ % 2 ? -1 : 1, k = Math.min(1, d/600);
+        tl.to(cursor, { keyframes: [ { x: cur.x + dx*0.5 + px*bow*side*k, y: cur.y + dy*0.5 + py*bow*side*k, duration: dur*0.46, ease:"power1.inOut" }, { x: tx+ux*8, y: ty+uy*8, duration: dur*0.34, ease:"power2.out" }, { x: tx, y: ty, duration: dur*0.20, ease:"power2.inOut" } ] }, at); cur.x = tx; cur.y = ty; }
+
+      // ---- measure targets ----
+      const T = { ai: tip($("aiBtn")), edit: tip($("editBtn")), send: tip($("sendBtn")), resolve: tip($("resolveBtn")), respMid: tip($("respBox"), .5, .65), cv0: tip($("cv0")) };
+
+      // ---- initial states ----
+      gsap.set(cursor, { x: cur.x, y: cur.y, autoAlpha: 0 });
+      gsap.set("#clickGlow", { xPercent: -50, yPercent: -50, autoAlpha: 0, scale: 0.3 });
+      gsap.set("#respCaret0", { opacity: 0 });
+      gsap.set("#respCaret1", { opacity: 0 });
+      gsap.set("#aMsg", { autoAlpha: 0, y: 16, height: 0, marginBottom: 0, overflow: "hidden" });
+      gsap.set("#typingMsg", { autoAlpha: 0, height: 0, marginBottom: 0, overflow: "hidden" });
+      gsap.set("#rMsg", { autoAlpha: 0, y: 12, height: 0, marginBottom: 0, overflow: "hidden" });
+      gsap.set(["#td0","#td1","#td2"], { y: 0 });
+      gsap.set("#stReading", { autoAlpha: 0 }); gsap.set("#stTyping", { autoAlpha: 0 });
+
+      // ===== open =====
+      tl.to(cursor, { autoAlpha: 1, duration: 0.2 }, 0.3);
+      blink("#respCaret0", 0.35, 1.05);
+
+      // ===== click AI Suggest → reply types itself =====
+      moveTo(T.ai.x, T.ai.y, 0.55, 0.6, 14);
+      click(1.05); press("#aiBtn", 1.05);
+      tl.set("#respBox", { className: "respbox focus" }, 1.1);
+      tl.set("#respCaret0", { opacity: 0 }, 1.12);
+      tl.to("#respPh", { autoAlpha: 0, duration: 0.12 }, 1.12);
+      let t = reveal(preSpans, 1.35, 0.02);
+      t = reveal(oldSpans, t, 0.02);
+      t = reveal(sufSpans, t, 0.02);          // editNew stays hidden for now
+
+      // ===== read it — cursor scans down, content nudges =====
+      moveTo(T.respMid.x, T.respMid.y, t + 0.2, 0.6, 12);
+      tl.to("#respText", { y: -14, duration: 0.4, ease: "power1.inOut", overwrite: "auto" }, t + 0.7);
+      tl.to("#respText", { y: 0, duration: 0.4, ease: "power1.inOut", overwrite: "auto" }, t + 1.2);
+
+      // ===== Edit: change two words in the middle =====
+      moveTo(T.edit.x, T.edit.y, t + 1.7, 0.55, 12);
+      click(t + 2.2); press("#editBtn", t + 2.2);
+      const e0 = t + 2.35;
+      oldSpans.forEach((s) => tl.set(s, { backgroundColor: "#bcd2ff" }, e0));   // select the two words
+      tl.set("#respCaret1", { opacity: 1 }, e0 + 0.18);
+      const e1 = hideBack(oldSpans, e0 + 0.25, 0.04);   // backspace them
+      blink("#respCaret1", e1, e1 + 0.6);
+      const e2 = reveal(newSpans, e1 + 0.15, 0.05);     // retype, personalized
+      tl.set("#respCaret1", { opacity: 0 }, e2 + 0.1);
+
+      // ===== Send =====
+      const sAt = e2 + 0.4;
+      moveTo(T.send.x, T.send.y, sAt, 0.55, 14);
+      click(sAt + 0.5); press("#sendBtn", sAt + 0.5);
+      // clear field
+      tl.to("#respText", { autoAlpha: 0, duration: 0.15 }, sAt + 0.6);
+      tl.set("#respBox", { className: "respbox" }, sAt + 0.62);
+      tl.set("#respPh", { autoAlpha: 1 }, sAt + 0.7);
+      // gray bubble appears in the thread
+      const bAt = sAt + 0.65;
+      tl.set("#aMsg", { height: "auto", marginBottom: 18 }, bAt);
+      tl.fromTo("#aMsg", { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.4, ease: "back.out(1.6)", overwrite: "auto" }, bAt);
+
+      // ===== customer: Reading → Typing → reply =====
+      tl.to("#stOnline", { autoAlpha: 0, duration: 0.2, overwrite: "auto" }, bAt + 0.4);
+      tl.to("#stReading", { autoAlpha: 1, duration: 0.25, overwrite: "auto" }, bAt + 0.45);
+      const tyAt = bAt + 1.0;
+      tl.to("#stReading", { autoAlpha: 0, duration: 0.2, overwrite: "auto" }, tyAt);
+      tl.to("#stTyping", { autoAlpha: 1, duration: 0.25, overwrite: "auto" }, tyAt + 0.05);
+      // typing dots bubble
+      tl.set("#typingMsg", { height: "auto", marginBottom: 18 }, tyAt + 0.1);
+      tl.to("#typingMsg", { autoAlpha: 1, duration: 0.25, overwrite: "auto" }, tyAt + 0.1);
+      ["#td0","#td1","#td2"].forEach((d, i) => tl.to(d, { y: -7, duration: 0.26, ease: "sine.inOut", repeat: 3, yoyo: true }, tyAt + 0.3 + i * 0.13));
+      // reply bubble
+      const rAt = tyAt + 1.5;
+      tl.to("#typingMsg", { autoAlpha: 0, height: 0, marginBottom: 0, duration: 0.2, overwrite: "auto" }, rAt);
+      tl.to("#stTyping", { autoAlpha: 0, duration: 0.2, overwrite: "auto" }, rAt);
+      tl.to("#stOnline", { autoAlpha: 1, duration: 0.25, overwrite: "auto" }, rAt + 0.05);
+      tl.set("#rMsg", { height: "auto", marginBottom: 18 }, rAt + 0.1);
+      tl.fromTo("#rMsg", { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.4, ease: "back.out(1.6)", overwrite: "auto" }, rAt + 0.1);
+
+      // ===== Resolve → moves to top of inbox, badge turns green, next highlights =====
+      const rsAt = rAt + 0.9;
+      moveTo(T.resolve.x, T.resolve.y, rsAt, 0.6, 14);
+      click(rsAt + 0.55); press("#resolveBtn", rsAt + 0.55);
+      // badge Open -> Resolved
+      tl.to("#cv1badge", { autoAlpha: 0, duration: 0.15 }, rsAt + 0.7);
+      tl.fromTo("#cv1badgeRes", { autoAlpha: 0, scale: 0.7 }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: "back.out(2.2)" }, rsAt + 0.84);
+      // reorder: Jordan(cv1) to top, Maya(cv0) down one
+      tl.to("#cv1", { y: -ITEMH, duration: 0.45, ease: "power3.inOut" }, rsAt + 0.95);
+      tl.to("#cv0", { y: ITEMH, duration: 0.45, ease: "power3.inOut" }, rsAt + 0.95);
+      tl.to("#cv1 .act", { autoAlpha: 0, duration: 0.2 }, rsAt + 0.95);
+      tl.set("#cv1", { className: "cv" }, rsAt + 1.0);
+      tl.to("#ct5", { autoAlpha: 0, duration: 0.15 }, rsAt + 1.0);
+      tl.to("#ct4", { autoAlpha: 1, duration: 0.2 }, rsAt + 1.16);
+      // next conversation (Maya) highlights
+      tl.set("#cv0", { className: "cv active" }, rsAt + 1.45);
+      tl.to("#cv0 .act", { autoAlpha: 1, duration: 0.25 }, rsAt + 1.45);
+      // cursor already moving toward it
+      moveTo(T.cv0.x, T.cv0.y + ITEMH, rsAt + 1.55, 0.9, 18);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
