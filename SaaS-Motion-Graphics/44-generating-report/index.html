@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #eef0f4; font-family: "Inter", system-ui, sans-serif; }
+      .stage { position: absolute; inset: 0; overflow: hidden; background: #f4f6f9; }
+
+      /* chrome */
+      .topbar { position: absolute; left: 0; top: 0; width: 100%; height: 64px; background: #fff; border-bottom: 1px solid #e8eaf0; display: flex; align-items: center; padding: 0 26px; z-index: 9; }
+      .brand { display: flex; align-items: center; gap: 11px; font-size: 18px; font-weight: 800; color: #1d2740; }
+      .brand .mk { width: 25px; height: 25px; border-radius: 7px; background: linear-gradient(135deg,#2563eb,#0ea5e9); }
+      .me { margin-left: auto; width: 34px; height: 34px; border-radius: 50%; background: #2563eb; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; }
+      .sidebar { position: absolute; left: 0; top: 64px; width: 248px; bottom: 0; background: #fff; border-right: 1px solid #eef0f4; padding: 18px 14px; z-index: 7; }
+      .snav { height: 44px; display: flex; align-items: center; gap: 13px; padding: 0 14px; border-radius: 9px; font-size: 15.5px; color: #59617a; font-weight: 600; }
+      .snav.on { background: #eef4ff; color: #2563eb; }
+      .snav .si { width: 18px; height: 18px; border-radius: 5px; background: #c3c9d6; }
+      .snav.on .si { background: #2563eb; }
+
+      .main { position: absolute; left: 248px; top: 64px; right: 0; bottom: 0; overflow: visible; }
+      .panel { position: absolute; inset: 0; padding: 22px 40px; }
+      .phd { font-size: 24px; font-weight: 800; color: #1d2740; }
+      .psb { font-size: 14.5px; color: #8a93a7; margin-top: 4px; margin-bottom: 18px; }
+
+      /* report library */
+      .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+      .rcard { background: #fff; border: 1px solid #e9ebf1; border-radius: 14px; padding: 14px; box-shadow: 0 6px 20px rgba(20,28,46,0.05); }
+      .thumb { height: 132px; border-radius: 10px; background: #f3f5fa; position: relative; overflow: hidden; }
+      .rname { font-size: 16px; font-weight: 700; color: #25304a; margin-top: 13px; }
+      .rmeta { font-size: 13px; color: #98a1b5; margin-top: 3px; }
+      .tip { position: absolute; background: #14203a; color: #fff; font-size: 13px; font-weight: 500; padding: 9px 13px; border-radius: 9px; max-width: 250px; z-index: 30; opacity: 0; box-shadow: 0 12px 30px rgba(10,16,32,0.3); }
+      .tip::after { content: ""; position: absolute; left: 28px; bottom: -6px; width: 12px; height: 12px; background: #14203a; transform: rotate(45deg); }
+
+      /* config */
+      .cfgwrap { display: flex; gap: 30px; }
+      .cfgform { width: 560px; }
+      .clab { font-size: 13px; font-weight: 700; color: #7b8499; text-transform: uppercase; letter-spacing: 0.4px; margin: 22px 0 9px; }
+      .field { height: 50px; border: 1.5px solid #e3e6ee; border-radius: 11px; display: flex; align-items: center; padding: 0 15px; font-size: 16px; color: #2a3350; position: relative; background: #fff; }
+      .field.drop::after { content: ""; position: absolute; right: 16px; top: 21px; width: 8px; height: 8px; border-right: 2px solid #9aa2b5; border-bottom: 2px solid #9aa2b5; transform: rotate(45deg); }
+      .field.active { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.12); }
+      .fval { position: absolute; left: 15px; }
+      .dmenu { position: absolute; left: 0; top: 56px; width: 100%; background: #fff; border: 1px solid #e6e9f0; border-radius: 11px; box-shadow: 0 18px 44px rgba(20,28,46,0.18); padding: 6px; z-index: 20; }
+      .dopt { height: 40px; display: flex; align-items: center; padding: 0 13px; border-radius: 8px; font-size: 15px; color: #2a3350; }
+      .metrics { border: 1.5px solid #e9ebf1; border-radius: 12px; overflow: hidden; }
+      .mitem { display: flex; align-items: center; gap: 13px; height: 50px; padding: 0 16px; border-bottom: 1px solid #f1f3f7; font-size: 15.5px; color: #2a3350; font-weight: 500; }
+      .mitem:last-child { border-bottom: none; }
+      .cbx { width: 22px; height: 22px; border-radius: 6px; border: 2px solid #cdd3df; position: relative; flex: none; }
+      .cbx .ck { position: absolute; inset: -2px; border-radius: 6px; background: #2563eb; display: flex; align-items: center; justify-content: center; opacity: 0; }
+      #genBtn { margin-top: 26px; height: 52px; padding: 0 28px; border-radius: 12px; background: linear-gradient(135deg,#2563eb,#1d4ed8); color: #fff; font-size: 17px; font-weight: 700; display: inline-flex; align-items: center; gap: 10px; box-shadow: 0 10px 26px rgba(37,99,235,0.3); }
+      .cfgside { flex: 1; }
+      .miniprev { background: #fff; border: 1px solid #e9ebf1; border-radius: 14px; height: 420px; padding: 22px; box-shadow: 0 6px 20px rgba(20,28,46,0.05); }
+
+      /* progress */
+      .progcard { width: 560px; background: #fff; border: 1px solid #e9ebf1; border-radius: 16px; padding: 30px 32px; box-shadow: 0 14px 40px rgba(20,28,46,0.08); }
+      .pstep { display: flex; align-items: center; gap: 15px; height: 56px; }
+      .pstat { width: 28px; height: 28px; border-radius: 50%; border: 2.5px solid #dfe3ec; flex: none; position: relative; }
+      .pstat .done { position: absolute; inset: -2.5px; border-radius: 50%; background: #16a34a; display: flex; align-items: center; justify-content: center; opacity: 0; }
+      .plabel { font-size: 16.5px; font-weight: 600; color: #25304a; }
+      .pbarwrap { margin: 6px 0 0 43px; height: 8px; background: #eef1f5; border-radius: 4px; overflow: hidden; width: 380px; }
+      .pbar { height: 100%; width: 0; background: linear-gradient(90deg,#2563eb,#0ea5e9); border-radius: 4px; }
+      .ppct { font-size: 14px; color: #8a93a7; font-weight: 600; margin-left: auto; }
+
+      /* preview */
+      .pvwrap { display: flex; gap: 26px; height: 100%; }
+      .pvthumbs { width: 110px; display: flex; flex-direction: column; gap: 12px; }
+      .pvthumb { height: 130px; background: #fff; border: 1px solid #e6e9f0; border-radius: 7px; box-shadow: 0 3px 10px rgba(20,28,46,0.06); }
+      .pvthumb.on { border: 2px solid #2563eb; }
+      .pvmain { flex: 1; }
+      .pvtoolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+      .pvtitle { font-size: 18px; font-weight: 700; color: #1d2740; }
+      .pvbtns { margin-left: auto; display: flex; gap: 11px; }
+      .pvbtn { height: 42px; padding: 0 18px; border-radius: 10px; font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+      #dlBtn { background: linear-gradient(135deg,#2563eb,#1d4ed8); color: #fff; box-shadow: 0 7px 18px rgba(37,99,235,0.28); }
+      #shareBtn { background: #fff; border: 1.5px solid #dfe3ec; color: #3a445e; }
+      .page { background: #fff; border: 1px solid #e6e9f0; border-radius: 8px; box-shadow: 0 12px 36px rgba(20,28,46,0.12); height: 660px; padding: 30px 34px; overflow: hidden; }
+      .phead2 { display: flex; align-items: center; border-bottom: 2px solid #2563eb; padding-bottom: 14px; }
+      .phead2 .lg { width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg,#2563eb,#0ea5e9); }
+      .phead2 .ti { margin-left: 12px; font-size: 19px; font-weight: 800; color: #14203a; }
+      .phead2 .dt { margin-left: auto; font-size: 13px; color: #8a93a7; }
+      .kpis { display: flex; gap: 14px; margin-top: 20px; }
+      .kpi { flex: 1; background: #f6f8fc; border-radius: 9px; padding: 12px 14px; }
+      .kpi .v { font-size: 22px; font-weight: 800; color: #14203a; }
+      .kpi .l { font-size: 11.5px; color: #8a93a7; margin-top: 2px; }
+      .kpi .d { font-size: 11.5px; font-weight: 700; color: #16a34a; margin-top: 4px; }
+      .charts { display: flex; gap: 16px; margin-top: 18px; }
+      .chart { flex: 1; height: 170px; background: #fbfcfe; border: 1px solid #eef1f6; border-radius: 9px; padding: 12px; }
+      .chart .ct { font-size: 12px; font-weight: 700; color: #6b7488; }
+      .ptable { margin-top: 18px; }
+      .ptable .tr { display: flex; height: 30px; align-items: center; border-bottom: 1px solid #f1f3f7; font-size: 12.5px; color: #46506a; }
+      .ptable .tr.h { font-weight: 700; color: #8a93a7; text-transform: uppercase; font-size: 11px; letter-spacing: 0.4px; }
+      .ptable .tr div { flex: 1; }
+
+      /* share modal + toast */
+      #backdrop { position: absolute; inset: 0; background: rgba(13,18,30,0.45); z-index: 50; opacity: 0; }
+      #shareModal { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 480px; background: #fff; border-radius: 18px; box-shadow: 0 40px 90px rgba(10,16,32,0.4); padding: 30px 32px; z-index: 51; opacity: 0; }
+      #shareModal .smt { font-size: 21px; font-weight: 800; color: #1d2740; }
+      #shareModal .sms { font-size: 14px; color: #8a93a7; margin-top: 5px; margin-bottom: 22px; }
+      .sfield { height: 52px; border: 1.5px solid #e3e6ee; border-radius: 11px; display: flex; align-items: center; padding: 0 16px; font-size: 16px; position: relative; }
+      .sfield.active { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.12); }
+      .semail { color: #1d2740; white-space: nowrap; }
+      .sph { position: absolute; left: 16px; color: #aab2c4; }
+      #scaret { position: absolute; width: 2px; height: 22px; background: #2563eb; top: 15px; left: 16px; opacity: 0; }
+      #sendBtn { margin-top: 22px; width: 100%; height: 50px; border-radius: 11px; background: linear-gradient(135deg,#2563eb,#1d4ed8); color: #fff; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 9px; }
+      #sentState { position: absolute; inset: 0; background: #fff; border-radius: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; opacity: 0; }
+      #sentState .big { width: 64px; height: 64px; border-radius: 50%; background: #16a34a; display: flex; align-items: center; justify-content: center; }
+
+      #toast { position: absolute; left: 50%; bottom: 40px; transform: translateX(-50%); height: 56px; background: #14203a; color: #fff; display: flex; align-items: center; gap: 13px; padding: 0 24px; border-radius: 13px; font-size: 16px; font-weight: 600; box-shadow: 0 20px 55px rgba(10,16,32,0.4); z-index: 60; opacity: 0; }
+      #toast .ck { width: 25px; height: 25px; border-radius: 50%; background: #22c55e; display: flex; align-items: center; justify-content: center; }
+
+      #ring { position: absolute; width: 44px; height: 44px; border-radius: 50%; border: 2.5px solid rgba(37,99,235,0.6); z-index: 88; opacity: 0; }
+      #glow { position: absolute; width: 92px; height: 92px; border-radius: 50%; z-index: 87; opacity: 0; background: radial-gradient(circle, rgba(37,99,235,0.5) 0%, rgba(37,99,235,0) 70%); }
+      #cursor { position: absolute; left: 0; top: 0; z-index: 90; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="20" data-width="1920" data-height="1080">
+      <div class="stage" id="stage">
+        <div class="topbar"><div class="brand"><div class="mk"></div>Insightly</div><div class="me">DK</div></div>
+        <div class="sidebar" id="sidebar">
+          <div class="snav"><div class="si"></div>Dashboard</div>
+          <div class="snav"><div class="si"></div>Explore</div>
+          <div class="snav" id="reportsNav"><div class="si"></div>Reports</div>
+          <div class="snav"><div class="si"></div>Dashboards</div>
+          <div class="snav"><div class="si"></div>Settings</div>
+        </div>
+        <div class="main" id="main" data-layout-allow-overflow>
+          <div class="panel" id="libraryPanel" data-layout-allow-overflow></div>
+          <div class="panel" id="configPanel" data-layout-allow-overflow></div>
+          <div class="panel" id="progressPanel" data-layout-allow-overflow></div>
+          <div class="panel" id="previewPanel" data-layout-allow-overflow></div>
+        </div>
+
+        <div id="backdrop"></div>
+        <div id="shareModal"></div>
+        <div id="toast"><div class="ck"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div>Report downloaded · Monthly_Performance.pdf</div>
+
+        <div id="ring"></div>
+        <div id="glow"></div>
+        <div id="cursor"><svg width="34" height="40" viewBox="0 0 24 28"><path d="M3,2 L3,22 L8.5,16.8 L12,24.5 L15.4,23 L11.9,15.3 L19,15.3 Z" fill="#ffffff" stroke="#1b1b22" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const $ = (s) => document.querySelector(s);
+      const el = (cls, html) => { const d = document.createElement("div"); d.className = cls; if (html) d.innerHTML = html; return d; };
+
+      // ---------- report library ----------
+      const REPORTS = [
+        ["Monthly Performance Report", "Updated monthly", "KPIs, trends, and team performance for the month."],
+        ["Revenue Breakdown", "Updated weekly", "Revenue by channel, MRR, and growth rate."],
+        ["User Engagement", "Updated daily", "Active users, sessions, and feature adoption."],
+        ["Funnel Analysis", "Updated weekly", "Conversion across every step of the funnel."],
+        ["Cohort Retention", "Updated monthly", "How cohorts retain over their first 12 weeks."],
+        ["Executive Summary", "Updated monthly", "A one-page rollup for leadership."],
+      ];
+      const lib = $("#libraryPanel");
+      lib.appendChild(el("phd", "Reports"));
+      lib.appendChild(el("psb", "Start from a template or build your own"));
+      const grid = el("grid"); lib.appendChild(grid);
+      const cards = [];
+      REPORTS.forEach((r, i) => {
+        const c = el("rcard");
+        c.innerHTML = '<div class="thumb"><svg width="100%" height="100%" viewBox="0 0 300 150" preserveAspectRatio="none">' +
+          '<rect x="18" y="100" width="34" height="34" rx="3" fill="#c7d6f5"/><rect x="60" y="74" width="34" height="60" rx="3" fill="#9bb8ef"/><rect x="102" y="52" width="34" height="82" rx="3" fill="#6f9aea"/><rect x="144" y="84" width="34" height="50" rx="3" fill="#9bb8ef"/>' +
+          '<polyline points="20,46 70,34 120,40 170,22 220,30 280,14" fill="none" stroke="#2563eb" stroke-width="3"/>' +
+          '<circle cx="232" cy="92" r="32" fill="#e7f0fc"/><path d="M232 92 L232 60 A32 32 0 0 1 260 100 Z" fill="#2563eb"/></svg></div>' +
+          '<div class="rname">' + r[0] + '</div><div class="rmeta">' + r[1] + '</div>';
+        grid.appendChild(c); cards.push(c);
+      });
+      // tooltips for two hovered cards (target card 0, and card 1)
+      const tipMain = el("tip", REPORTS[0][2]); lib.appendChild(tipMain);
+      const tipRev = el("tip", REPORTS[1][2]); lib.appendChild(tipRev);
+
+      // ---------- config ----------
+      const cfg = $("#configPanel");
+      cfg.appendChild(el("phd", "Monthly Performance Report"));
+      cfg.appendChild(el("psb", "Configure your report, then generate"));
+      const cfgwrap = el("cfgwrap"); cfg.appendChild(cfgwrap);
+      const form = el("cfgform"); cfgwrap.appendChild(form);
+      // date range
+      form.appendChild(el("clab", "Date range"));
+      const dateField = el("field drop", '<span class="fval ph">This month</span><span class="fval nx" style="opacity:0">Last month</span>' +
+        '<div class="dmenu" style="opacity:0"><div class="dopt">This month</div><div class="dopt" data-pick>Last month</div><div class="dopt">Last 7 days</div><div class="dopt">Custom range</div></div>');
+      form.appendChild(dateField);
+      // metrics
+      form.appendChild(el("clab", "Metrics"));
+      const METRICS = ["Active users", "Revenue", "Sessions", "Conversion rate", "Churn rate", "Retention", "Avg. order value", "Page views"];
+      const metricsBox = el("metrics"); form.appendChild(metricsBox);
+      const cbxEls = [];
+      METRICS.forEach((m, i) => {
+        const it = el("mitem", '<div class="cbx"><div class="ck"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div></div>' + m);
+        metricsBox.appendChild(it); cbxEls.push(it.querySelector(".cbx"));
+      });
+      // format
+      form.appendChild(el("clab", "Format"));
+      form.appendChild(el("field drop", '<span class="fval">PDF document</span>'));
+      const genBtn = el("", "Generate report"); genBtn.id = "genBtn";
+      genBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h7l-1 8 10-12h-7z"/></svg>Generate report';
+      form.appendChild(genBtn);
+      // side mini preview
+      const side = el("cfgside"); cfgwrap.appendChild(side);
+      side.appendChild(el("clab", "Preview"));
+      side.appendChild(el("miniprev", '<div style="height:14px;width:60%;background:#e7eaf1;border-radius:4px"></div><div style="display:flex;gap:10px;margin-top:18px"><div style="flex:1;height:60px;background:#f0f3f8;border-radius:7px"></div><div style="flex:1;height:60px;background:#f0f3f8;border-radius:7px"></div><div style="flex:1;height:60px;background:#f0f3f8;border-radius:7px"></div></div><div style="height:130px;background:#f0f3f8;border-radius:7px;margin-top:14px"></div><div style="height:90px;background:#f0f3f8;border-radius:7px;margin-top:14px"></div>'));
+
+      // ---------- progress ----------
+      const prog = $("#progressPanel");
+      prog.appendChild(el("phd", "Generating report"));
+      prog.appendChild(el("psb", "Building Monthly Performance Report — PDF"));
+      const pcard = el("progcard"); prog.appendChild(pcard);
+      const STEPS = ["Fetching data", "Processing metrics", "Building layout", "Rendering PDF"];
+      const stepEls = [];
+      STEPS.forEach((s, i) => {
+        const row = el("pstep", '<div class="pstat"><div class="done"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div></div><div class="plabel">' + s + '</div>' + (i === 3 ? '<div class="ppct" id="ppct">0%</div>' : ''));
+        pcard.appendChild(row);
+        if (i === 3) { const bw = el("pbarwrap", '<div class="pbar" id="pbar"></div>'); pcard.appendChild(bw); }
+        stepEls.push(row);
+      });
+
+      // ---------- preview ----------
+      const pv = $("#previewPanel");
+      const pvwrap = el("pvwrap"); pv.appendChild(pvwrap);
+      const thumbs = el("pvthumbs");
+      for (let i = 0; i < 4; i++) thumbs.appendChild(el("pvthumb" + (i === 0 ? " on" : "")));
+      pvwrap.appendChild(thumbs);
+      const pvmain = el("pvmain"); pvwrap.appendChild(pvmain);
+      const toolbar = el("pvtoolbar", '<div class="pvtitle">Monthly_Performance.pdf</div><div style="font-size:13px;color:#98a1b5;margin-left:10px">Page 1 of 4</div>');
+      const pvbtns = el("pvbtns");
+      const dlBtn = el("pvbtn", '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>Download'); dlBtn.id = "dlBtn";
+      const shareBtn = el("pvbtn", '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3a445e" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg>Share'); shareBtn.id = "shareBtn";
+      pvbtns.appendChild(dlBtn); pvbtns.appendChild(shareBtn); toolbar.appendChild(pvbtns); pvmain.appendChild(toolbar);
+      const page = el("page");
+      page.innerHTML =
+        '<div class="phead2"><div class="lg"></div><div class="ti">Monthly Performance Report</div><div class="dt">May 1 – May 31, 2026</div></div>' +
+        '<div class="kpis">' +
+          '<div class="kpi"><div class="v">48,210</div><div class="l">Active users</div><div class="d">▲ 12.4%</div></div>' +
+          '<div class="kpi"><div class="v">$214k</div><div class="l">Revenue</div><div class="d">▲ 8.1%</div></div>' +
+          '<div class="kpi"><div class="v">3.9%</div><div class="l">Conversion</div><div class="d">▲ 0.6pt</div></div>' +
+          '<div class="kpi"><div class="v">91%</div><div class="l">Retention</div><div class="d">▲ 2.0pt</div></div>' +
+        '</div>' +
+        '<div class="charts">' +
+          '<div class="chart"><div class="ct">Active users over time</div><svg width="100%" height="120" viewBox="0 0 360 120" preserveAspectRatio="none"><polyline points="6,96 60,80 114,86 168,54 222,62 276,30 350,18" fill="none" stroke="#2563eb" stroke-width="3"/><polyline points="6,96 60,80 114,86 168,54 222,62 276,30 350,18 350,118 6,118" fill="#e7f0fc" stroke="none"/></svg></div>' +
+          '<div class="chart"><div class="ct">Revenue by channel</div><svg width="100%" height="120" viewBox="0 0 360 120" preserveAspectRatio="none"><rect x="20" y="60" width="46" height="58" rx="3" fill="#93b4f0"/><rect x="92" y="38" width="46" height="80" rx="3" fill="#5b8ae8"/><rect x="164" y="74" width="46" height="44" rx="3" fill="#93b4f0"/><rect x="236" y="26" width="46" height="92" rx="3" fill="#2563eb"/><rect x="308" y="84" width="40" height="34" rx="3" fill="#93b4f0"/></svg></div>' +
+        '</div>' +
+        '<div class="ptable"><div class="tr h"><div>Metric</div><div>This month</div><div>Last month</div><div>Change</div></div>' +
+          '<div class="tr"><div>Active users</div><div>48,210</div><div>42,880</div><div style="color:#16a34a">+12.4%</div></div>' +
+          '<div class="tr"><div>Revenue</div><div>$214,000</div><div>$198,000</div><div style="color:#16a34a">+8.1%</div></div>' +
+          '<div class="tr"><div>Sessions</div><div>312,400</div><div>301,900</div><div style="color:#16a34a">+3.5%</div></div>' +
+          '<div class="tr"><div>Churn rate</div><div>2.1%</div><div>2.6%</div><div style="color:#16a34a">−0.5pt</div></div>' +
+        '</div>';
+      pvmain.appendChild(page);
+
+      // ---------- share modal ----------
+      const EMAIL = "alex@company.com";
+      const sm = $("#shareModal");
+      sm.innerHTML = '<div class="smt">Share report</div><div class="sms">Send a link to Monthly_Performance.pdf</div>' +
+        '<div class="sfield" id="sfield"><span class="sph" id="sph">name@company.com</span><span class="semail" id="semail"></span><span id="scaret"></span></div>' +
+        '<div id="sendBtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg>Send report</div>' +
+        '<div id="sentState"><div class="big"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div><div style="font-size:19px;font-weight:800;color:#1d2740">Report sent to alex@company.com</div></div>';
+      const semail = $("#semail");
+      const echars = [];
+      for (const ch of EMAIL) { const s = document.createElement("span"); s.textContent = ch; s.style.opacity = "0"; semail.appendChild(s); echars.push(s); }
+
+      // ===================== measure targets =====================
+      const rectC = (e) => { const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
+      const T = {
+        reports: rectC($("#reportsNav")),
+        cardMain: rectC(cards[0]), cardRev: rectC(cards[1]),
+        date: rectC(dateField), dateOpt: rectC(dateField.querySelector("[data-pick]")),
+        cbx: cbxEls.map((c) => rectC(c)),
+        gen: rectC(genBtn), dl: rectC(dlBtn), share: rectC(shareBtn),
+        send: rectC($("#sendBtn")), sfield: rectC($("#sfield")),
+      };
+      const semailLeft = semail.getBoundingClientRect().left;
+      const ecaretOff = echars.map((s) => s.getBoundingClientRect().right - semailLeft);
+      // tooltip positions (above each card)
+      const cmr = cards[0].getBoundingClientRect(), crr = cards[1].getBoundingClientRect();
+      tipMain.style.left = (cmr.left - 248 - 40 + 14) + "px"; tipMain.style.top = (cmr.top - 64 - 30 - 8) + "px";
+      tipRev.style.left = (crr.left - 248 - 40 + 14) + "px"; tipRev.style.top = (crr.top - 64 - 30 - 8) + "px";
+      // (panels use padding 30/40; tip is positioned within #libraryPanel which is inset to main at 248/64)
+
+      // ===================== initial states =====================
+      const cursor = $("#cursor"), ring = $("#ring"), glow = $("#glow");
+      const TIPX = 4.5, TIPY = 3;
+      gsap.set(cursor, { x: 130 - TIPX, y: 250 - TIPY });
+      gsap.set([ring, glow], { autoAlpha: 0, scale: 0.3, left: -400, top: -400, transformOrigin: "center center" });
+      gsap.set(["#configPanel", "#progressPanel", "#previewPanel"], { autoAlpha: 0 });
+      gsap.set([tipMain, tipRev], { autoAlpha: 0, y: 6 });
+      gsap.set(dateField.querySelector(".dmenu"), { autoAlpha: 0 });
+      gsap.set(["#backdrop", "#shareModal", "#toast", "#sentState"], { autoAlpha: 0 });
+      gsap.set("#libraryPanel", { autoAlpha: 0 });
+
+      // ===================== helpers =====================
+      const tl = gsap.timeline({ paused: true });
+      const move = (t, p, d = 0.45) => tl.to(cursor, { x: p.x - TIPX, y: p.y - TIPY, duration: d, ease: "power3.inOut" }, t);
+      const click = (t, p) => {
+        tl.to(cursor, { scale: 0.82, duration: 0.08, transformOrigin: "0 0" }, t);
+        tl.to(cursor, { scale: 1, duration: 0.14, ease: "back.out(2.6)" }, t + 0.08);
+        tl.set(glow, { left: p.x - 46, top: p.y - 46 }, t);
+        tl.fromTo(glow, { scale: 0.3, autoAlpha: 0.95 }, { scale: 1.7, autoAlpha: 0, duration: 0.52, ease: "power2.out" }, t);
+        tl.set(ring, { left: p.x - 22, top: p.y - 22 }, t);
+        tl.fromTo(ring, { scale: 0.35, autoAlpha: 0.85 }, { scale: 1.95, autoAlpha: 0, duration: 0.52, ease: "power2.out" }, t);
+      };
+
+      // ===================== TIMELINE =====================
+      let t = 0.6;
+      // click Reports -> library appears
+      move(t, T.reports, 0.5); t += 0.5;
+      tl.set("#reportsNav", { className: "snav on" }, t);
+      click(t, T.reports);
+      tl.fromTo("#libraryPanel", { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.4, ease: "power3.out" }, t + 0.12);
+      t += 0.7;
+
+      // hover Revenue card -> tooltip, then Monthly card -> tooltip
+      move(t, T.cardRev, 0.45); t += 0.45;
+      tl.fromTo(tipRev, { autoAlpha: 0, y: 6 }, { autoAlpha: 1, y: 0, duration: 0.22 }, t);
+      t += 0.4;
+      tl.to(tipRev, { autoAlpha: 0, duration: 0.2 }, t);
+      move(t, T.cardMain, 0.42); t += 0.42;
+      tl.fromTo(tipMain, { autoAlpha: 0, y: 6 }, { autoAlpha: 1, y: 0, duration: 0.22 }, t);
+      t += 0.45;
+      // click Monthly -> config opens
+      tl.to(tipMain, { autoAlpha: 0, duration: 0.18 }, t);
+      click(t, T.cardMain);
+      tl.to("#libraryPanel", { autoAlpha: 0, y: -14, duration: 0.3, ease: "power2.in" }, t + 0.12);
+      tl.fromTo("#configPanel", { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.4, ease: "power3.out" }, t + 0.3);
+      t += 0.85;
+
+      // set date range to Last month
+      move(t, T.date, 0.42); t += 0.42;
+      click(t, T.date);
+      tl.set(dateField, { className: "field drop active" }, t + 0.02);
+      tl.fromTo(dateField.querySelector(".dmenu"), { autoAlpha: 0, y: -6 }, { autoAlpha: 1, y: 0, duration: 0.2, ease: "power2.out" }, t + 0.05);
+      t += 0.45;
+      move(t, T.dateOpt, 0.34); t += 0.34;
+      tl.to(dateField.querySelector("[data-pick]"), { backgroundColor: "#eff4ff", duration: 0.08 }, t - 0.03);
+      click(t, T.dateOpt);
+      tl.to(dateField.querySelector(".dmenu"), { autoAlpha: 0, duration: 0.16 }, t + 0.12);
+      tl.set(dateField, { className: "field drop" }, t + 0.16);
+      tl.to(dateField.querySelector(".ph"), { autoAlpha: 0, duration: 0.16 }, t + 0.1);
+      tl.to(dateField.querySelector(".nx"), { autoAlpha: 1, duration: 0.2 }, t + 0.14);
+      t += 0.5;
+
+      // select six metrics one by one
+      for (let i = 0; i < 6; i++) {
+        move(t, T.cbx[i], 0.28); t += 0.28;
+        click(t, T.cbx[i]);
+        tl.set(cbxEls[i], { borderColor: "#2563eb" }, t + 0.02);
+        tl.fromTo(cbxEls[i].querySelector(".ck"), { autoAlpha: 0, scale: 0.4 }, { autoAlpha: 1, scale: 1, duration: 0.2, ease: "back.out(2.4)" }, t + 0.02);
+        t += 0.18;
+      }
+      t += 0.18;
+
+      // click Generate -> progress
+      move(t, T.gen, 0.45); t += 0.45;
+      tl.to("#genBtn", { scale: 0.96, duration: 0.1 }, t);
+      tl.to("#genBtn", { scale: 1, duration: 0.16, ease: "back.out(2.4)" }, t + 0.1);
+      click(t, T.gen);
+      tl.to("#configPanel", { autoAlpha: 0, duration: 0.3, ease: "power2.in" }, t + 0.14);
+      tl.fromTo("#progressPanel", { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.35, ease: "power3.out" }, t + 0.3);
+      t += 0.75;
+
+      // step checkmarks
+      const stepDone = (ti, i) => tl.fromTo(stepEls[i].querySelector(".done"), { autoAlpha: 0, scale: 0.4 }, { autoAlpha: 1, scale: 1, duration: 0.25, ease: "back.out(2.6)" }, ti);
+      stepDone(t, 0); t += 0.46;
+      stepDone(t, 1); t += 0.46;
+      stepDone(t, 2); t += 0.46;
+      // rendering PDF: bar fills + percent
+      const pobj = { v: 0 };
+      tl.to(pobj, { v: 100, duration: 1.45, ease: "power1.inOut", onUpdate: () => { $("#ppct").textContent = Math.round(pobj.v) + "%"; } }, t);
+      tl.to("#pbar", { width: "100%", duration: 1.45, ease: "power1.inOut" }, t);
+      t += 1.5;
+      stepDone(t, 3); t += 0.4;
+
+      // preview appears
+      tl.to("#progressPanel", { autoAlpha: 0, duration: 0.3, ease: "power2.in" }, t);
+      tl.fromTo("#previewPanel", { autoAlpha: 0, y: 16, scale: 0.985, transformOrigin: "center top" }, { autoAlpha: 1, y: 0, scale: 1, duration: 0.45, ease: "power3.out" }, t + 0.18);
+      t += 0.95;
+
+      // click Download -> toast
+      move(t, T.dl, 0.45); t += 0.45;
+      tl.to("#dlBtn", { scale: 0.96, duration: 0.1 }, t);
+      tl.to("#dlBtn", { scale: 1, duration: 0.16, ease: "back.out(2.4)" }, t + 0.1);
+      click(t, T.dl);
+      tl.fromTo("#toast", { autoAlpha: 0, y: 20 }, { autoAlpha: 1, y: 0, duration: 0.4, ease: "back.out(1.6)" }, t + 0.18);
+      t += 0.6;
+      tl.to("#toast", { autoAlpha: 0, y: 14, duration: 0.3 }, t + 0.25);
+
+      // click Share -> modal opens
+      move(t, T.share, 0.42); t += 0.42;
+      click(t, T.share);
+      tl.to("#backdrop", { autoAlpha: 1, duration: 0.3 }, t + 0.1);
+      tl.fromTo("#shareModal", { autoAlpha: 0, scale: 0.94, y: 10 }, { autoAlpha: 1, scale: 1, y: 0, duration: 0.34, ease: "back.out(1.5)" }, t + 0.14);
+      t += 0.7;
+
+      // click email field, type the address
+      move(t, T.sfield, 0.4); t += 0.4;
+      click(t, T.sfield);
+      tl.set("#sfield", { className: "sfield active" }, t + 0.04);
+      tl.to("#sph", { autoAlpha: 0, duration: 0.15 }, t + 0.04);
+      tl.set("#scaret", { opacity: 1 }, t + 0.08);
+      let tt = t + 0.16;
+      echars.forEach((c, k) => { tl.set(c, { opacity: 1 }, tt + k * 0.035); tl.set("#scaret", { left: 16 + ecaretOff[k] }, tt + k * 0.035); });
+      t = tt + echars.length * 0.035 + 0.13;
+      tl.to("#scaret", { opacity: 0, duration: 0.2 }, t);
+
+      // click Send -> sent confirmation
+      move(t, T.send, 0.4); t += 0.4;
+      tl.to("#sendBtn", { scale: 0.97, duration: 0.1 }, t);
+      tl.to("#sendBtn", { scale: 1, duration: 0.16, ease: "back.out(2.4)" }, t + 0.1);
+      click(t, T.send);
+      tl.to([$("#sfield"), $("#sendBtn"), sm.querySelector(".smt"), sm.querySelector(".sms")], { autoAlpha: 0, duration: 0.2 }, t + 0.16);
+      tl.fromTo("#sentState", { autoAlpha: 0, scale: 0.96 }, { autoAlpha: 1, scale: 1, duration: 0.32, ease: "back.out(1.6)" }, t + 0.26);
+      t += 0.7;
+      // settle hold
+      tl.to(cursor, { x: 1500, y: 760, duration: 0.7, ease: "power2.inOut" }, t);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
