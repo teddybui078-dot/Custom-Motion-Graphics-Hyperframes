@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #eef0f4; font-family: "Inter", system-ui, sans-serif; }
+      .stage { position: absolute; inset: 0; overflow: hidden; background: #f4f6f9; }
+
+      .appbar { position: absolute; left: 0; top: 0; width: 100%; height: 70px; background: #fff; border-bottom: 1px solid #e8eaf0; display: flex; align-items: center; padding: 0 30px; z-index: 8; }
+      .brand { display: flex; align-items: center; gap: 12px; font-size: 20px; font-weight: 800; color: #1d2740; }
+      .brand .mk { width: 26px; height: 26px; border-radius: 8px; background: linear-gradient(135deg,#0ea5e9,#2563eb); }
+      .nav { display: flex; gap: 26px; margin-left: 40px; font-size: 15px; color: #6b7488; font-weight: 600; }
+      .nav .on { color: #2563eb; }
+      .me { margin-left: auto; width: 36px; height: 36px; border-radius: 50%; background: #2563eb; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; }
+
+      .phead { position: absolute; left: 60px; top: 92px; right: 60px; height: 44px; display: flex; align-items: center; z-index: 7; }
+      .ptitle { font-size: 26px; font-weight: 800; color: #1d2740; }
+      #count { margin-left: 14px; font-size: 15px; color: #8a93a7; font-weight: 600; align-self: flex-end; padding-bottom: 4px; }
+      .pbtns { margin-left: auto; display: flex; gap: 12px; }
+      .hbtn { height: 42px; display: flex; align-items: center; gap: 9px; padding: 0 17px; border-radius: 10px; font-size: 15px; font-weight: 700; }
+      #filterBtn { background: #fff; border: 1.5px solid #dfe3ec; color: #3a445e; }
+      #filterBtn.on { background: #eff4ff; border-color: #2563eb; color: #2563eb; }
+
+      /* filter bar */
+      #filterbar { position: absolute; left: 60px; right: 60px; top: 150px; height: 196px; background: #fff; border: 1px solid #e6e9f0; border-radius: 14px; z-index: 6; opacity: 0; }
+      .frow { position: absolute; left: 22px; right: 22px; height: 38px; display: flex; align-items: center; gap: 16px; }
+      .flabel { width: 58px; font-size: 14px; font-weight: 700; color: #8a93a7; text-transform: uppercase; letter-spacing: 0.4px; }
+      .fcell { position: relative; width: 210px; height: 38px; border: 1.5px solid #e3e6ee; border-radius: 9px; display: flex; align-items: center; padding: 0 13px; font-size: 15px; background: #fff; }
+      .fcell.drop::after { content: ""; position: absolute; right: 12px; top: 15px; width: 7px; height: 7px; border-right: 2px solid #9aa2b5; border-bottom: 2px solid #9aa2b5; transform: rotate(45deg); }
+      .fcell.active { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.12); }
+      .fval { position: absolute; left: 13px; }
+      .fval.ph { color: #aab2c4; }
+      .fval.chosen { color: #1d2740; font-weight: 600; }
+      .fmenu { position: absolute; left: 0; top: 44px; width: 210px; background: #fff; border: 1px solid #e6e9f0; border-radius: 10px; box-shadow: 0 18px 44px rgba(20,28,46,0.20); padding: 5px; z-index: 20; }
+      .fopt { height: 34px; display: flex; align-items: center; padding: 0 11px; border-radius: 7px; font-size: 14px; color: #2a3350; }
+      .frm { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #b3bac8; flex: none; }
+      #addFilter { position: absolute; left: 22px; display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border-radius: 8px; font-size: 14px; font-weight: 700; color: #2563eb; }
+
+      /* table */
+      #tablecard { position: absolute; left: 60px; right: 60px; top: 150px; background: #fff; border: 1px solid #e6e9f0; border-radius: 14px; z-index: 4; overflow: hidden; }
+      .thead, .row { display: flex; align-items: center; padding: 0 28px; }
+      .thead { height: 46px; border-bottom: 1.5px solid #eef0f5; font-size: 12.5px; font-weight: 700; color: #8a93a7; text-transform: uppercase; letter-spacing: 0.5px; }
+      .row { height: 44px; border-bottom: 1px solid #f1f3f7; overflow: hidden; font-size: 14.5px; }
+      .row.sel { background: #f3f8ff; }
+      .c-cb { width: 26px; flex: none; }
+      .cb { width: 18px; height: 18px; border-radius: 5px; border: 2px solid #cdd3df; position: relative; }
+      .cb.head { border-color: #b6bdcc; }
+      .cbck { position: absolute; inset: -2px; border-radius: 5px; background: #2563eb; display: flex; align-items: center; justify-content: center; opacity: 0; }
+      .c-name { width: 314px; flex: none; display: flex; align-items: center; gap: 11px; }
+      .av { width: 28px; height: 28px; border-radius: 50%; color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex: none; }
+      .nm { font-weight: 600; color: #25304a; }
+      .c-co { width: 280px; flex: none; color: #5a6379; }
+      .c-deal { width: 170px; flex: none; font-weight: 700; color: #16203a; }
+      .c-stage { width: 190px; flex: none; }
+      .pill { display: inline-flex; align-items: center; height: 25px; padding: 0 12px; border-radius: 13px; font-size: 12.5px; font-weight: 700; }
+      .c-last { width: 230px; flex: none; color: #8a93a7; }
+      .c-own { flex: 1; }
+      .own-un { color: #aab2c4; font-style: italic; }
+      .own-set { display: flex; align-items: center; gap: 9px; }
+
+      /* bulk action bar */
+      #bulkbar { position: absolute; left: 50%; bottom: 40px; transform: translateX(-50%); height: 60px; background: #14203a; border-radius: 14px; display: flex; align-items: center; gap: 8px; padding: 0 12px 0 22px; box-shadow: 0 20px 55px rgba(10,16,32,0.4); z-index: 40; opacity: 0; }
+      #bulkbar .bcount { color: #fff; font-size: 16px; font-weight: 700; margin-right: 12px; }
+      .bbtn { height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 16px; border-radius: 10px; font-size: 15px; font-weight: 700; }
+      #assignBtn { background: #2563eb; color: #fff; }
+      .bbtn.ghost { color: #aeb8cc; }
+      #nameMenu { position: absolute; left: 50%; bottom: 112px; transform: translateX(-50%); width: 250px; background: #fff; border: 1px solid #e6e9f0; border-radius: 12px; box-shadow: 0 22px 55px rgba(10,16,32,0.3); padding: 6px; z-index: 42; opacity: 0; }
+      .nopt { height: 42px; display: flex; align-items: center; gap: 11px; padding: 0 10px; border-radius: 8px; font-size: 15px; color: #2a3350; }
+
+      #ring { position: absolute; width: 44px; height: 44px; border-radius: 50%; border: 2.5px solid rgba(37,99,235,0.6); z-index: 88; opacity: 0; }
+      #glow { position: absolute; width: 92px; height: 92px; border-radius: 50%; z-index: 87; opacity: 0; background: radial-gradient(circle, rgba(37,99,235,0.5) 0%, rgba(37,99,235,0) 70%); }
+      #cursor { position: absolute; left: 0; top: 0; z-index: 90; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="18" data-width="1920" data-height="1080">
+      <div class="stage" id="stage">
+
+        <div class="appbar">
+          <div class="brand"><div class="mk"></div>Pipeline CRM</div>
+          <div class="nav"><span>Dashboard</span><span class="on">Contacts</span><span>Deals</span><span>Reports</span></div>
+          <div class="me">DK</div>
+        </div>
+
+        <div class="phead">
+          <div class="ptitle">Contacts</div><div id="count">340 contacts</div>
+          <div class="pbtns">
+            <div class="hbtn" id="filterBtn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg>Filter</div>
+          </div>
+        </div>
+
+        <div id="filterbar" data-layout-allow-overflow></div>
+        <div id="tablecard" data-layout-allow-overflow></div>
+
+        <div id="bulkbar">
+          <div class="bcount" id="bcount">7 selected</div>
+          <div class="bbtn" id="assignBtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><circle cx="9" cy="8" r="3.4"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>Assign owner</div>
+          <div class="bbtn ghost">Export</div>
+        </div>
+        <div id="nameMenu"></div>
+
+        <div id="ring"></div>
+        <div id="glow"></div>
+        <div id="cursor"><svg width="36" height="42" viewBox="0 0 24 28"><path d="M3,2 L3,22 L8.5,16.8 L12,24.5 L15.4,23 L11.9,15.3 L19,15.3 Z" fill="#ffffff" stroke="#1b1b22" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+
+      // ---------- stage colors ----------
+      const STG = {
+        Discovery:   ["#1e6fd6", "#e7f0fc"],
+        Proposal:    ["#7c3aed", "#f0ebfe"],
+        Qualified:   ["#64748b", "#eef1f5"],
+        Negotiation: ["#b45309", "#fdf0db"],
+        "Closed Won":["#15803d", "#e6f6ec"],
+      };
+      const AVC = ["#2563eb", "#16a34a", "#e0457b", "#f59e0b", "#8b5cf6", "#06b6d4", "#ef4444"];
+      const initials = (n) => n.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+
+      // ---------- contacts (fstep: 1/2/3 = removed at that filter; 0 = survivor) ----------
+      // survivors: deal > $10k, Negotiation, Unassigned
+      const C = [
+        ["Acme Industries", "Northwind Traders", 48000, "Negotiation", "2d ago", null, 0],
+        ["Globex Corp", "Globex Corp", 6500, "Proposal", "1w ago", "Renee Tan", 1],
+        ["Initech", "Initech LLC", 92000, "Negotiation", "4d ago", null, 0],
+        ["Umbrella LLC", "Umbrella Group", 34000, "Discovery", "3d ago", "Marco Cole", 2],
+        ["Soylent Co", "Soylent Foods", 15500, "Negotiation", "1d ago", null, 0],
+        ["Stark Holdings", "Stark Holdings", 120000, "Negotiation", "5d ago", "Jordan Rivera", 3],
+        ["Wayne Enterprises", "Wayne Enterprises", 210000, "Negotiation", "6h ago", null, 0],
+        ["Hooli", "Hooli Inc", 3200, "Qualified", "2w ago", "Kim Park", 1],
+        ["Wonka Brands", "Wonka Brands", 27400, "Negotiation", "3d ago", null, 0],
+        ["Cyberdyne", "Cyberdyne Systems", 61000, "Closed Won", "1w ago", "Dev Shah", 2],
+        ["Tyrell Corp", "Tyrell Corp", 73000, "Negotiation", "2d ago", null, 0],
+        ["Pied Piper", "Pied Piper", 18900, "Negotiation", "5d ago", "Ada Gomez", 3],
+        ["Vandelay", "Vandelay Imports", 11200, "Negotiation", "1d ago", null, 0],
+        ["Massive Dynamic", "Massive Dynamic", 8800, "Proposal", "1w ago", "Lin Wei", 1],
+        ["Oscorp", "Oscorp Tech", 55000, "Discovery", "4d ago", "Sara Reed", 2],
+        ["Nakatomi", "Nakatomi Trading", 45000, "Negotiation", "3d ago", "Tom Brooks", 3],
+      ];
+      const money = (n) => "$" + n.toLocaleString("en-US");
+
+      const tcard = document.getElementById("tablecard");
+      const thead = document.createElement("div"); thead.className = "thead";
+      thead.innerHTML = '<div class="c-cb"><div class="cb head" id="cbHead"><div class="cbck" id="cbHeadCk"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div></div></div>' +
+        '<div class="c-name">Name</div><div class="c-co">Company</div><div class="c-deal">Deal size</div><div class="c-stage">Stage</div><div class="c-last">Last contacted</div><div class="c-own">Owner</div>';
+      tcard.appendChild(thead);
+
+      const rowEls = [];
+      C.forEach((r, i) => {
+        const [name, co, deal, stage, last, owner, fstep] = r;
+        const row = document.createElement("div"); row.className = "row"; row.dataset.fstep = fstep;
+        const ck = '<div class="cb"><div class="cbck"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div></div>';
+        const ownHtml = owner
+          ? '<div class="own-set"><div class="av" style="background:' + AVC[i % AVC.length] + ';width:24px;height:24px;font-size:10px">' + initials(owner) + '</div>' + owner + '</div>'
+          : '<span class="own-un dyn-un">Unassigned</span><span class="own-set dyn-new" style="display:none"><div class="av" style="background:#0ea5e9;width:24px;height:24px;font-size:10px">DL</div>Dana Lewis</span>';
+        row.innerHTML =
+          '<div class="c-cb">' + ck + '</div>' +
+          '<div class="c-name"><div class="av" style="background:' + AVC[(i + 2) % AVC.length] + '">' + initials(name) + '</div><span class="nm">' + name + '</span></div>' +
+          '<div class="c-co">' + co + '</div>' +
+          '<div class="c-deal">' + money(deal) + '</div>' +
+          '<div class="c-stage"><span class="pill" style="color:' + STG[stage][0] + ';background:' + STG[stage][1] + '">' + stage + '</span></div>' +
+          '<div class="c-last">' + last + '</div>' +
+          '<div class="c-own">' + ownHtml + '</div>';
+        tcard.appendChild(row); rowEls.push(row);
+      });
+      const fail1 = rowEls.filter((r) => r.dataset.fstep === "1");
+      const fail2 = rowEls.filter((r) => r.dataset.fstep === "2");
+      const fail3 = rowEls.filter((r) => r.dataset.fstep === "3");
+      const survivors = rowEls.filter((r) => r.dataset.fstep === "0");
+
+      // ---------- filter bar (3 rows, built but rows 1/2 hidden) ----------
+      const FILTERS = [
+        { label: "Where", field: ["Field", ["Name", "Company", "Deal size", "Stage", "Owner"], 2],
+          cond: ["Condition", ["Is", "Is not", "Greater than", "Less than"], 2],
+          val: ["Value", ["$1,000", "$5,000", "$10,000", "$50,000"], 2] },
+        { label: "And", field: ["Field", ["Name", "Company", "Deal size", "Stage", "Owner"], 3],
+          cond: ["Condition", ["Is", "Is not", "Contains"], 0],
+          val: ["Value", ["Discovery", "Proposal", "Negotiation", "Closed Won"], 2] },
+        { label: "And", field: ["Field", ["Name", "Company", "Deal size", "Stage", "Owner"], 4],
+          cond: ["Condition", ["Is", "Is not"], 0],
+          val: ["Value", ["Unassigned", "Dana Lewis", "Renee Tan", "Jordan Rivera"], 0] },
+      ];
+      const fbar = document.getElementById("filterbar");
+      const ROWY = [22, 70, 118]; // top of each frow inside the bar
+      const fref = [];
+      FILTERS.forEach((f, i) => {
+        const fr = document.createElement("div"); fr.className = "frow"; fr.style.top = ROWY[i] + "px";
+        const mkCell = (spec, cls) => {
+          const menu = spec[1].map((o, j) => '<div class="fopt" data-pick="' + (j === spec[2] ? 1 : 0) + '">' + o + '</div>').join("");
+          return '<div class="fcell drop ' + cls + '"><span class="fval ph">' + spec[0] + '</span><span class="fval chosen" style="opacity:0">' + spec[1][spec[2]] + '</span><div class="fmenu" style="opacity:0">' + menu + '</div></div>';
+        };
+        fr.innerHTML = '<div class="flabel">' + f.label + '</div>' + mkCell(f.field, "cf") + mkCell(f.cond, "cc") + mkCell(f.val, "cv") +
+          '<div class="frm"><svg width="15" height="15" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></div>';
+        fbar.appendChild(fr);
+        const cell = (c) => ({ el: fr.querySelector("." + c), ph: fr.querySelector("." + c + " .ph"), chosen: fr.querySelector("." + c + " .chosen"), menu: fr.querySelector("." + c + " .fmenu"), opt: fr.querySelectorAll("." + c + " .fopt")[FILTERS[i][c === "cf" ? "field" : c === "cc" ? "cond" : "val"][2]] });
+        fref.push({ row: fr, field: cell("cf"), cond: cell("cc"), val: cell("cv") });
+      });
+      const addBtn = document.createElement("div"); addBtn.id = "addFilter"; addBtn.style.top = "70px";
+      addBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.6" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add filter';
+      fbar.appendChild(addBtn);
+
+      // ---------- name dropdown ----------
+      const NAMES = ["Dana Lewis", "Priya Patel", "Marco Diaz", "Sara Chen"];
+      const nameMenu = document.getElementById("nameMenu");
+      nameMenu.innerHTML = NAMES.map((n, i) => '<div class="nopt"><div class="av" style="background:' + (i === 0 ? "#0ea5e9" : AVC[i]) + ';width:26px;height:26px;font-size:10px">' + initials(n) + '</div>' + n + '</div>').join("");
+      const nameOpt = nameMenu.children[0];
+
+      // ===================== GEOMETRY (absolute stage coords) =====================
+      const CARD_L = 60, PAD = 28;
+      const xContent = CARD_L + PAD;                 // 88
+      const xCb = xContent + 13;                     // checkbox center ~101
+      const TBL_OPEN = 340, THEAD = 46, ROWH = 44;
+      const headCbY = TBL_OPEN + 23;
+      const survY = (k) => TBL_OPEN + THEAD + k * ROWH + ROWH / 2;   // survivor k center (post-collapse, filter open)
+      // filter cell centers (absolute): bar top 150, frow top offsets ROWY, cell row center +19
+      const cellC = (i, which) => {
+        const baseX = CARD_L + 22 + 58 + 16;         // 156 (after label+gap)
+        const cx = which === "field" ? baseX + 105 : which === "cond" ? baseX + 226 + 105 : baseX + 452 + 105;
+        return { x: cx, y: 150 + ROWY[i] + 19 };
+      };
+      const optC = (i, which, pick) => { const c = cellC(i, which); return { x: c.x, y: c.y + 26 + pick * 34 + 17 }; };
+
+      // measure bulk-bar + name dropdown at rest (before they're hidden)
+      const rectC = (e) => { const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
+      const ASSIGN = rectC(document.getElementById("assignBtn"));
+      const NAMEOPT = rectC(nameOpt);
+
+      // ---------- initial states ----------
+      const cursor = document.getElementById("cursor"), ring = document.getElementById("ring"), glow = document.getElementById("glow");
+      const TIPX = 4.5, TIPY = 3;
+      gsap.set(cursor, { x: 980 - TIPX, y: 250 - TIPY });
+      gsap.set([ring, glow], { autoAlpha: 0, scale: 0.3, transformOrigin: "center center" });
+      gsap.set(fbar, { autoAlpha: 0, y: -16 });
+      gsap.set([fref[1].row, fref[2].row], { autoAlpha: 0 });
+      gsap.set(addBtn, { autoAlpha: 0 });
+      gsap.set("#bulkbar", { autoAlpha: 0, y: 20 });
+      gsap.set("#nameMenu", { autoAlpha: 0, y: 10 });
+
+      // ---------- cursor helpers ----------
+      const tl = gsap.timeline({ paused: true });
+      const move = (t, p, d = 0.45) => tl.to(cursor, { x: p.x - TIPX, y: p.y - TIPY, duration: d, ease: "power3.inOut" }, t);
+      const click = (t, p) => {
+        tl.to(cursor, { scale: 0.82, duration: 0.08, transformOrigin: "0 0" }, t);
+        tl.to(cursor, { scale: 1, duration: 0.14, ease: "back.out(2.6)" }, t + 0.08);
+        tl.set(glow, { left: p.x - 46, top: p.y - 46 }, t);
+        tl.fromTo(glow, { scale: 0.3, autoAlpha: 0.95 }, { scale: 1.7, autoAlpha: 0, duration: 0.52, ease: "power2.out" }, t);
+        tl.set(ring, { left: p.x - 22, top: p.y - 22 }, t);
+        tl.fromTo(ring, { scale: 0.35, autoAlpha: 0.85 }, { scale: 1.95, autoAlpha: 0, duration: 0.52, ease: "power2.out" }, t);
+      };
+      const badge = document.getElementById("count");
+      const setCount = (t, from, to) => { const o = { v: from }; tl.to(o, { v: to, duration: 0.5, ease: "power1.inOut",
+        onUpdate: () => { badge.textContent = Math.round(o.v).toLocaleString("en-US") + " contacts"; } }, t); };
+      const collapse = (t, rows) => rows.forEach((r, i) => tl.to(r, { height: 0, opacity: 0, borderBottomWidth: 0, duration: 0.42, ease: "power2.inOut" }, t + i * 0.05));
+
+      // pick a value in a filter cell: open menu -> move to option -> select -> crossfade (compact ~0.74s)
+      function pickCell(t, i, which, pick) {
+        const cell = fref[i][which];
+        const cc = cellC(i, which), oc = optC(i, which, pick);
+        move(t, cc, 0.24);
+        click(t + 0.24, cc);
+        tl.set(cell.el, { className: cell.el.className + " active" }, t + 0.22);
+        tl.fromTo(cell.menu, { autoAlpha: 0, y: -6, scale: 0.98, transformOrigin: "top center" }, { autoAlpha: 1, y: 0, scale: 1, duration: 0.16, ease: "power2.out" }, t + 0.26);
+        move(t + 0.34, oc, 0.2);
+        tl.to(cell.opt, { backgroundColor: "#eff4ff", duration: 0.08 }, t + 0.5);
+        click(t + 0.54, oc);
+        tl.to(cell.menu, { autoAlpha: 0, duration: 0.14 }, t + 0.62);
+        tl.set(cell.el, { className: cell.el.className.replace(" active", "") }, t + 0.62);
+        tl.to(cell.ph, { autoAlpha: 0, duration: 0.14 }, t + 0.56);
+        tl.to(cell.chosen, { autoAlpha: 1, duration: 0.18 }, t + 0.6);
+        return t + 0.74;
+      }
+
+      // ===================== TIMELINE =====================
+      let t = 0.9;
+
+      // open filter bar
+      move(t, { x: 1790, y: 114 }, 0.45); t += 0.45;
+      tl.set("#filterBtn", { className: "hbtn on" }, t);
+      click(t, { x: 1790, y: 114 });
+      tl.to("#tablecard", { top: 340, duration: 0.42, ease: "power3.out" }, t + 0.1);
+      tl.to(fbar, { autoAlpha: 1, y: 0, duration: 0.42, ease: "power3.out" }, t + 0.1);
+      tl.to(addBtn, { autoAlpha: 1, duration: 0.3 }, t + 0.3);
+      t += 0.6;
+
+      // filter 1: Deal size > $10,000  -> 340 to 89
+      t = pickCell(t, 0, "field", FILTERS[0].field[2]);
+      t = pickCell(t, 0, "cond", FILTERS[0].cond[2]);
+      t = pickCell(t, 0, "val", FILTERS[0].val[2]);
+      collapse(t, fail1);
+      setCount(t + 0.05, 340, 89);
+      t += 0.55;
+
+      // add filter 2
+      move(t, { x: 140, y: 238 }, 0.34); t += 0.34;
+      click(t, { x: 140, y: 238 });
+      tl.to(fref[1].row, { autoAlpha: 1, duration: 0.3 }, t + 0.08);
+      tl.to(addBtn, { top: 118, duration: 0.3, ease: "power2.out" }, t + 0.08);
+      t += 0.42;
+      // filter 2: Stage Is Negotiation -> 89 to 23
+      t = pickCell(t, 1, "field", FILTERS[1].field[2]);
+      t = pickCell(t, 1, "cond", FILTERS[1].cond[2]);
+      t = pickCell(t, 1, "val", FILTERS[1].val[2]);
+      collapse(t, fail2);
+      setCount(t + 0.05, 89, 23);
+      t += 0.55;
+
+      // add filter 3
+      move(t, { x: 140, y: 286 }, 0.34); t += 0.34;
+      click(t, { x: 140, y: 286 });
+      tl.to(fref[2].row, { autoAlpha: 1, duration: 0.3 }, t + 0.08);
+      tl.to(addBtn, { autoAlpha: 0, duration: 0.2 }, t + 0.08);
+      t += 0.42;
+      // filter 3: Owner Is Unassigned -> 23 to 7
+      t = pickCell(t, 2, "field", FILTERS[2].field[2]);
+      t = pickCell(t, 2, "cond", FILTERS[2].cond[2]);
+      t = pickCell(t, 2, "val", FILTERS[2].val[2]);
+      collapse(t, fail3);
+      setCount(t + 0.05, 23, 7);
+      t += 0.6;
+
+      // select all seven -> checkboxes cascade
+      move(t, { x: xCb, y: headCbY }, 0.4); t += 0.4;
+      click(t, { x: xCb, y: headCbY });
+      tl.to("#cbHeadCk", { autoAlpha: 1, duration: 0.16 }, t);
+      survivors.forEach((r, k) => {
+        tl.to(r.querySelector(".cbck"), { autoAlpha: 1, duration: 0.16, ease: "power2.out" }, t + 0.16 + k * 0.08);
+        tl.to(r, { backgroundColor: "#f3f8ff", duration: 0.2 }, t + 0.16 + k * 0.08);
+      });
+      t += 0.16 + survivors.length * 0.08 + 0.15;
+
+      // bulk action bar appears
+      tl.fromTo("#bulkbar", { autoAlpha: 0, y: 20 }, { autoAlpha: 1, y: 0, duration: 0.4, ease: "back.out(1.6)" }, t);
+      t += 0.45;
+
+      // click Assign owner -> name dropdown
+      move(t, ASSIGN, 0.42); t += 0.42;
+      click(t, ASSIGN);
+      tl.fromTo("#nameMenu", { autoAlpha: 0, y: 10, scale: 0.98, transformOrigin: "bottom center" }, { autoAlpha: 1, y: 0, scale: 1, duration: 0.26, ease: "power2.out" }, t + 0.1);
+      t += 0.5;
+      // pick Dana Lewis -> all seven owner cells populate at once
+      move(t, NAMEOPT, 0.32); t += 0.32;
+      tl.to(nameOpt, { backgroundColor: "#eff4ff", duration: 0.08 }, t - 0.03);
+      click(t, NAMEOPT);
+      tl.to("#nameMenu", { autoAlpha: 0, duration: 0.18 }, t + 0.12);
+      tl.to("#bulkbar", { autoAlpha: 0, y: 16, duration: 0.3 }, t + 0.2);
+      // simultaneous owner populate + flash
+      survivors.forEach((r) => {
+        tl.set(r.querySelector(".dyn-un"), { display: "none" }, t + 0.3);
+        tl.set(r.querySelector(".dyn-new"), { display: "flex" }, t + 0.3);
+        tl.fromTo(r.querySelector(".dyn-new"), { autoAlpha: 0, x: -6 }, { autoAlpha: 1, x: 0, duration: 0.3, ease: "power2.out" }, t + 0.3);
+        tl.fromTo(r, { backgroundColor: "#dcefff" }, { backgroundColor: "#f3f8ff", duration: 0.6, ease: "power2.out" }, t + 0.3);
+      });
+      t += 0.75;
+
+      // filter clears -> full table returns
+      tl.set("#filterBtn", { className: "hbtn" }, t);
+      tl.to(fbar, { autoAlpha: 0, y: -16, duration: 0.4, ease: "power2.in" }, t);
+      tl.to("#tablecard", { top: 150, duration: 0.5, ease: "power3.inOut" }, t + 0.1);
+      [...fail1, ...fail2, ...fail3].forEach((r, i) => tl.to(r, { height: ROWH, opacity: 1, borderBottomWidth: 1, duration: 0.4, ease: "power2.out" }, t + 0.12 + (i % 4) * 0.03));
+      // deselect
+      survivors.forEach((r) => { tl.to(r.querySelector(".cbck"), { autoAlpha: 0, duration: 0.25 }, t); tl.to(r, { backgroundColor: "rgba(255,255,255,0)", duration: 0.4 }, t + 0.4); });
+      tl.to("#cbHeadCk", { autoAlpha: 0, duration: 0.25 }, t);
+      setCount(t + 0.1, 7, 340);
+      t += 0.7;
+
+      // settle: cursor drifts toward the seven freshly-owned rows
+      move(t, { x: 1560, y: 250 }, 0.6);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
