@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #0b1020; font-family: "Inter", system-ui, sans-serif; }
+      .stage { position: absolute; inset: 0; overflow: hidden; background: #eef0f4; }
+
+      /* browser chrome */
+      .chrome { position: absolute; left: 0; top: 0; width: 100%; height: 44px; background: #dfe2ea; display: flex; align-items: center; padding: 0 18px; gap: 8px; z-index: 9; }
+      .dot { width: 13px; height: 13px; border-radius: 50%; }
+      .url { margin-left: 18px; height: 28px; flex: 1; max-width: 560px; background: #fff; border-radius: 8px; display: flex; align-items: center; padding: 0 14px; font-size: 13px; color: #7a8295; gap: 8px; }
+      .url .lock { width: 11px; height: 11px; border-radius: 3px; background: #b6bdcc; }
+
+      /* app top bar */
+      .appbar { position: absolute; left: 0; top: 44px; width: 100%; height: 72px; background: #fff; border-bottom: 1px solid #e8eaf0; display: flex; align-items: center; padding: 0 30px; z-index: 8; }
+      .brand { display: flex; align-items: center; gap: 12px; font-size: 21px; font-weight: 800; color: #1d2740; }
+      .brand .mk { width: 28px; height: 28px; border-radius: 9px; background: linear-gradient(135deg,#6366f1,#3b82f6); }
+      .dtitle { margin-left: 26px; font-size: 16px; font-weight: 600; color: #8a93a7; }
+      .btn { height: 42px; display: flex; align-items: center; gap: 9px; padding: 0 18px; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: default; }
+      .btn .ic { width: 17px; height: 17px; }
+      #shareBtn { margin-left: auto; background: #f1f3f8; color: #3a445e; }
+      #addBtn { margin-left: 14px; background: linear-gradient(135deg,#6366f1,#4f46e5); color: #fff; box-shadow: 0 6px 18px rgba(79,70,229,0.30); }
+
+      /* canvas */
+      .canvas { position: absolute; left: 0; top: 116px; right: 0; bottom: 0; overflow: hidden;
+        background:
+          linear-gradient(#e7eaf1 1px, transparent 1px) 0 0 / 100% 36px,
+          linear-gradient(90deg, #e7eaf1 1px, transparent 1px) 0 0 / 36px 100%,
+          #f4f6f9; }
+      #emptyHint { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); text-align: center; color: #aab2c4; }
+      #emptyHint .eh1 { font-size: 22px; font-weight: 700; color: #98a1b5; }
+      #emptyHint .eh2 { font-size: 15px; margin-top: 8px; }
+
+      /* widgets */
+      .widget { position: absolute; width: 864px; height: 406px; background: #fff; border: 1px solid #e8eaf0; border-radius: 16px; box-shadow: 0 10px 34px rgba(20,28,46,0.08); padding: 22px 26px; z-index: 4; }
+      .whead { display: flex; align-items: center; justify-content: space-between; height: 30px; }
+      .wtitle { position: relative; height: 26px; }
+      .wt { position: absolute; left: 0; top: 0; font-size: 18px; font-weight: 700; color: #1d2740; white-space: nowrap; }
+      .wt.ph { color: #aab2c4; font-weight: 600; }
+      .wdots { display: flex; gap: 5px; }
+      .wdots i { width: 4px; height: 4px; border-radius: 50%; background: #c7cdda; }
+      .wbody { position: absolute; left: 26px; right: 26px; top: 64px; bottom: 22px; }
+
+      .handles { position: absolute; inset: -2px; z-index: 6; }
+      .handles b { position: absolute; width: 12px; height: 12px; background: #fff; border: 2.5px solid #4f46e5; border-radius: 3px; }
+      .handles b.tl { left: -6px; top: -6px; } .handles b.tr { right: -6px; top: -6px; }
+      .handles b.bl { left: -6px; bottom: -6px; } .handles b.br { right: -6px; bottom: -6px; }
+      .widget.sel { border-color: #c3c9f0; box-shadow: 0 0 0 2px rgba(79,70,229,0.35), 0 14px 40px rgba(79,70,229,0.16); }
+
+      /* placeholder visuals */
+      .phlabel { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); font-size: 14px; color: #bcc3d2; font-weight: 600; }
+      .metricNum { position: absolute; left: 0; top: 8px; font-size: 64px; font-weight: 800; color: #1d2740; letter-spacing: -1px; }
+      .metricNum.ph { color: #d2d7e2; }
+      .mdelta { position: absolute; left: 2px; top: 96px; font-size: 17px; font-weight: 700; color: #16a34a; }
+      .mfoot { position: absolute; left: 2px; bottom: 0; font-size: 14px; color: #97a0b3; }
+
+      /* config panel */
+      .cfg { position: absolute; top: 116px; right: 0; width: 384px; bottom: 0; background: #fff; border-left: 1px solid #e6e9f0; box-shadow: -16px 0 50px rgba(20,28,46,0.10); z-index: 30; padding: 26px 24px; }
+      .cfg .ctitle { font-size: 19px; font-weight: 800; color: #1d2740; }
+      .cfg .csub { font-size: 14px; color: #98a1b5; margin-top: 4px; margin-bottom: 26px; }
+      .clab { font-size: 13px; font-weight: 700; color: #7b8499; text-transform: uppercase; letter-spacing: 0.4px; margin: 20px 0 8px; }
+      .cfield { position: relative; height: 50px; border: 1.5px solid #e3e6ee; border-radius: 11px; display: flex; align-items: center; padding: 0 15px; font-size: 16px; color: #2a3350; }
+      .cfield.drop::after { content: ""; position: absolute; right: 16px; top: 21px; width: 8px; height: 8px; border-right: 2px solid #9aa2b5; border-bottom: 2px solid #9aa2b5; transform: rotate(45deg); }
+      .cfield.active { border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,0.12); }
+      .cval { position: absolute; left: 15px; }
+      .cval.ph { color: #aab2c4; }
+      .cmenu { position: absolute; left: 0; right: 0; top: 56px; background: #fff; border: 1px solid #e6e9f0; border-radius: 12px; box-shadow: 0 20px 50px rgba(20,28,46,0.18); padding: 6px; z-index: 5; }
+      .copt { height: 42px; display: flex; align-items: center; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #2a3350; }
+      .cdone { position: absolute; left: 24px; right: 24px; bottom: 26px; height: 48px; border-radius: 11px; background: linear-gradient(135deg,#6366f1,#4f46e5); color: #fff; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 22px rgba(79,70,229,0.28); }
+
+      /* widget picker */
+      #picker { position: absolute; top: 116px; right: 0; width: 384px; bottom: 0; background: #fff; border-left: 1px solid #e6e9f0; box-shadow: -16px 0 50px rgba(20,28,46,0.10); z-index: 32; padding: 26px 22px; }
+      #picker .ptitle { font-size: 19px; font-weight: 800; color: #1d2740; }
+      #picker .psub { font-size: 14px; color: #98a1b5; margin-top: 4px; margin-bottom: 20px; }
+      .prow { display: flex; align-items: center; gap: 14px; height: 64px; padding: 0 14px; border-radius: 12px; margin-bottom: 6px; }
+      .pic { width: 42px; height: 42px; border-radius: 11px; display: flex; align-items: center; justify-content: center; flex: none; }
+      .pname { font-size: 16px; font-weight: 700; color: #25304a; }
+      .pdesc { font-size: 13px; color: #98a1b5; margin-top: 2px; }
+
+      /* toast */
+      #toast { position: absolute; left: 50%; bottom: 46px; transform: translateX(-50%); background: #14203a; color: #fff; height: 54px; display: flex; align-items: center; gap: 13px; padding: 0 24px; border-radius: 13px; font-size: 17px; font-weight: 600; box-shadow: 0 18px 50px rgba(10,16,32,0.35); z-index: 60; }
+      #toast .chk { width: 26px; height: 26px; border-radius: 50%; background: #22c55e; display: flex; align-items: center; justify-content: center; }
+
+      #ring { position: absolute; width: 46px; height: 46px; border-radius: 50%; border: 2.5px solid rgba(79,70,229,0.6); z-index: 88; opacity: 0; }
+      #glow { position: absolute; width: 96px; height: 96px; border-radius: 50%; z-index: 87; opacity: 0; background: radial-gradient(circle, rgba(99,102,241,0.5) 0%, rgba(99,102,241,0) 70%); }
+      #cursor { position: absolute; left: 0; top: 0; z-index: 90; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="25" data-width="1920" data-height="1080">
+      <div class="stage" id="stage">
+
+        <div class="chrome">
+          <div class="dot" style="background:#f0685f"></div>
+          <div class="dot" style="background:#f7c14b"></div>
+          <div class="dot" style="background:#5fc466"></div>
+          <div class="url"><div class="lock"></div>app.metricflow.io/dashboards/new</div>
+        </div>
+
+        <div class="appbar">
+          <div class="brand"><div class="mk"></div>Metricflow</div>
+          <div class="dtitle">Untitled dashboard</div>
+          <div class="btn" id="shareBtn">
+            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#3a445e" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg>
+            Share
+          </div>
+          <div class="btn" id="addBtn">
+            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add widget
+          </div>
+        </div>
+
+        <div class="canvas" id="canvas">
+          <div id="emptyHint"><div class="eh1">Your dashboard is empty</div><div class="eh2">Click “Add widget” to drop in your first chart</div></div>
+        </div>
+
+        <!-- widget picker -->
+        <div id="picker" data-layout-allow-overflow>
+          <div class="ptitle">Add a widget</div>
+          <div class="psub">Pick a visualization to drop on the canvas</div>
+          <div class="prow" data-w="line"><div class="pic" style="background:#eaf1ff"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,16 9,10 13,13 21,5"/></svg></div><div><div class="pname">Line Chart</div><div class="pdesc">Trends over time</div></div></div>
+          <div class="prow" data-w="metric"><div class="pic" style="background:#e9f8ef"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13 a8 8 0 0 1 16 0"/><line x1="12" y1="13" x2="15.5" y2="9.5"/><circle cx="12" cy="13" r="1.3" fill="#16a34a" stroke="none"/></svg></div><div><div class="pname">Metric Card</div><div class="pdesc">A single headline number</div></div></div>
+          <div class="prow" data-w="bar"><div class="pic" style="background:#fff1e6"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.2" stroke-linecap="round"><line x1="5" y1="20" x2="5" y2="12"/><line x1="12" y1="20" x2="12" y2="5"/><line x1="19" y1="20" x2="19" y2="9"/></svg></div><div><div class="pname">Bar Chart</div><div class="pdesc">Compare categories</div></div></div>
+          <div class="prow" data-w="table"><div class="pic" style="background:#f0ecfe"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="9" y1="10" x2="9" y2="20"/></svg></div><div><div class="pname">Table</div><div class="pdesc">Rows of raw records</div></div></div>
+          <div class="prow"><div class="pic" style="background:#fde8ef"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e0457b" stroke-width="2.2"><circle cx="12" cy="12" r="8"/><path d="M12 12 L12 4 A8 8 0 0 1 19 14 Z" fill="#e0457b" stroke="none"/></svg></div><div><div class="pname">Pie Chart</div><div class="pdesc">Share of total</div></div></div>
+          <div class="prow"><div class="pic" style="background:#e6f6f9"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h18 l-6 8 v6 l-6 0 v-6 Z"/></svg></div><div><div class="pname">Funnel</div><div class="pdesc">Conversion by stage</div></div></div>
+        </div>
+
+        <!-- config panels (built per-widget in JS) -->
+        <div id="cfgHost"></div>
+
+        <div id="toast" style="opacity:0"><div class="chk"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13 l4 4 L19 7"/></svg></div>Link copied to clipboard</div>
+
+        <div id="ring"></div>
+        <div id="glow"></div>
+        <div id="cursor"><svg width="36" height="42" viewBox="0 0 24 28"><path d="M3,2 L3,22 L8.5,16.8 L12,24.5 L15.4,23 L11.9,15.3 L19,15.3 Z" fill="#ffffff" stroke="#1b1b22" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const canvas = document.getElementById("canvas");
+      const cursor = document.getElementById("cursor");
+      const ring = document.getElementById("ring");
+      const glow = document.getElementById("glow");
+
+      // ---------- quadrant geometry ----------
+      const FINAL = {
+        line:   { left: 36,   top: 32,  cx: 468,  cy: 351 },
+        metric: { left: 1020, top: 32,  cx: 1452, cy: 351 },
+        bar:    { left: 36,   top: 484, cx: 468,  cy: 803 },
+        table:  { left: 1020, top: 484, cx: 1452, cy: 803 },
+      };
+      const SPAWN = { cx: 960, cy: 577, left: 528, top: 374 };
+
+      // ---------- build the four widgets ----------
+      function el(html) { const d = document.createElement("div"); d.innerHTML = html.trim(); return d.firstChild; }
+      const W = {};
+
+      // LINE
+      W.line = el(`<div class="widget" id="wLine">
+        <div class="whead"><div class="wtitle"><div class="wt ph">Untitled chart</div><div class="wt real" style="opacity:0">Active users · last 30 days</div></div><div class="wdots"><i></i><i></i><i></i></div></div>
+        <div class="wbody">
+          <svg id="lineSvg" width="100%" height="100%" viewBox="0 0 812 296" preserveAspectRatio="none">
+            <line x1="0" y1="74" x2="812" y2="74" stroke="#eef0f5"/><line x1="0" y1="148" x2="812" y2="148" stroke="#eef0f5"/><line x1="0" y1="222" x2="812" y2="222" stroke="#eef0f5"/>
+            <polyline id="linePh" points="10,150 802,150" fill="none" stroke="#dde1ea" stroke-width="3" stroke-dasharray="8 8"/>
+            <path id="lineArea" d="M10,232 L10,210 L145,178 L280,196 L415,128 L545,150 L680,82 L802,52 L802,232 Z" fill="url(#lg)" opacity="0"/>
+            <path id="linePath" d="M10,210 L145,178 L280,196 L415,128 L545,150 L680,82 L802,52" fill="none" stroke="#4f46e5" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="1"/>
+            <defs><linearGradient id="lg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6366f1" stop-opacity="0.28"/><stop offset="1" stop-color="#6366f1" stop-opacity="0"/></linearGradient></defs>
+          </svg>
+        </div>
+        <div class="handles"><b class="tl"></b><b class="tr"></b><b class="bl"></b><b class="br"></b></div></div>`);
+
+      // METRIC (the spec calls this the metric card -> top right)
+      W.metric = el(`<div class="widget" id="wMetric">
+        <div class="whead"><div class="wtitle"><div class="wt ph">Untitled metric</div><div class="wt real" style="opacity:0">Total revenue</div></div><div class="wdots"><i></i><i></i><i></i></div></div>
+        <div class="wbody">
+          <div class="metricNum ph" id="mPh">—</div>
+          <div class="metricNum real" id="mReal" style="opacity:0">$0</div>
+          <div class="mdelta" id="mDelta" style="opacity:0">▲ 12.4% vs last month</div>
+          <svg id="mSpark" width="320" height="60" viewBox="0 0 320 60" style="position:absolute;right:0;top:18px;opacity:0"><path d="M0,46 L46,40 L92,44 L138,26 L184,32 L230,14 L276,18 L320,6" fill="none" stroke="#16a34a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div class="mfoot">Updated moments ago</div>
+        </div>
+        <div class="handles"><b class="tl"></b><b class="tr"></b><b class="bl"></b><b class="br"></b></div></div>`);
+
+      // BAR (bottom left)
+      let bars = "";
+      const BH = [120, 168, 96, 200, 150, 226, 188];
+      const BX = [18, 128, 238, 348, 458, 568, 678];
+      const BLAB = ["W1","W2","W3","W4","W5","W6","W7"];
+      BH.forEach((h, i) => { bars += `<rect class="bar" x="${BX[i]}" y="${252 - h}" width="78" height="${h}" rx="6" fill="#16a34a"/>`; });
+      let barlabs = ""; BX.forEach((x, i) => { barlabs += `<text x="${x + 39}" y="276" text-anchor="middle" font-size="14" fill="#9aa2b5">${BLAB[i]}</text>`; });
+      W.bar = el(`<div class="widget" id="wBar">
+        <div class="whead"><div class="wtitle"><div class="wt ph">Untitled chart</div><div class="wt real" style="opacity:0">Signups by week</div></div><div class="wdots"><i></i><i></i><i></i></div></div>
+        <div class="wbody">
+          <div class="phlabel" id="barPh">No data source</div>
+          <svg id="barSvg" width="100%" height="100%" viewBox="0 0 760 296" preserveAspectRatio="none" style="opacity:0"><g id="barG">${bars}</g>${barlabs}<line x1="0" y1="252" x2="760" y2="252" stroke="#e7eaf1"/></svg>
+        </div>
+        <div class="handles"><b class="tl"></b><b class="tr"></b><b class="bl"></b><b class="br"></b></div></div>`);
+
+      // TABLE (bottom right)
+      const ROWS = [
+        ["Acme Corp", "Enterprise", "$4,200", "#16a34a"],
+        ["Globex", "Pro", "$1,180", "#16a34a"],
+        ["Initech", "Starter", "$320", "#f59e0b"],
+        ["Umbrella", "Enterprise", "$5,900", "#16a34a"],
+        ["Hooli", "Pro", "$1,050", "#16a34a"],
+        ["Soylent", "Starter", "$280", "#ef4444"],
+      ];
+      let trows = "";
+      ROWS.forEach((r) => { trows += `<div class="trow" style="display:flex;align-items:center;height:42px;border-top:1px solid #f0f2f6;font-size:15px;opacity:0"><div style="flex:1.4;font-weight:600;color:#25304a">${r[0]}</div><div style="flex:1;color:#6b7488">${r[1]}</div><div style="flex:0.8;text-align:right;font-weight:700;color:#1d2740">${r[2]}</div><div style="width:54px;text-align:right"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${r[3]}"></span></div></div>`; });
+      W.table = el(`<div class="widget" id="wTable">
+        <div class="whead"><div class="wtitle"><div class="wt ph">Untitled table</div><div class="wt real" style="opacity:0">Recent activity</div></div><div class="wdots"><i></i><i></i><i></i></div></div>
+        <div class="wbody">
+          <div class="phlabel" id="tblPh">No rows yet</div>
+          <div id="tblReal" style="opacity:0"><div style="display:flex;height:34px;font-size:13px;font-weight:700;color:#8a93a7;text-transform:uppercase;letter-spacing:0.4px"><div style="flex:1.4">Account</div><div style="flex:1">Plan</div><div style="flex:0.8;text-align:right">MRR</div><div style="width:54px"></div></div>${trows}</div>
+        </div>
+        <div class="handles"><b class="tl"></b><b class="tr"></b><b class="bl"></b><b class="br"></b></div></div>`);
+
+      // place widgets at FINAL css positions (measure happens before we offset them)
+      ["line", "metric", "bar", "table"].forEach((k) => {
+        W[k].style.left = FINAL[k].left + "px";
+        W[k].style.top = FINAL[k].top + "px";
+        canvas.appendChild(W[k]);
+      });
+
+      // ---------- build config panels ----------
+      const CFG = {
+        line:   { sub: "Line chart", opts: ["Revenue", "Signups", "Active users", "Sessions"], pick: 2, metric: "Count of events", range: "Last 30 days" },
+        metric: { sub: "Metric card", opts: ["Active users", "Total revenue", "Orders", "Churn rate"], pick: 1, metric: "Sum", range: "This month" },
+        bar:    { sub: "Bar chart", opts: ["Signups", "Revenue", "Sessions"], pick: 0, metric: "Count", range: "By week" },
+      };
+      const cfgHost = document.getElementById("cfgHost");
+      const cfgRef = {};
+      ["line", "metric", "bar"].forEach((k) => {
+        const c = CFG[k];
+        let opts = "";
+        c.opts.forEach((o, i) => { opts += `<div class="copt" data-pick="${i === c.pick ? 1 : 0}">${o}</div>`; });
+        const p = el(`<div class="cfg" id="cfg_${k}" data-layout-allow-overflow>
+          <div class="ctitle">Configure</div>
+          <div class="csub">${c.sub}</div>
+          <div class="clab">Data source</div>
+          <div class="cfield drop src"><span class="cval ph">Select a source…</span><span class="cval chosen" style="opacity:0">${c.opts[c.pick]}</span></div>
+          <div class="cmenu" style="opacity:0">${opts}</div>
+          <div class="clab">Metric</div>
+          <div class="cfield">${c.metric}</div>
+          <div class="clab">Date range</div>
+          <div class="cfield drop">${c.range}</div>
+          <div class="cdone">Done</div>
+        </div>`);
+        cfgHost.appendChild(p);
+        cfgRef[k] = {
+          panel: p,
+          src: p.querySelector(".src"),
+          menu: p.querySelector(".cmenu"),
+          opt: p.querySelectorAll(".copt")[c.pick],
+          ph: p.querySelector(".cval.ph"),
+          chosen: p.querySelector(".cval.chosen"),
+          done: p.querySelector(".cdone"),
+        };
+      });
+
+      const picker = document.getElementById("picker");
+      const prows = {};
+      picker.querySelectorAll(".prow[data-w]").forEach((r) => { prows[r.getAttribute("data-w")] = r; });
+
+      // ---------- MEASURE everything at rest, before hiding ----------
+      const C = (e) => { const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
+      const T = {
+        add: C(document.getElementById("addBtn")),
+        share: C(document.getElementById("shareBtn")),
+      };
+      const PROW = {}; Object.keys(prows).forEach((k) => (PROW[k] = C(prows[k])));
+      const CT = {};
+      ["line", "metric", "bar"].forEach((k) => {
+        CT[k] = { src: C(cfgRef[k].src), opt: C(cfgRef[k].opt), done: C(cfgRef[k].done) };
+      });
+
+      // ---------- now set initial hidden states ----------
+      const TIPX = 4.5, TIPY = 3;
+      gsap.set(cursor, { x: 940 - TIPX, y: 470 - TIPY });
+      gsap.set([ring, glow], { autoAlpha: 0, scale: 0.3, transformOrigin: "center center" });
+      gsap.set(picker, { xPercent: 100 });
+      ["line", "metric", "bar"].forEach((k) => gsap.set(cfgRef[k].panel, { xPercent: 100 }));
+      gsap.set("#toast", { autoAlpha: 0 });
+      const OFF = {};
+      ["line", "metric", "bar", "table"].forEach((k) => {
+        OFF[k] = { x: SPAWN.left - FINAL[k].left, y: SPAWN.top - FINAL[k].top };
+        gsap.set(W[k], { x: OFF[k].x, y: OFF[k].y, autoAlpha: 0 });
+        gsap.set(W[k].querySelector(".handles"), { autoAlpha: 0 });
+      });
+      gsap.set(".bar", { transformOrigin: "50% 100%", scaleY: 0 });
+
+      // ---------- cursor helpers ----------
+      const tl = gsap.timeline({ paused: true });
+      const move = (t, p, d = 0.45) => tl.to(cursor, { x: p.x - TIPX, y: p.y - TIPY, duration: d, ease: "power3.inOut" }, t);
+      const click = (t, p) => {
+        tl.to(cursor, { scale: 0.82, duration: 0.08, transformOrigin: "0 0" }, t);
+        tl.to(cursor, { scale: 1, duration: 0.14, ease: "back.out(2.6)" }, t + 0.08);
+        tl.set(glow, { left: p.x - 48, top: p.y - 48 }, t);
+        tl.fromTo(glow, { scale: 0.3, autoAlpha: 0.95 }, { scale: 1.7, autoAlpha: 0, duration: 0.52, ease: "power2.out" }, t);
+        tl.set(ring, { left: p.x - 23, top: p.y - 23 }, t);
+        tl.fromTo(ring, { scale: 0.35, autoAlpha: 0.85 }, { scale: 1.95, autoAlpha: 0, duration: 0.52, ease: "power2.out" }, t);
+      };
+
+      // ---------- ADD-WIDGET routine ----------
+      function addWidget(t, key) {
+        move(t, T.add, 0.38); t += 0.38;
+        click(t, T.add);
+        tl.fromTo(picker, { xPercent: 100 }, { xPercent: 0, duration: 0.34, ease: "power3.out" }, t + 0.1);
+        t += 0.48;
+        move(t, PROW[key], 0.32); t += 0.32;
+        tl.to(prows[key], { backgroundColor: "#eef2ff", duration: 0.1 }, t - 0.03);
+        click(t, PROW[key]);
+        tl.to(picker, { xPercent: 100, duration: 0.3, ease: "power3.in" }, t + 0.14);
+        tl.set(prows[key], { backgroundColor: "rgba(255,255,255,0)" }, t + 0.55);
+        t += 0.4;
+        // widget appears centered, handles on; cursor crosses to grab it
+        tl.fromTo(W[key], { autoAlpha: 0, scale: 0.9 }, { autoAlpha: 1, scale: 1, duration: 0.28, ease: "back.out(1.5)" }, t);
+        tl.to(W[key].querySelector(".handles"), { autoAlpha: 1, duration: 0.16 }, t + 0.08);
+        move(t, { x: SPAWN.cx, y: SPAWN.cy }, 0.24);
+        t += 0.32;
+        // grab and drag into its quadrant
+        tl.to(cursor, { scale: 0.85, duration: 0.08 }, t);
+        tl.to(cursor, { scale: 1, duration: 0.42, ease: "power2.out" }, t + 0.08);
+        tl.to(W[key], { x: 0, y: 0, duration: 0.44, ease: "power2.inOut" }, t);
+        move(t, { x: FINAL[key].cx, y: FINAL[key].cy }, 0.44);
+        tl.to(W[key].querySelector(".handles"), { autoAlpha: 0, duration: 0.16 }, t + 0.42);
+        t += 0.52;
+        return t;
+      }
+
+      // ---------- CONFIG routine (shared open/close) ----------
+      function openCfg(t, key) {
+        move(t, { x: FINAL[key].cx, y: FINAL[key].cy }, 0.38); t += 0.38;
+        click(t, { x: FINAL[key].cx, y: FINAL[key].cy });
+        tl.set(W[key], { className: "widget sel" }, t + 0.04);
+        tl.to(W[key].querySelector(".handles"), { autoAlpha: 1, duration: 0.18 }, t + 0.04);
+        tl.fromTo(cfgRef[key].panel, { xPercent: 100 }, { xPercent: 0, duration: 0.34, ease: "power3.out" }, t + 0.08);
+        t += 0.5;
+        move(t, CT[key].src, 0.32); t += 0.32;
+        click(t, CT[key].src);
+        tl.set(cfgRef[key].src, { className: "cfield drop src active" }, t + 0.02);
+        tl.fromTo(cfgRef[key].menu, { autoAlpha: 0, y: -8, scale: 0.98, transformOrigin: "top center" }, { autoAlpha: 1, y: 0, scale: 1, duration: 0.2, ease: "power2.out" }, t + 0.04);
+        t += 0.36;
+        move(t, CT[key].opt, 0.3); t += 0.3;
+        tl.to(cfgRef[key].opt, { backgroundColor: "#eef2ff", duration: 0.08 }, t - 0.03);
+        click(t, CT[key].opt);
+        tl.to(cfgRef[key].menu, { autoAlpha: 0, duration: 0.16 }, t + 0.1);
+        tl.set(cfgRef[key].src, { className: "cfield drop src" }, t + 0.16);
+        tl.to(cfgRef[key].ph, { autoAlpha: 0, duration: 0.18 }, t + 0.08);
+        tl.to(cfgRef[key].chosen, { autoAlpha: 1, duration: 0.24 }, t + 0.12);
+        return t + 0.22;
+      }
+      function closeCfg(t, key) {
+        move(t, CT[key].done, 0.34); t += 0.34;
+        click(t, CT[key].done);
+        tl.to(cfgRef[key].panel, { xPercent: 100, duration: 0.3, ease: "power3.in" }, t + 0.1);
+        tl.set(W[key], { className: "widget" }, t + 0.28);
+        tl.to(W[key].querySelector(".handles"), { autoAlpha: 0, duration: 0.18 }, t + 0.08);
+        return t + 0.42;
+      }
+      const titleSwap = (t, key) => {
+        tl.to(W[key].querySelector(".wt.ph"), { autoAlpha: 0, duration: 0.25 }, t);
+        tl.to(W[key].querySelector(".wt.real"), { autoAlpha: 1, duration: 0.3 }, t + 0.05);
+      };
+
+      // ======================= TIMELINE =======================
+      let t = 0.7;
+      // build four widgets
+      t = addWidget(t, "line");
+      t = addWidget(t, "metric");
+      t = addWidget(t, "bar");
+      t = addWidget(t, "table");
+      // brief beat on the finished 2x2 placeholder grid
+      tl.to("#emptyHint", { autoAlpha: 0, duration: 0.3 }, 1.2);
+      t += 0.15;
+
+      // --- configure LINE chart: real line draws L->R ---
+      t = openCfg(t, "line");
+      titleSwap(t - 0.1, "line");
+      tl.to("#linePh", { autoAlpha: 0, duration: 0.25 }, t);
+      tl.fromTo("#linePath", { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 0.95, ease: "power1.inOut" }, t);
+      tl.to("#lineArea", { autoAlpha: 1, duration: 0.7 }, t + 0.2);
+      t = closeCfg(t + 0.55, "line");
+
+      // --- configure METRIC card: number counts up ---
+      t = openCfg(t, "metric");
+      titleSwap(t - 0.1, "metric");
+      tl.to("#mPh", { autoAlpha: 0, duration: 0.22 }, t);
+      tl.to("#mReal", { autoAlpha: 1, duration: 0.18 }, t);
+      const cobj = { v: 0 };
+      tl.to(cobj, { v: 24815, duration: 0.95, ease: "power1.out",
+        onUpdate: () => { document.getElementById("mReal").textContent = "$" + Math.round(cobj.v).toLocaleString("en-US"); } }, t);
+      tl.fromTo("#mDelta", { autoAlpha: 0, y: 8 }, { autoAlpha: 1, y: 0, duration: 0.4 }, t + 0.5);
+      tl.to("#mSpark", { autoAlpha: 1, duration: 0.5 }, t + 0.45);
+      t = closeCfg(t + 0.6, "metric");
+
+      // --- configure BAR chart: bars draw in ---
+      t = openCfg(t, "bar");
+      titleSwap(t - 0.1, "bar");
+      tl.to("#barPh", { autoAlpha: 0, duration: 0.22 }, t);
+      tl.to("#barSvg", { autoAlpha: 1, duration: 0.18 }, t);
+      document.querySelectorAll(".bar").forEach((b, i) => {
+        tl.fromTo(b, { scaleY: 0 }, { scaleY: 1, duration: 0.42, ease: "back.out(1.3)" }, t + 0.04 + i * 0.06);
+      });
+      t = closeCfg(t + 0.62, "bar");
+
+      // --- TABLE auto-populates on click (no panel) ---
+      move(t, { x: FINAL.table.cx, y: FINAL.table.cy }, 0.4); t += 0.4;
+      click(t, { x: FINAL.table.cx, y: FINAL.table.cy });
+      tl.set(W.table, { className: "widget sel" }, t + 0.04);
+      tl.to(W.table.querySelector(".handles"), { autoAlpha: 1, duration: 0.18 }, t + 0.04);
+      titleSwap(t + 0.1, "table");
+      tl.to("#tblPh", { autoAlpha: 0, duration: 0.2 }, t + 0.1);
+      tl.to("#tblReal", { autoAlpha: 1, duration: 0.18 }, t + 0.12);
+      document.querySelectorAll("#tblReal .trow").forEach((r, i) => {
+        tl.fromTo(r, { autoAlpha: 0, x: -14 }, { autoAlpha: 1, x: 0, duration: 0.18, ease: "power2.out" }, t + 0.2 + i * 0.09);
+      });
+      t += 0.95;
+      // click away on empty canvas -> deselect
+      move(t, { x: 945, y: 560 }, 0.36); t += 0.36;
+      click(t, { x: 945, y: 560 });
+      tl.set(W.table, { className: "widget" }, t + 0.1);
+      tl.to(W.table.querySelector(".handles"), { autoAlpha: 0, duration: 0.18 }, t + 0.05);
+      t += 0.5;
+
+      // --- SHARE: click -> link copies -> toast ---
+      move(t, T.share, 0.46); t += 0.46;
+      tl.to("#shareBtn", { backgroundColor: "#e4e8f5", duration: 0.12 }, t - 0.04);
+      click(t, T.share);
+      tl.to("#shareBtn", { backgroundColor: "#f1f3f8", duration: 0.3 }, t + 0.3);
+      tl.fromTo("#toast", { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.45, ease: "back.out(1.6)" }, t + 0.18);
+      t += 0.7;
+      // cursor settles; dashboard holds, toast stays up
+      tl.to(cursor, { x: T.share.x + 40 - TIPX, y: T.share.y + 70 - TIPY, duration: 0.7, ease: "power2.inOut" }, t);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
