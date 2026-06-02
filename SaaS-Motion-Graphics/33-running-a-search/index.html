@@ -5,46 +5,272 @@
     <meta name="viewport" content="width=1920, height=1080" />
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
     <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-      html,
-      body {
-        margin: 0;
-        width: 1920px;
-        height: 1080px;
-        overflow: hidden;
-        background: #000;
-      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #f6f7f9; font-family: "Inter", system-ui, sans-serif; }
+      .stage { position: absolute; inset: 0; overflow: hidden; }
+
+      /* app chrome */
+      .topbar { position: absolute; left: 0; top: 0; width: 100%; height: 76px; background: #fff; border-bottom: 1px solid #e9ebf0; display: flex; align-items: center; padding: 0 28px; z-index: 5; }
+      .brand { display: flex; align-items: center; gap: 11px; font-size: 20px; font-weight: 800; color: #1d2740; width: 230px; }
+      .brand .mk { width: 26px; height: 26px; border-radius: 8px; background: linear-gradient(135deg,#3b82f6,#6366f1); }
+      .avatar { margin-left: auto; width: 38px; height: 38px; border-radius: 50%; background: #6366f1; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; }
+
+      .sidebar { position: absolute; left: 0; top: 76px; width: 230px; bottom: 0; background: #fff; border-right: 1px solid #eef0f4; padding: 22px 16px; z-index: 4; }
+      .snav { height: 44px; display: flex; align-items: center; gap: 13px; padding: 0 14px; border-radius: 9px; font-size: 16px; color: #59617a; font-weight: 600; }
+      .snav.on { background: #eef2ff; color: #4f46e5; }
+      .snav .si { width: 18px; height: 18px; border-radius: 5px; background: #c3c9d6; }
+      .snav.on .si { background: #6366f1; }
+
+      .main { position: absolute; left: 230px; top: 76px; right: 0; bottom: 0; padding: 26px 30px; overflow: hidden; }
+      .mhead { font-size: 24px; font-weight: 800; color: #1d2740; margin-bottom: 20px; }
+      .fgrid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 18px; }
+      .fcard { background: #fff; border: 1px solid #eceef3; border-radius: 12px; padding: 16px; height: 158px; }
+      .fic { width: 40px; height: 50px; border-radius: 6px 6px 6px 6px; position: relative; }
+      .fic::after { content: ""; position: absolute; right: 0; top: 0; border-width: 0 0 12px 12px; border-style: solid; border-color: transparent transparent #fff #fff; opacity: 0.5; }
+      .fname { margin-top: 16px; font-size: 14px; font-weight: 600; color: #2a3350; line-height: 1.3; height: 36px; overflow: hidden; }
+      .fdate { margin-top: 8px; font-size: 12px; color: #9aa2b5; }
+
+      #dim { position: absolute; inset: 0; background: #0b1020; opacity: 0; z-index: 20; }
+
+      /* search */
+      .search { position: absolute; top: 19px; left: 600px; width: 460px; height: 46px; background: #f1f3f7; border: 1.5px solid #e3e6ee; border-radius: 12px; display: flex; align-items: center; padding: 0 18px; gap: 13px; z-index: 30; }
+      .search.focus { background: #fff; border-color: #4f46e5; box-shadow: 0 8px 30px rgba(79,70,229,0.18); }
+      .search .mag { width: 20px; height: 20px; flex: none; }
+      .qwrap { position: relative; flex: 1; height: 28px; }
+      .qtext { font-size: 19px; color: #1d2740; white-space: nowrap; font-weight: 500; }
+      .qph { position: absolute; left: 0; top: 2px; font-size: 19px; color: #9aa2b5; }
+      .schar { opacity: 0; }
+      #scaret { position: absolute; width: 2px; height: 24px; background: #4f46e5; left: 0; top: 1px; z-index: 31; }
+
+      .results { position: absolute; top: 78px; left: 600px; width: 560px; background: #fff; border: 1px solid #e7eaf1; border-radius: 14px; box-shadow: 0 24px 60px rgba(20,28,46,0.22); z-index: 30; padding: 8px; }
+      .ritem { display: flex; align-items: center; gap: 14px; height: 66px; padding: 0 14px; border-radius: 10px; }
+      .rfic { width: 30px; height: 38px; border-radius: 5px; flex: none; }
+      .rmain { flex: 1; }
+      .rname { font-size: 17px; font-weight: 600; color: #1d2740; }
+      .rmeta { font-size: 13px; color: #97a0b3; margin-top: 3px; }
+      .rava { width: 28px; height: 28px; border-radius: 50%; color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex: none; }
+      mark, .hl { background: #ffe66b; color: inherit; border-radius: 3px; padding: 0 2px; }
+
+      /* document view */
+      #docview { position: absolute; inset: 0; background: #eef0f4; z-index: 40; opacity: 0; }
+      .docbar { position: absolute; top: 0; left: 0; width: 100%; height: 64px; background: #fff; border-bottom: 1px solid #e7eaf1; display: flex; align-items: center; padding: 0 26px; gap: 14px; z-index: 3; }
+      .docbar .back { width: 36px; height: 36px; border-radius: 9px; background: #f1f3f7; display: flex; align-items: center; justify-content: center; }
+      .docbar .dt { font-size: 18px; font-weight: 700; color: #1d2740; }
+      #docclip { position: absolute; left: 50%; top: 64px; width: 900px; margin-left: -450px; bottom: 0; overflow: hidden; }
+      #docscroll { position: absolute; left: 0; top: 0; width: 900px; background: #fff; box-shadow: 0 10px 40px rgba(20,28,46,0.10); padding: 70px 80px; }
+      #docscroll h1 { font-size: 38px; font-weight: 800; color: #16203a; margin-bottom: 8px; }
+      #docscroll .lede { font-size: 18px; color: #6b7488; margin-bottom: 30px; }
+      #docscroll h2 { font-size: 24px; font-weight: 700; color: #1d2740; margin: 34px 0 14px; }
+      #docscroll p { font-size: 18px; line-height: 1.75; color: #303a52; margin-bottom: 16px; }
+
+      #clickfx { position: absolute; width: 46px; height: 46px; border-radius: 50%; border: 2.5px solid rgba(79,70,229,0.6); z-index: 88; opacity: 0; }
+      #cursor { position: absolute; left: 0; top: 0; z-index: 90; }
     </style>
   </head>
   <body>
-    <div
-      id="root"
-      data-composition-id="main"
-      data-start="0"
-      data-duration="10"
-      data-width="1920"
-      data-height="1080"
-    >
-      
-      
-
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
+    <div id="root" data-composition-id="main" data-start="0" data-duration="15" data-width="1920" data-height="1080">
+      <div class="stage" id="stage">
+        <div class="sidebar" id="sidebar">
+          <div class="snav on"><div class="si"></div>All files</div>
+          <div class="snav"><div class="si"></div>Recent</div>
+          <div class="snav"><div class="si"></div>Shared</div>
+          <div class="snav"><div class="si"></div>Starred</div>
+          <div class="snav"><div class="si"></div>Trash</div>
         </div>
-      -->
+        <div class="main" id="main"><div class="mhead">All files</div><div class="fgrid" id="fgrid" data-layout-allow-overflow></div></div>
+
+        <div id="dim"></div>
+
+        <div class="topbar">
+          <div class="brand"><div class="mk"></div>Vault</div>
+          <div class="avatar">JD</div>
+        </div>
+
+        <div class="search" id="search">
+          <svg class="mag" viewBox="0 0 24 24" fill="none" stroke="#8893a8" stroke-width="2.2"><circle cx="10.5" cy="10.5" r="7"/><line x1="16" y1="16" x2="21" y2="21"/></svg>
+          <div class="qwrap"><span class="qph" id="qph">Search files…</span><span class="qtext" id="qtext"></span><span id="scaret"></span></div>
+        </div>
+        <div class="results" id="results" style="opacity:0"></div>
+
+        <div id="docview">
+          <div class="docbar"><div class="back"><svg width="18" height="18" viewBox="0 0 24 24" stroke="#6b7686" stroke-width="2.4" fill="none" stroke-linecap="round"><path d="M15 5 L8 12 L15 19"/></svg></div><div class="dt">Product Roadmap — Q3.doc</div></div>
+          <div id="docclip"><div id="docscroll" data-layout-allow-overflow></div></div>
+        </div>
+
+        <div id="clickfx"></div>
+        <div id="cursor"><svg width="36" height="42" viewBox="0 0 24 28"><path d="M3,2 L3,22 L8.5,16.8 L12,24.5 L15.4,23 L11.9,15.3 L19,15.3 Z" fill="#ffffff" stroke="#1b1b22" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+      </div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
+      const stage = document.getElementById("stage");
+
+      // ---------- file grid (reads as hundreds) ----------
+      const ICONS = ["#3b82f6", "#16a34a", "#ef4444", "#f59e0b", "#8b5cf6", "#06b6d4"];
+      const NOUNS = ["Report", "Plan", "Brief", "Spec", "Notes", "Deck", "Budget", "Roadmap", "Audit", "Memo", "Draft", "Review", "Summary", "Proposal", "Agenda", "Outline"];
+      const ADJ = ["Q3", "Annual", "Launch", "Product", "Client", "Team", "2025", "Final", "Marketing", "Sales", "Design", "Ops"];
+      const fgrid = document.getElementById("fgrid");
+      for (let i = 0; i < 48; i++) {
+        const c = document.createElement("div"); c.className = "fcard";
+        const name = ADJ[(i * 5) % ADJ.length] + " " + NOUNS[(i * 7) % NOUNS.length];
+        const d = ((i * 3) % 27) + 1, mo = ["Jan","Feb","Mar","Apr","May"][(i * 2) % 5];
+        c.innerHTML = '<div class="fic" style="background:' + ICONS[i % ICONS.length] + '"></div>' +
+          '<div class="fname">' + name + "</div><div class=\"fdate\">Edited " + mo + " " + d + "</div>";
+        fgrid.appendChild(c);
+      }
+
+      // ---------- search query (word-wrapped char reveal) ----------
+      const QUERY = "product launch plan";
+      const qtext = document.getElementById("qtext");
+      const schars = [];
+      QUERY.split(" ").forEach((word, wi, arr) => {
+        const w = document.createElement("span"); w.style.whiteSpace = "nowrap";
+        for (const ch of word) { const s = document.createElement("span"); s.className = "schar"; s.textContent = ch; w.appendChild(s); schars.push(s); }
+        qtext.appendChild(w);
+        if (wi < arr.length - 1) { const sp = document.createElement("span"); sp.className = "schar"; sp.textContent = " "; qtext.appendChild(sp); schars.push(sp); }
+      });
+
+      // ---------- results dropdown ----------
+      const RESULTS = [
+        ["Product Launch Plan.doc", "Edited 2d ago", "SC", "#e0457b", "#3b82f6"],
+        ["Launch Checklist.sheet", "Edited 5d ago", "ML", "#2563eb", "#16a34a"],
+        ["Product Roadmap — Q3.doc", "Edited 1d ago", "PN", "#0f9d58", "#3b82f6"],
+        ["Go-to-market Plan.pdf", "Edited 1w ago", "TB", "#06b6d4", "#ef4444"],
+        ["Launch Assets.zip", "Edited 3d ago", "AK", "#7c3aed", "#f59e0b"],
+        ["Pricing Plan.sheet", "Edited 4d ago", "DR", "#f97316", "#16a34a"],
+      ];
+      const results = document.getElementById("results");
+      const rEls = [];
+      RESULTS.forEach((r) => {
+        const e = document.createElement("div"); e.className = "ritem";
+        const hn = r[0].replace(/(Product|Launch|Plan)/g, '<span class="hl">$1</span>');
+        e.innerHTML = '<div class="rfic" style="background:' + r[4] + '"></div>' +
+          '<div class="rmain"><div class="rname">' + hn + '</div><div class="rmeta">' + r[1] + ' · ' + r[0].split(".")[1] + '</div></div>' +
+          '<div class="rava" style="background:' + r[3] + '">' + r[2] + "</div>";
+        results.appendChild(e); rEls.push(e);
+      });
+
+      // ---------- document content ----------
+      const H = (t) => t.replace(/(product|launch|plan)/gi, '<mark>$1</mark>');
+      document.getElementById("docscroll").innerHTML =
+        "<h1>Product Roadmap — Q3</h1>" +
+        '<p class="lede">' + H("The plan for this quarter centers on a single product launch and the work leading up to it.") + "</p>" +
+        "<h2>Overview</h2>" +
+        "<p>" + H("This product roadmap outlines the launch sequence for Q3. Every plan in this document maps to a measurable outcome and an owner.") + "</p>" +
+        "<p>Each workstream below has a lead, a target date, and a definition of done. We review progress weekly and adjust scope rather than dates.</p>" +
+        "<h2>Milestones</h2>" +
+        "<p>" + H("The product team finalizes the core feature set first. The launch plan then gates on a successful beta and a signed-off marketing brief.") + "</p>" +
+        "<p>Beta opens to two hundred users. We instrument every funnel step and read retention at day seven before widening access.</p>" +
+        "<p>Documentation, pricing, and support runbooks ship together so nothing blocks the go-live window.</p>" +
+        "<h2>Go-to-market</h2>" +
+        "<p>" + H("The launch plan coordinates product, sales, and lifecycle in one timeline. The product story leads; everything else supports it.") + "</p>" +
+        "<p>We stage announcements across owned channels, then partners, then paid. Each wave has its own copy and its own success metric.</p>" +
+        "<h2>Risks</h2>" +
+        "<p>" + H("The largest risk to the plan is scope creep late in the product cycle. We freeze the launch feature set two weeks out.") + "</p>" +
+        "<p>The second risk is support readiness. We rehearse the first day with a full on-call rotation and a triage owner.</p>";
+      const marks = document.querySelectorAll("#docscroll mark");
+
+      // ---------- cursor + helpers (tip offset + click ripple) ----------
+      const cursor = document.getElementById("cursor");
+      const fx = document.getElementById("clickfx");
+      const scaret = document.getElementById("scaret");
+      const C = (el) => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
+      gsap.set(fx, { autoAlpha: 0, scale: 0.3, transformOrigin: "center center" });
+      const TIPX = 4.5, TIPY = 3;
+      const move = (tl, p, t, d) => tl.to(cursor, { x: p.x - TIPX, y: p.y - TIPY, duration: d, ease: "power2.inOut" }, t);
+      const click = (tl, t, p) => {
+        tl.to(cursor, { scale: 0.82, duration: 0.07, transformOrigin: "0 0" }, t);
+        tl.to(cursor, { scale: 1, duration: 0.12, ease: "back.out(2.5)" }, t + 0.07);
+        if (p) { tl.set(fx, { left: p.x - 23, top: p.y - 23 }, t); tl.fromTo(fx, { scale: 0.3, autoAlpha: 0.7 }, { scale: 1.9, autoAlpha: 0, duration: 0.45, ease: "power2.out" }, t); }
+      };
+
+      // ---------- measured targets ----------
+      const pSearch = C(document.getElementById("search"));
+      const qtextLeft = qtext.getBoundingClientRect().left;
+      const scaretOff = schars.map((s) => s.getBoundingClientRect().right - qtextLeft);
+      const pResult3 = C(rEls[2]);
+
+      // ---------- initial states ----------
+      gsap.set(cursor, { x: 300, y: 980, autoAlpha: 0 });
+      gsap.set(scaret, { autoAlpha: 0, left: 0 });
+      gsap.set("#results", { autoAlpha: 0, y: -8 });
+      gsap.set("#docview", { autoAlpha: 0 });
+      gsap.set("#docscroll", { y: 0 });
+      gsap.set(rEls, { autoAlpha: 0, y: 6 });
+
+      // ---------- timeline ----------
       const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
+
+      // cursor enters, clicks the search bar -> it expands, dims the interface, caret blinks
+      tl.to(cursor, { autoAlpha: 1, duration: 0.2 }, 0.4);
+      move(tl, pSearch, 0.4, 0.9);
+      click(tl, 1.3, pSearch);
+      tl.to("#search", { width: 760, duration: 0.4, ease: "power3.out" }, 1.45);  // grow wider, anchored left
+      tl.set("#search", { className: "search focus" }, 1.45);
+      tl.set("#results", { width: 760 }, 1.45);
+      tl.to("#dim", { opacity: 0.16, duration: 0.4 }, 1.45);
+      tl.set("#qph", { autoAlpha: 0 }, 1.6);
+      tl.set(scaret, { autoAlpha: 1 }, 1.6);
+      tl.to(scaret, { autoAlpha: 0, duration: 0.42, repeat: 3, yoyo: true, ease: "power1.inOut" }, 1.65);
+
+      // type the query (deliberate); caret follows
+      const TYPE_S = 2.0, DT = 0.085;
+      schars.forEach((s, i) => {
+        const t = TYPE_S + i * DT;
+        tl.set(s, { autoAlpha: 1 }, t);
+        tl.set(scaret, { left: scaretOff[i], top: 1 }, t);
+      });
+      const word2 = TYPE_S + 8 * DT;   // "launch" starts (after "product ")
+      const typeEnd = TYPE_S + schars.length * DT;
+      tl.set(scaret, { autoAlpha: 1 }, typeEnd);
+
+      // results appear as the second word is typed, updating per character
+      tl.to("#results", { autoAlpha: 1, y: 0, duration: 0.25, ease: "power2.out" }, word2);
+      rEls.forEach((e, i) => {
+        const t = (i < 3) ? word2 + 0.1 + i * 0.08 : word2 + 0.7 + (i - 3) * 0.12;
+        tl.to(e, { autoAlpha: 1, y: 0, duration: 0.22, ease: "power2.out" }, t);
+      });
+
+      // stop typing; click the third result -> dropdown closes, document opens
+      tl.set(scaret, { autoAlpha: 0 }, typeEnd + 0.3);
+      move(tl, pResult3, typeEnd + 0.4, 0.6);
+      click(tl, typeEnd + 1.05, pResult3);
+      tl.to("#results", { autoAlpha: 0, y: -8, duration: 0.2 }, typeEnd + 1.2);
+      tl.to("#dim", { opacity: 0, duration: 0.3 }, typeEnd + 1.25);
+      tl.to("#docview", { autoAlpha: 1, duration: 0.45, ease: "power2.out" }, typeEnd + 1.3);
+
+      // pick two highlights spread down the document so each click yields a real scroll
+      const docTop = 64;
+      let m1 = null, m2 = null;
+      for (const mk of marks) {
+        if (!m1 && mk.offsetTop > 360) m1 = mk;
+        else if (m1 && !m2 && mk.offsetTop > m1.offsetTop + 520) { m2 = mk; break; }
+      }
+      m1 = m1 || marks[2]; m2 = m2 || marks[marks.length - 2];
+      const maxScroll = Math.max(0, document.getElementById("docscroll").offsetHeight - (1080 - docTop));
+      const docOpen = typeEnd + 1.85;
+
+      // click the first highlight -> scroll that section into focus
+      const r1 = m1.getBoundingClientRect();
+      const p1 = { x: r1.left + r1.width / 2, y: r1.top + r1.height / 2 };
+      move(tl, p1, docOpen, 0.7);
+      click(tl, docOpen + 0.75, p1);
+      const scroll1 = Math.min(maxScroll, Math.max(0, m1.offsetTop - 230));
+      tl.to("#docscroll", { y: -scroll1, duration: 0.6, ease: "power2.inOut" }, docOpen + 0.95);
+
+      // click the second highlight (now visible lower) -> scroll again
+      const afterS1 = docOpen + 1.95;
+      const r2 = m2.getBoundingClientRect();
+      const p2 = { x: r2.left + r2.width / 2, y: Math.min(900, Math.max(140, r2.top - scroll1 + r2.height / 2)) };
+      move(tl, p2, afterS1, 0.7);
+      click(tl, afterS1 + 0.75, p2);
+      const scroll2 = Math.min(maxScroll, Math.max(0, m2.offsetTop - 230));
+      tl.to("#docscroll", { y: -scroll2, duration: 0.6, ease: "power2.inOut" }, afterS1 + 0.95);
+
+      // cursor settles; the document holds open.
+      tl.to(cursor, { x: 1700, y: 880, duration: 0.8, ease: "power2.inOut" }, afterS1 + 1.7);
+
       window.__timelines["main"] = tl;
     </script>
   </body>
