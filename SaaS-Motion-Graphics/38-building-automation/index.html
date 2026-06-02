@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #eef0f4;
+        font-family: "Inter", Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; color: #14151a; }
+      .stage { position: absolute; inset: 0; overflow: hidden; background: radial-gradient(1200px 700px at 50% -10%, #f6f7fb 0%, #eaecf2 60%, #e5e7ee 100%); }
+
+      .browser { position: absolute; left: 200px; top: 110px; width: 1520px; height: 870px; background: #fff; border: 1px solid #e6e8ec; border-radius: 18px; overflow: hidden; box-shadow: 0 2px 6px rgba(16,17,21,.05), 0 44px 96px -30px rgba(16,17,21,.28); }
+      .titlebar { height: 50px; background: #f6f7f9; border-bottom: 1px solid #e8eaed; display: flex; align-items: center; padding: 0 18px; gap: 9px; }
+      .titlebar i { width: 12px; height: 12px; border-radius: 50%; display: block; }
+      .titlebar .r{background:#ff5f57}.titlebar .y{background:#febc2e}.titlebar .g{background:#28c840}
+      .titlebar .urlbar { margin-left: 18px; height: 28px; flex: 1; max-width: 440px; background: #eceef2; border-radius: 8px; display:flex; align-items:center; padding: 0 12px; font-size: 12.5px; color:#8a90a0; font-weight: 540; }
+      .main { position: absolute; top: 50px; left: 0; right: 0; bottom: 0; background: #fafbfc; overflow: hidden; }
+
+      /* toolbar */
+      .toolbar { position:absolute; top:0; left:0; right:0; height:74px; background:#fff; border-bottom:1px solid #ececf1; display:flex; align-items:center; padding:0 26px; gap:14px; z-index:8; }
+      .badge { display:flex; align-items:center; gap:8px; height:36px; padding:0 14px; border-radius:10px; font-size:13.5px; font-weight:740; position:relative; }
+      .badge .bdot { width:8px; height:8px; border-radius:50%; }
+      .badge.draft { background:#eef0f4; color:#6b7280; } .badge.draft .bdot { background:#9ca3af; }
+      .badge.live { background:#d6f3e1; color:#16834a; } .badge.live .bdot { background:#16a34a; }
+      .wfname { font-size:17px; font-weight:720; letter-spacing:-0.4px; }
+      .wfname span { display:block; font-size:12.5px; font-weight:520; color:#9ca3af; margin-top:1px; }
+      .btn { height:42px; padding:0 18px; border-radius:11px; font-size:14.5px; font-weight:640; display:inline-flex; align-items:center; gap:8px; }
+      .btn.ghost { background:#fff; border:1.5px solid #e0e3ea; color:#3a4150; }
+      .btn.dark { background:#14151a; color:#fff; }
+      .btn.teal { background:#0d9488; color:#fff; box-shadow:0 10px 22px -8px rgba(13,148,136,.55); }
+      .addtrig { height:42px; padding:0 16px; border-radius:11px; background:#0d9488; color:#fff; font-size:14.5px; font-weight:640; display:inline-flex; align-items:center; gap:8px; box-shadow:0 10px 22px -8px rgba(13,148,136,.5); }
+
+      /* canvas */
+      .canvas { position:absolute; left:30px; right:30px; top:96px; bottom:26px; background:#fafbfd; border:1px solid #eef0f4; border-radius:16px; overflow:hidden;
+        background-image:radial-gradient(#dfe2ec 1.3px, transparent 1.3px); background-size:24px 24px; }
+
+      /* blocks (centered horizontally) */
+      .block { position:absolute; left:50%; margin-left:-180px; width:360px; height:78px; border-radius:15px; background:#fff; border:1.6px solid #e6e8ec; box-shadow:0 12px 28px -14px rgba(16,17,21,.2); display:flex; align-items:center; gap:14px; padding:0 18px; }
+      .block .bi { width:42px; height:42px; border-radius:11px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+      .block .bt { font-size:15.5px; font-weight:680; }
+      .block .btag { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#9ca3af; margin-bottom:2px; }
+      .block.trig { background:linear-gradient(135deg,#14b8a6,#0d9488); border-color:#0d9488; color:#fff; box-shadow:0 14px 30px -12px rgba(13,148,136,.5); }
+      .block.trig .btag { color:rgba(255,255,255,.8); }
+      .block .check { position:absolute; right:-11px; top:-11px; width:27px; height:27px; border-radius:50%; background:#16a34a; opacity:0; box-shadow:0 4px 12px rgba(22,163,74,.5); }
+      .block .check::after { content:""; position:absolute; left:9px; top:6px; width:6px; height:12px; border:solid #fff; border-width:0 2.6px 2.6px 0; transform:rotate(42deg); }
+
+      .conn { position:absolute; left:50%; width:2.5px; margin-left:-1.25px; background:#d2d7e0; border-radius:2px; transform-origin:50% 0%; }
+      .dot { position:absolute; left:50%; margin-left:-6px; width:12px; height:12px; border-radius:50%; background:#0d9488; box-shadow:0 0 0 4px rgba(13,148,136,.18); }
+
+      .addbtn { position:absolute; left:50%; margin-left:-16px; width:32px; height:32px; border-radius:50%; border:2px dashed #b9c0cc; background:#fff; color:#8a90a0; font-size:20px; font-weight:500; display:flex; align-items:center; justify-content:center; z-index:6; }
+
+      /* left trigger panel */
+      .lpanel { position:absolute; left:30px; top:96px; bottom:26px; width:332px; background:#fff; border:1px solid #ececf1; border-radius:16px 0 0 16px; box-shadow:24px 0 50px -28px rgba(16,17,21,.25); z-index:14; padding:20px 16px; }
+      .lpanel .lph { font-size:16px; font-weight:720; margin-bottom:4px; }
+      .lpanel .lpsub { font-size:12.5px; color:#9ca3af; font-weight:520; margin-bottom:16px; }
+      .lpanel .lwrap { position:absolute; left:16px; right:16px; top:78px; bottom:18px; overflow:hidden; }
+      .lpanel .llist { position:absolute; left:0; right:0; top:0; }
+      .titem { display:flex; align-items:center; gap:12px; height:54px; border-radius:11px; padding:0 12px; font-size:14.5px; font-weight:580; color:#3a4150; }
+      .titem .ti { width:34px; height:34px; border-radius:9px; flex-shrink:0; }
+      .titem.sel { background:#e6f6f4; color:#0d9488; }
+
+      /* action picker popup */
+      .picker { position:absolute; width:268px; background:#fff; border:1px solid #e6e8ec; border-radius:14px; box-shadow:0 24px 50px -18px rgba(16,17,21,.32); padding:7px; z-index:16; }
+      .picker .pi { display:flex; align-items:center; gap:11px; height:46px; border-radius:9px; padding:0 11px; font-size:14px; font-weight:580; color:#3a4150; }
+      .picker .pi .pic { width:30px; height:30px; border-radius:8px; flex-shrink:0; }
+      .picker .pi.sel { background:#eef0fe; color:#4f46e5; }
+
+      /* right config panel */
+      .rpanel { position:absolute; right:30px; top:96px; bottom:26px; width:372px; background:#fff; border:1px solid #ececf1; border-radius:0 16px 16px 0; box-shadow:-24px 0 50px -28px rgba(16,17,21,.25); z-index:14; padding:22px 20px; }
+      .rpanel .rph { display:flex; align-items:center; gap:11px; margin-bottom:20px; }
+      .rpanel .rph .ri { width:34px; height:34px; border-radius:9px; background:#611f69; }
+      .rpanel .rph b { font-size:16px; font-weight:700; }
+      .flbl { font-size:12.5px; font-weight:680; color:#6b7280; text-transform:uppercase; letter-spacing:.4px; margin:18px 0 8px; }
+      .dropdown { height:46px; border:1.5px solid #e0e3ea; border-radius:11px; display:flex; align-items:center; padding:0 14px; font-size:14.5px; font-weight:560; color:#3a4150; position:relative; }
+      .dropdown .car { margin-left:auto; width:0; height:0; border-left:5px solid transparent; border-right:5px solid transparent; border-top:6px solid #9ca3af; }
+      .dropdown .chan { width:18px; height:18px; border-radius:5px; background:#611f69; margin-right:10px; }
+      .ddmenu { position:absolute; left:0; right:0; top:52px; background:#fff; border:1px solid #e6e8ec; border-radius:11px; box-shadow:0 18px 40px -16px rgba(16,17,21,.3); padding:6px; z-index:18; }
+      .ddmenu .ddi { height:40px; border-radius:8px; display:flex; align-items:center; gap:9px; padding:0 11px; font-size:14px; font-weight:560; color:#3a4150; }
+      .ddmenu .ddi.sel { background:#f0eef8; color:#611f69; }
+      .ddmenu .ddi .cc { width:16px; height:16px; border-radius:4px; background:#611f69; }
+      .msgbox { min-height:120px; border:1.5px solid #e0e3ea; border-radius:11px; padding:13px 14px; font-size:14.5px; line-height:1.7; font-weight:520; color:#3a4150; }
+      .msgbox .mc { display:none; white-space:pre; }
+      .msgbox .mvar { display:none; align-items:center; background:#dbe5ff; color:#2563eb; border-radius:6px; padding:1px 7px; font-size:13.5px; font-weight:680; margin:0 1px; }
+      .msgbox .mcaret { display:inline-block; width:2px; height:18px; background:#0d9488; vertical-align:-3px; }
+
+      #clickGlow { position:absolute; left:0; top:0; width:84px; height:84px; border-radius:50%; z-index:40;
+        background: radial-gradient(circle, rgba(13,148,136,.32) 0%, rgba(13,148,136,.15) 42%, rgba(13,148,136,0) 70%);
+        border:2px solid rgba(13,148,136,.45); opacity:0; }
+      #cursor { position: absolute; top: 0; left: 0; z-index: 50; filter: drop-shadow(0 1px 1.5px rgba(0,0,0,.3)); }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="22" data-width="1920" data-height="1080">
+      <div class="stage">
+        <div class="browser">
+          <div class="titlebar"><i class="r"></i><i class="y"></i><i class="g"></i><div class="urlbar">app.flowforge.io / automations / new</div></div>
+          <div class="main" data-layout-allow-overflow>
+
+            <div class="toolbar">
+              <div style="position:relative; width:78px; height:36px">
+                <div class="badge draft" id="badgeDraft" style="position:absolute; left:0; top:0"><div class="bdot"></div>Draft</div>
+                <div class="badge live" id="badgeLive" style="position:absolute; left:0; top:0; opacity:0"><div class="bdot"></div>Live</div>
+              </div>
+              <div class="addtrig" id="addTrig">+ Add Trigger</div>
+              <div class="wfname" style="margin-left:6px">New automation<span>Untitled workflow</span></div>
+              <div style="margin-left:auto; display:flex; gap:12px">
+                <div class="btn dark" id="testBtn">▷ Test Automation</div>
+                <div class="btn teal" id="activateBtn">Activate</div>
+              </div>
+            </div>
+
+            <div class="canvas" id="canvas" data-layout-allow-overflow>
+              <!-- connectors -->
+              <div class="conn" id="conn1" style="top:148px; height:64px"></div>
+              <div class="conn" id="conn2" style="top:290px; height:64px"></div>
+              <div class="conn" id="conn3" style="top:432px; height:64px"></div>
+              <!-- traveling dots -->
+              <div class="dot" id="dot1" style="top:148px"></div>
+              <div class="dot" id="dot2" style="top:290px"></div>
+              <div class="dot" id="dot3" style="top:432px"></div>
+
+              <!-- blocks -->
+              <div class="block trig" id="blkTrig" style="top:70px">
+                <div class="check"></div>
+                <div class="bi" style="background:rgba(255,255,255,.22)"><div style="width:16px;height:16px;border-radius:5px;background:#fff"></div></div>
+                <div><div class="btag">Trigger</div><div class="bt">New Form Submission</div></div>
+              </div>
+              <div class="block" id="blkSlack" style="top:212px">
+                <div class="check"></div>
+                <div class="bi" style="background:#f3eaf4"><div style="width:16px;height:16px;border-radius:5px;background:#611f69"></div></div>
+                <div><div class="btag">Action</div><div class="bt">Send Slack Message</div></div>
+              </div>
+              <div class="block" id="blkTrello" style="top:354px">
+                <div class="check"></div>
+                <div class="bi" style="background:#dbeafe"><div style="width:16px;height:16px;border-radius:5px;background:#0079bf"></div></div>
+                <div><div class="btag">Action</div><div class="bt">Create Trello Card</div></div>
+              </div>
+              <div class="block" id="blkEmail" style="top:496px">
+                <div class="check"></div>
+                <div class="bi" style="background:#fde7d6"><div style="width:16px;height:16px;border-radius:5px;background:#ea580c"></div></div>
+                <div><div class="btag">Action</div><div class="bt">Send Email Confirmation</div></div>
+              </div>
+
+              <!-- add button -->
+              <div class="addbtn" id="addBtn" style="top:164px">+</div>
+
+              <!-- action picker -->
+              <div class="picker" id="picker">
+                <div class="pi" id="pkSlack"><div class="pic" style="background:#611f69"></div>Send Slack Message</div>
+                <div class="pi" id="pkTrello"><div class="pic" style="background:#0079bf"></div>Create Trello Card</div>
+                <div class="pi" id="pkEmail"><div class="pic" style="background:#ea580c"></div>Send Email Confirmation</div>
+              </div>
+            </div>
+
+            <!-- left trigger panel (overlay) -->
+            <div class="lpanel" id="lpanel" data-layout-allow-overflow>
+              <div class="lph">Choose a trigger</div>
+              <div class="lpsub">What starts this automation?</div>
+              <div class="lwrap"><div class="llist" id="llist">
+                <div class="titem"><div class="ti" style="background:#dbeafe"></div>New Calendar Event</div>
+                <div class="titem"><div class="ti" style="background:#fde7d6"></div>Incoming Webhook</div>
+                <div class="titem" id="trgForm"><div class="ti" style="background:#cdeee9"></div>New Form Submission</div>
+                <div class="titem"><div class="ti" style="background:#f3eaf4"></div>New Database Row</div>
+                <div class="titem"><div class="ti" style="background:#fee2e2"></div>Schedule / Cron</div>
+                <div class="titem"><div class="ti" style="background:#e9e0fc"></div>New Email Received</div>
+              </div></div>
+            </div>
+
+            <!-- right config panel (overlay) -->
+            <div class="rpanel" id="rpanel" data-layout-allow-overflow>
+              <div class="rph"><div class="ri"></div><b>Send Slack Message</b></div>
+              <div class="flbl">Channel</div>
+              <div class="dropdown" id="chanDD"><div class="chan"></div><span style="position:relative;flex:1"><span id="chanPlaceholder" style="color:#9ca3af">Select a channel…</span><span id="chanPicked" style="position:absolute;left:0;top:0;color:#14151a;font-weight:620;opacity:0">#submissions</span></span><div class="car"></div>
+                <div class="ddmenu" id="ddmenu">
+                  <div class="ddi"><div class="cc"></div>#general</div>
+                  <div class="ddi" id="ddSubmissions"><div class="cc"></div>#submissions</div>
+                  <div class="ddi"><div class="cc"></div>#alerts</div>
+                </div>
+              </div>
+              <div class="flbl">Message template</div>
+              <div class="msgbox"><span id="msgHost"></span><span class="mcaret" id="msgCaret"></span></div>
+            </div>
+
+          </div>
+        </div>
+
+        <div id="clickGlow"></div>
+        <div id="cursor">
+          <svg viewBox="0 0 20 32" width="26" height="42"><path d="M0 0 L0 27 L6.3 20.7 L10.5 30 L13.9 28.5 L9.75 19.5 L18 18.9 Z" fill="#0a0a0a"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const $ = (id) => document.getElementById(id);
+      const tl = gsap.timeline({ paused: true });
+      const cursor = $("cursor");
+      const cur = { x: 1660, y: 220 };
+      const tip = (el, fx, fy) => { const r = el.getBoundingClientRect(); return { x: r.left + r.width * (fx == null ? .5 : fx), y: r.top + r.height * (fy == null ? .5 : fy) }; };
+
+      let mc = 0;
+      function moveTo(tx, ty, at, dur, bow) {
+        bow = bow == null ? 18 : bow;
+        const dx = tx - cur.x, dy = ty - cur.y, d = Math.hypot(dx, dy) || 1;
+        const ux = dx / d, uy = dy / d, px = -uy, py = ux, side = mc++ % 2 ? -1 : 1, k = Math.min(1, d / 600);
+        tl.to(cursor, { keyframes: [
+          { x: cur.x + dx * 0.5 + px * bow * side * k, y: cur.y + dy * 0.5 + py * bow * side * k, duration: dur * 0.46, ease: "power1.inOut" },
+          { x: tx + ux * 8, y: ty + uy * 8, duration: dur * 0.34, ease: "power2.out" },
+          { x: tx, y: ty, duration: dur * 0.20, ease: "power2.inOut" },
+        ] }, at);
+        cur.x = tx; cur.y = ty;
+      }
+      function glow(at, x, y) { const gx = x == null ? cur.x : x, gy = y == null ? cur.y : y;
+        tl.set("#clickGlow", { x: gx, y: gy, scale: 0.34, autoAlpha: 0.55 }, at);
+        tl.to("#clickGlow", { scale: 1.85, autoAlpha: 0, duration: 0.5, ease: "power2.out" }, at); }
+      function click(at, x, y) {
+        tl.to(cursor.querySelector("svg"), { transformOrigin: "0% 0%", keyframes: [{ scale: 0.78, duration: .06, ease: "power2.in" }, { scale: 1, duration: .14, ease: "back.out(2.6)" }] }, at);
+        glow(at + 0.02, x, y);
+      }
+      function press(sel, at) { tl.to(sel, { keyframes: [{ scale: .95, duration: .07 }, { scale: 1, duration: .15, ease: "back.out(2)" }], transformOrigin: "50% 50%" }, at); }
+
+      // traveling dot: repeats from y0→y1 across [startAt, endAt]
+      function travel(sel, startAt, endAt, dur) {
+        const span = endAt - startAt; if (span <= 0) return;
+        const n = Math.max(0, Math.ceil(span / dur) - 1);
+        tl.to(sel, { y: 64, duration: dur, ease: "none", repeat: n }, startAt);
+      }
+
+      // typed slack message with highlighted variables
+      function buildMsg(host, parts) {
+        const seq = [];
+        parts.forEach((p) => {
+          if (p.t === "text") { [...p.v].forEach((c) => { const e = document.createElement("span"); e.className = "mc"; e.textContent = c; host.appendChild(e); seq.push({ el: e, pill: false }); }); }
+          else { const e = document.createElement("span"); e.className = "mvar"; e.textContent = p.v; host.appendChild(e); seq.push({ el: e, pill: true }); }
+        });
+        return seq;
+      }
+      function typeMsg(seq, at, per) { let t = at;
+        seq.forEach((tok) => {
+          if (tok.pill) { tl.set(tok.el, { display: "inline-flex" }, t); tl.fromTo(tok.el, { scale: 0.6, autoAlpha: 0 }, { scale: 1, autoAlpha: 1, duration: 0.24, ease: "back.out(2.4)" }, t); t += 0.26; }
+          else { tl.set(tok.el, { display: "inline" }, t); t += per; }
+        });
+        return t;
+      }
+      function blinkCaret(sel, at, until) { tl.set(sel, { opacity: 1 }, at); tl.to(sel, { opacity: 0, duration: .42, ease: "steps(1)", repeat: Math.max(1, Math.round((until - at) / .85)) * 2, yoyo: true }, at + .1); }
+
+      // ---- measure targets (pristine layout) ----
+      const cRect = $("canvas").getBoundingClientRect();
+      const cx = cRect.left + cRect.width / 2;             // canvas horizontal center
+      const gapY = (top) => cRect.top + top + 32;          // screen-y of a connector gap center
+      const T = {
+        addTrig: tip($("addTrig")), trgForm: tip($("trgForm")),
+        testBtn: tip($("testBtn")), activate: tip($("activateBtn")),
+        blkSlack: tip($("blkSlack")), chanDD: tip($("chanDD"), .5, .5), ddSub: tip($("ddSubmissions")),
+        pkSlack: tip($("pkSlack")), pkTrello: tip($("pkTrello")), pkEmail: tip($("pkEmail")),
+        gap1: { x: cx, y: gapY(148) }, gap2: { x: cx, y: gapY(290) }, gap3: { x: cx, y: gapY(432) },
+      };
+      const msgSeq = buildMsg($("msgHost"), [
+        { t: "text", v: "Hi " }, { t: "var", v: "{submitter name}" },
+        { t: "text", v: ", we received " }, { t: "var", v: "{form title}" }, { t: "text", v: ". Thanks!" },
+      ]);
+
+      // ---- initial states ----
+      gsap.set(cursor, { x: cur.x, y: cur.y, autoAlpha: 0 });
+      gsap.set("#clickGlow", { xPercent: -50, yPercent: -50, autoAlpha: 0, scale: 0.3 });
+      gsap.set(["#blkTrig", "#blkSlack", "#blkTrello", "#blkEmail"], { autoAlpha: 0, scale: 0.8, transformOrigin: "50% 50%" });
+      gsap.set([".block .check"], { autoAlpha: 0, scale: 0 });
+      gsap.set(["#conn1", "#conn2", "#conn3"], { scaleY: 0 });
+      gsap.set(["#dot1", "#dot2", "#dot3"], { autoAlpha: 0, y: 0 });
+      gsap.set("#addBtn", { autoAlpha: 0, scale: 0.6, transformOrigin: "50% 50%" });
+      gsap.set("#lpanel", { x: -360, autoAlpha: 0 });
+      gsap.set("#llist", { y: 0 });
+      gsap.set("#picker", { autoAlpha: 0, scale: 0.9, transformOrigin: "0% 30%" });
+      gsap.set("#rpanel", { x: 392, autoAlpha: 0 });
+      gsap.set("#ddmenu", { autoAlpha: 0, y: -6 });
+      gsap.set("#msgCaret", { opacity: 0 });
+      gsap.set("#badgeLive", { autoAlpha: 0 });
+
+      // ===== open =====
+      tl.to(cursor, { autoAlpha: 1, duration: 0.2 }, 0.35);
+
+      // ===== 1. Add Trigger → left panel =====
+      moveTo(T.addTrig.x, T.addTrig.y, 0.5, 0.7, 16);
+      click(1.15); press("#addTrig", 1.15);
+      tl.to("#lpanel", { x: 0, autoAlpha: 1, duration: 0.4, ease: "power3.out" }, 1.3);
+      // scroll the list briefly
+      moveTo(T.trgForm.x, T.trgForm.y - 40, 1.75, 0.5, 12);
+      tl.to("#llist", { y: -46, duration: 0.45, ease: "power2.out" }, 1.95);
+      // pick New Form Submission
+      moveTo(T.trgForm.x, T.trgForm.y - 46, 2.35, 0.45, 10);
+      tl.set("#trgForm", { className: "titem sel" }, 2.7);
+      click(2.78);
+      tl.to("#lpanel", { x: -360, autoAlpha: 0, duration: 0.35, ease: "power2.in" }, 2.95);
+      // trigger block appears
+      tl.to("#blkTrig", { autoAlpha: 1, scale: 1, duration: 0.45, ease: "back.out(1.8)" }, 3.15);
+      // add button appears below
+      tl.set("#addBtn", { top: 164 }, 3.5);
+      tl.to("#addBtn", { autoAlpha: 1, scale: 1, duration: 0.3, ease: "back.out(2.2)" }, 3.5);
+
+      // ===== 2. + → action picker → Send Slack Message =====
+      moveTo(T.gap1.x, T.gap1.y, 3.7, 0.5, 12);
+      click(4.15); press("#addBtn", 4.15);
+      tl.set("#picker", { top: 148, left: cx - cRect.left + 36 }, 4.2);
+      tl.to("#picker", { autoAlpha: 1, scale: 1, duration: 0.28, ease: "back.out(1.7)" }, 4.25);
+      moveTo(T.pkSlack.x + 36, T.pkSlack.y, 4.5, 0.4, 8);
+      tl.set("#pkSlack", { className: "pi sel" }, 4.85);
+      click(4.92);
+      tl.to("#picker", { autoAlpha: 0, scale: 0.92, duration: 0.22, ease: "power2.in" }, 5.05);
+      tl.to("#addBtn", { autoAlpha: 0, duration: 0.15 }, 5.05);
+      // slack block + connector
+      tl.to("#conn1", { scaleY: 1, duration: 0.3, ease: "power2.out" }, 5.1);
+      tl.to("#blkSlack", { autoAlpha: 1, scale: 1, duration: 0.45, ease: "back.out(1.8)" }, 5.2);
+      tl.set("#dot1", { autoAlpha: 1 }, 5.4);
+      travel("#dot1", 5.4, 17.6, 1.25);
+
+      // ===== 3. click Slack block → config panel =====
+      moveTo(T.blkSlack.x, T.blkSlack.y, 5.55, 0.55, 14);
+      click(6.05); press("#blkSlack", 6.05);
+      tl.to("#rpanel", { x: 0, autoAlpha: 1, duration: 0.4, ease: "power3.out" }, 6.2);
+      // open channel dropdown
+      moveTo(T.chanDD.x, T.chanDD.y, 6.6, 0.5, 12);
+      click(7.05); tl.to("#ddmenu", { autoAlpha: 1, y: 0, duration: 0.25, ease: "power2.out" }, 7.1);
+      // select #submissions
+      moveTo(T.ddSub.x, T.ddSub.y, 7.3, 0.4, 8);
+      tl.set("#ddSubmissions", { className: "ddi sel" }, 7.62);
+      click(7.68);
+      tl.set("#chanPlaceholder", { autoAlpha: 0 }, 7.72);
+      tl.set("#chanPicked", { autoAlpha: 1 }, 7.72);
+      tl.to("#ddmenu", { autoAlpha: 0, y: -6, duration: 0.2 }, 7.78);
+      // type message
+      blinkCaret("#msgCaret", 7.95, 9.6);
+      const msgEnd = typeMsg(msgSeq, 8.05, 0.03);
+      // close panel
+      tl.to("#rpanel", { x: 392, autoAlpha: 0, duration: 0.38, ease: "power2.in" }, 9.7);
+
+      // ===== 4. add Create Trello Card =====
+      tl.set("#addBtn", { top: 306 }, 9.75);
+      tl.to("#addBtn", { autoAlpha: 1, scale: 1, duration: 0.3, ease: "back.out(2.2)" }, 9.8);
+      moveTo(T.gap2.x, T.gap2.y, 9.95, 0.5, 12);
+      click(10.4); press("#addBtn", 10.4);
+      tl.set("#picker", { top: 290, left: cx - cRect.left + 36 }, 10.45);
+      tl.to("#picker", { autoAlpha: 1, scale: 1, duration: 0.28, ease: "back.out(1.7)" }, 10.5);
+      moveTo(T.pkTrello.x + 36, T.gap2.y + (T.pkTrello.y - T.pkSlack.y), 10.75, 0.4, 8);
+      tl.set("#pkTrello", { className: "pi sel" }, 11.1);
+      click(11.16);
+      tl.to("#picker", { autoAlpha: 0, scale: 0.92, duration: 0.22, ease: "power2.in" }, 11.28);
+      tl.to("#addBtn", { autoAlpha: 0, duration: 0.15 }, 11.28);
+      tl.to("#conn2", { scaleY: 1, duration: 0.3, ease: "power2.out" }, 11.3);
+      tl.to("#blkTrello", { autoAlpha: 1, scale: 1, duration: 0.45, ease: "back.out(1.8)" }, 11.4);
+      tl.set("#dot2", { autoAlpha: 1 }, 11.6);
+      travel("#dot2", 11.6, 17.6, 1.25);
+
+      // ===== 5. add Send Email Confirmation =====
+      tl.set("#addBtn", { top: 448 }, 11.7);
+      tl.to("#addBtn", { autoAlpha: 1, scale: 1, duration: 0.3, ease: "back.out(2.2)" }, 11.75);
+      moveTo(T.gap3.x, T.gap3.y, 11.9, 0.5, 12);
+      click(12.35); press("#addBtn", 12.35);
+      tl.set("#picker", { top: 432, left: cx - cRect.left + 36 }, 12.4);
+      tl.to("#picker", { autoAlpha: 1, scale: 1, duration: 0.28, ease: "back.out(1.7)" }, 12.45);
+      moveTo(T.pkEmail.x + 36, T.gap3.y + (T.pkEmail.y - T.pkSlack.y), 12.7, 0.4, 8);
+      tl.set("#pkEmail", { className: "pi sel" }, 13.05);
+      click(13.11);
+      tl.to("#picker", { autoAlpha: 0, scale: 0.92, duration: 0.22, ease: "power2.in" }, 13.23);
+      tl.to("#addBtn", { autoAlpha: 0, duration: 0.15 }, 13.23);
+      tl.to("#conn3", { scaleY: 1, duration: 0.3, ease: "power2.out" }, 13.25);
+      tl.to("#blkEmail", { autoAlpha: 1, scale: 1, duration: 0.45, ease: "back.out(1.8)" }, 13.35);
+      tl.set("#dot3", { autoAlpha: 1 }, 13.55);
+      travel("#dot3", 13.55, 17.6, 1.25);
+
+      // ===== 6. Test Automation → green cascade =====
+      moveTo(T.testBtn.x, T.testBtn.y, 13.9, 0.6, 16);
+      click(14.5); press("#testBtn", 14.5);
+      [["#blkTrig", 14.8], ["#blkSlack", 15.2], ["#blkTrello", 15.6], ["#blkEmail", 16.0]].forEach(([b, at]) => {
+        tl.to(b, { borderColor: "#16a34a", boxShadow: "0 0 0 3px rgba(22,163,74,.2), 0 12px 28px -14px rgba(16,17,21,.2)", duration: 0.22 }, at);
+        tl.fromTo(b + " .check", { autoAlpha: 0, scale: 0 }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: "back.out(2.6)" }, at + 0.04);
+      });
+
+      // ===== 7. Activate → Draft→Live, dots speed up =====
+      moveTo(T.activate.x, T.activate.y, 16.6, 0.6, 14);
+      click(17.2); press("#activateBtn", 17.2);
+      tl.to("#badgeDraft", { autoAlpha: 0, duration: 0.18 }, 17.35);
+      tl.fromTo("#badgeLive", { autoAlpha: 0, scale: 0.6 }, { autoAlpha: 1, scale: 1, duration: 0.4, ease: "back.out(2.4)" }, 17.4);
+      tl.to("#activateBtn", { backgroundColor: "#16a34a", duration: 0.25 }, 17.4);
+      // dots speed up (fast phase)
+      tl.set(["#dot1", "#dot2", "#dot3"], { y: 0 }, 17.6);
+      travel("#dot1", 17.6, 22.0, 0.6);
+      travel("#dot2", 17.6, 22.0, 0.6);
+      travel("#dot3", 17.6, 22.0, 0.6);
+      // settle cursor
+      moveTo(cx, cRect.top + 250, 17.9, 0.7, 14);
+      tl.to(cursor, { autoAlpha: 0, duration: 0.4 }, 19.2);
+      // gentle live pulse on badge
+      tl.to("#badgeLive .bdot", { keyframes: [{ scale: 1.5, duration: 0.4 }, { scale: 1, duration: 0.5 }], transformOrigin: "50% 50%", repeat: 2, ease: "sine.inOut" }, 18.4);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
