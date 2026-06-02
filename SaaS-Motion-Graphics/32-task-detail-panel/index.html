@@ -45,7 +45,7 @@
 
       .desc { border: 1.5px solid #e7eaf1; border-radius: 12px; min-height: 120px; padding: 14px 16px; font-size: 17px; color: #1f2840; line-height: 1.5; position: relative; }
       .desc.focus { border-color: #2563eb; }
-      .ph { color: #aab1c0; }
+      .ph { position: absolute; left: 16px; top: 14px; color: #aab1c0; }
       .dchar { opacity: 0; }
       #caret { position: absolute; width: 2px; height: 22px; background: #2563eb; z-index: 60; }
 
@@ -69,6 +69,8 @@
       .comment .cb { background: #f3f5f9; border-radius: 10px; padding: 10px 14px; font-size: 15px; color: #3b4658; }
       .comment .cn { font-weight: 700; color: #1f2840; margin-bottom: 2px; font-size: 14px; }
 
+      #clickfx { position: absolute; width: 44px; height: 44px; border-radius: 50%;
+        border: 2.5px solid rgba(37,99,235,0.6); z-index: 88; opacity: 0; }
       #cursor { position: absolute; left: 0; top: 0; z-index: 90; }
     </style>
   </head>
@@ -80,6 +82,7 @@
         </div>
         <div id="panel" data-layout-allow-overflow></div>
         <div id="caret"></div>
+        <div id="clickfx"></div>
         <div id="cursor"><svg width="36" height="42" viewBox="0 0 24 28"><path d="M3,2 L3,22 L8.5,16.8 L12,24.5 L15.4,23 L11.9,15.3 L19,15.3 Z" fill="#ffffff" stroke="#1b1b22" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
       </div>
     </div>
@@ -179,23 +182,25 @@
       const DESC = "Rework the first-run setup to remove three steps. Ship the new flow before the Q3 launch review.";
       const dtext = document.getElementById("dtext");
       const dchars = [];
-      for (const ch of DESC) {
-        const s = document.createElement("span"); s.className = "dchar"; s.textContent = ch;
-        dtext.appendChild(s); dchars.push(s);
-      }
+      DESC.split(" ").forEach((word, wi, arr) => {
+        const w = document.createElement("span"); w.style.whiteSpace = "nowrap"; // keep words whole
+        for (const ch of word) { const s = document.createElement("span"); s.className = "dchar"; s.textContent = ch; w.appendChild(s); dchars.push(s); }
+        dtext.appendChild(w);
+        if (wi < arr.length - 1) { const sp = document.createElement("span"); sp.className = "dchar"; sp.textContent = " "; dtext.appendChild(sp); dchars.push(sp); }
+      });
 
       // ---------- cursor + measured targets (panel at rest) ----------
       const cursor = document.getElementById("cursor");
       const caret = document.getElementById("caret");
       const C = (el) => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
-      const pTarget = C(targetCard);
-      const pAsg = C(document.getElementById("asgVal"));
+      const pTarget = C(targetCard.querySelector(".ttitle"));
+      const pAsg = C(document.getElementById("asgUn"));     // the actual "Unassigned" control
       const pAsgPick = C(panel.querySelectorAll(".mitem")[PICK]);
-      const pDue = C(document.getElementById("dueVal"));
+      const pDue = C(document.getElementById("dueUn"));     // "No due date"
       const pDay = C(dayEls[6]);
-      const pPrio = C(document.getElementById("prioVal"));
+      const pPrio = C(document.getElementById("prioNone")); // the "None" pill
       const pHigh = C(document.getElementById("prioHigh"));
-      const pDesc = C(document.getElementById("desc"));
+      const pDesc = C(document.getElementById("ph"));       // top-left of the description field
       const charPos = dchars.map((s) => { const r = s.getBoundingClientRect(); return { x: r.right, y: r.top + 4 }; });
       const pOutside = { x: 620, y: 540 };
 
@@ -209,8 +214,19 @@
       // target card has no meta yet — give it placeholders to reveal later
       const tAva = targetCard.querySelector(".av"), tDue = targetCard.querySelector(".dueitem"), tDot = targetCard.querySelector(".pdot");
 
-      const click = (tl, t) => { tl.to(cursor, { scale: 0.85, duration: 0.08, transformOrigin: "0 0" }, t); tl.to(cursor, { scale: 1, duration: 0.1 }, t + 0.08); };
-      const move = (tl, p, t, d) => tl.to(cursor, { x: p.x, y: p.y, duration: d, ease: "power2.inOut" }, t);
+      // the cursor's pointer tip sits at ~(4.5, 3) inside its box — offset so the TIP lands on the target
+      const fx = document.getElementById("clickfx");
+      gsap.set(fx, { autoAlpha: 0, scale: 0.3, transformOrigin: "center center" });
+      const TIPX = 4.5, TIPY = 3;
+      const move = (tl, p, t, d) => tl.to(cursor, { x: p.x - TIPX, y: p.y - TIPY, duration: d, ease: "power2.inOut" }, t);
+      const click = (tl, t, p) => {
+        tl.to(cursor, { scale: 0.82, duration: 0.07, transformOrigin: "0 0" }, t);
+        tl.to(cursor, { scale: 1, duration: 0.12, ease: "back.out(2.5)" }, t + 0.07);
+        if (p) {
+          tl.set(fx, { left: p.x - 22, top: p.y - 22 }, t);
+          tl.fromTo(fx, { scale: 0.3, autoAlpha: 0.7 }, { scale: 1.9, autoAlpha: 0, duration: 0.45, ease: "power2.out" }, t);
+        }
+      };
 
       // ---------- timeline ----------
       const tl = gsap.timeline({ paused: true });
@@ -218,17 +234,17 @@
       // cursor enters and clicks the target card -> panel slides in from the right
       tl.to(cursor, { autoAlpha: 1, duration: 0.2 }, 0.4);
       move(tl, pTarget, 0.4, 1.0);
-      click(tl, 1.45);
+      click(tl, 1.45, pTarget);
       tl.to(panel, { x: 0, duration: 0.6, ease: "power3.out" }, 1.6);
 
       // === assignee ===
       move(tl, pAsg, 2.3, 0.6);
-      click(tl, 3.0);
+      click(tl, 3.0, pAsg);
       tl.to("#asgPop", { autoAlpha: 1, scaleY: 1, y: 0, duration: 0.25, ease: "power2.out" }, 3.05);
       // scroll the list, then click a name
       tl.to("#mscroll", { y: -130, duration: 0.6, ease: "power2.inOut" }, 3.5);
       move(tl, { x: pAsgPick.x, y: pAsgPick.y - 130 }, 3.6, 0.5);
-      click(tl, 4.2);
+      click(tl, 4.2, { x: pAsgPick.x, y: pAsgPick.y - 130 });
       tl.to(panel.querySelectorAll(".mitem")[PICK], { backgroundColor: "#eef4ff", duration: 0.15 }, 4.25);
       tl.to("#asgPop", { autoAlpha: 0, duration: 0.2 }, 4.45);
       // populate assignee chip
@@ -242,10 +258,10 @@
 
       // === due date ===
       move(tl, pDue, 4.8, 0.55);
-      click(tl, 5.45);
+      click(tl, 5.45, pDue);
       tl.to("#calPop", { autoAlpha: 1, scaleY: 1, y: 0, duration: 0.25, ease: "power2.out" }, 5.5);
       move(tl, pDay, 5.7, 0.5);
-      click(tl, 6.3);
+      click(tl, 6.3, pDay);
       tl.to(dayEls[6].querySelector(".sel"), { autoAlpha: 1, duration: 0.15 }, 6.35);
       tl.to(dayEls[6].querySelector(".n"), { color: "#fff", duration: 0.1 }, 6.35);
       tl.to("#calPop", { autoAlpha: 0, duration: 0.2 }, 6.6);
@@ -257,10 +273,10 @@
 
       // === priority ===
       move(tl, pPrio, 6.95, 0.55);
-      click(tl, 7.6);
+      click(tl, 7.6, pPrio);
       tl.to("#prioPop", { autoAlpha: 1, scaleY: 1, y: 0, duration: 0.25, ease: "power2.out" }, 7.65);
       move(tl, pHigh, 7.8, 0.4);
-      click(tl, 8.25);
+      click(tl, 8.25, pHigh);
       tl.to("#prioHigh", { backgroundColor: "#fff7ed", duration: 0.15 }, 8.3);
       tl.to("#prioPop", { autoAlpha: 0, duration: 0.2 }, 8.5);
       // field turns amber: crossfade None -> High pill
@@ -269,7 +285,7 @@
 
       // === description: click in, type two sentences ===
       move(tl, pDesc, 8.9, 0.5);
-      click(tl, 9.5);
+      click(tl, 9.5, pDesc);
       tl.to("#desc", { className: "desc focus", duration: 0.01 }, 9.55);
       tl.set("#ph", { autoAlpha: 0 }, 9.55);
       tl.set(caret, { autoAlpha: 1, x: charPos.length ? 0 : 0 }, 9.55);
@@ -285,7 +301,7 @@
 
       // === click outside -> panel slides closed ===
       move(tl, pOutside, typeEnd + 0.3, 0.7);
-      click(tl, typeEnd + 1.0);
+      click(tl, typeEnd + 1.0, pOutside);
       tl.to(panel, { x: 640, duration: 0.55, ease: "power3.in" }, typeEnd + 1.1);
 
       // === the card on the board has updated ===
