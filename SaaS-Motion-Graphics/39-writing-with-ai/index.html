@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #fbfbfc; font-family: "Inter", system-ui, sans-serif; }
+      .stage { position: absolute; inset: 0; overflow: hidden; background: #fbfbfc; }
+
+      .topbar { position: absolute; left: 0; top: 0; width: 100%; height: 56px; display: flex; align-items: center; padding: 0 26px; z-index: 8; border-bottom: 1px solid #eef0f3; background: #fff; }
+      .tb-dot { width: 11px; height: 11px; border-radius: 50%; margin-right: 9px; }
+      .tb-doc { margin-left: 14px; font-size: 14px; color: #8a93a7; font-weight: 600; display: flex; align-items: center; gap: 9px; }
+      .tb-doc .pg { width: 15px; height: 17px; border-radius: 3px; border: 1.6px solid #c3c9d6; }
+      .tb-right { margin-left: auto; display: flex; align-items: center; gap: 20px; font-size: 13.5px; color: #98a1b5; font-weight: 600; }
+      .tb-save { display: flex; align-items: center; gap: 7px; }
+      .tb-save .ok { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; }
+
+      /* editor text (absolute, fixed column) */
+      .title, .body { position: absolute; left: 600px; width: 720px; }
+      .title { top: 150px; font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 40px; line-height: 1.25; color: #14181f; letter-spacing: -0.3px; }
+      .body { top: 240px; font-family: Georgia, "Times New Roman", serif; font-size: 22px; line-height: 1.78; color: #2b3140; }
+      .ch { opacity: 0; }
+      .gray { color: #b3bac8; }
+
+      #selLayer { position: absolute; inset: 0; z-index: 1; }
+      .selhi { position: absolute; background: rgba(99,130,246,0.26); border-radius: 3px; }
+      .title, .body { z-index: 2; }
+
+      #caret { position: absolute; left: 0; top: 0; width: 2.5px; height: 30px; background: #1a1f29; z-index: 5; }
+
+      /* AI button + menu */
+      #aibtn { position: absolute; display: flex; align-items: center; gap: 7px; height: 38px; padding: 0 14px 0 12px; background: #fff; border: 1px solid #e7e3f5; border-radius: 10px; box-shadow: 0 10px 30px rgba(79,70,229,0.16); font-size: 14px; font-weight: 700; color: #5b4bd6; z-index: 30; opacity: 0; }
+      #aimenu { position: absolute; width: 210px; background: #fff; border: 1px solid #ebedf2; border-radius: 12px; box-shadow: 0 22px 55px rgba(20,28,46,0.20); padding: 6px; z-index: 31; opacity: 0; }
+      .aiopt { display: flex; align-items: center; gap: 12px; height: 42px; padding: 0 11px; border-radius: 8px; font-size: 15px; color: #2a3350; font-weight: 600; }
+      .aiopt .ico { width: 20px; height: 20px; color: #7c84d8; }
+
+      #tabkey { position: absolute; height: 30px; padding: 0 11px; display: flex; align-items: center; gap: 6px; background: #14203a; color: #fff; font-size: 12.5px; font-weight: 700; border-radius: 7px; z-index: 33; opacity: 0; }
+      #tabkey .k { font-family: ui-monospace, monospace; background: rgba(255,255,255,0.16); padding: 1px 6px; border-radius: 4px; }
+
+      #ring { position: absolute; width: 44px; height: 44px; border-radius: 50%; border: 2.5px solid rgba(91,75,214,0.6); z-index: 88; opacity: 0; }
+      #glow { position: absolute; width: 92px; height: 92px; border-radius: 50%; z-index: 87; opacity: 0; background: radial-gradient(circle, rgba(99,102,241,0.5) 0%, rgba(99,102,241,0) 70%); }
+      #cursor { position: absolute; left: 0; top: 0; z-index: 90; opacity: 0; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="20" data-width="1920" data-height="1080">
+      <div class="stage" id="stage">
+        <div class="topbar">
+          <div class="tb-dot" style="background:#f0685f"></div><div class="tb-dot" style="background:#f7c14b"></div><div class="tb-dot" style="background:#5fc466"></div>
+          <div class="tb-doc"><div class="pg"></div>Building a Writing Habit — Draft</div>
+          <div class="tb-right"><div class="tb-save"><div class="ok"></div>Saved</div><div id="wc">0 words</div><div>Share</div></div>
+        </div>
+
+        <div id="selLayer"></div>
+        <div class="title" id="title"></div>
+        <div class="body" id="bodyShort"></div>
+        <div class="body" id="bodyLong"></div>
+
+        <div id="caret"></div>
+
+        <div id="aibtn">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 4.7L18.5 9l-4.7 1.3L12 15l-1.3-4.7L6 9l4.7-1.3z" fill="#7c5cf0"/><circle cx="18.5" cy="17.5" r="1.7" fill="#b89bf5"/><circle cx="5.5" cy="15.5" r="1.3" fill="#b89bf5"/></svg>
+          Ask AI
+        </div>
+        <div id="aimenu">
+          <div class="aiopt" data-k="expand"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>Expand</div>
+          <div class="aiopt"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7M21 4v4h-4"/></svg>Rewrite</div>
+          <div class="aiopt"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7l4-4 4 4M8 17l4 4 4-4"/></svg>Make shorter</div>
+          <div class="aiopt"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.4"/><line x1="11" y1="8" x2="20" y2="8"/><line x1="4" y1="8" x2="6" y2="8"/><circle cx="16" cy="16" r="2.4"/><line x1="4" y1="16" x2="13" y2="16"/><line x1="18.5" y1="16" x2="20" y2="16"/></svg>Change tone</div>
+        </div>
+
+        <div id="tabkey">accept <span class="k">Tab</span></div>
+
+        <div id="ring"></div>
+        <div id="glow"></div>
+        <div id="cursor"><svg width="34" height="40" viewBox="0 0 24 28"><path d="M3,2 L3,22 L8.5,16.8 L12,24.5 L15.4,23 L11.9,15.3 L19,15.3 Z" fill="#ffffff" stroke="#1b1b22" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+
+      // ---------- content ----------
+      const TITLE = "Building a Writing Habit";
+      const SHORT = "Most people wait for inspiration before they write. The truth is that consistency matters far more than mood.";
+      const EXP = "Most people wait for inspiration before they write, treating the urge to create as something that arrives on its own. The truth is that consistency matters far more than mood. Writers who show up every day, even for twenty minutes, build a momentum that occasional bursts of enthusiasm can never match. The page stops feeling like a confrontation and starts to feel like a conversation you return to. Over weeks the habit compounds: ideas connect, sentences sharpen, and the work begins to carry itself.";
+      const S_NEW = "The hardest part";
+      const S_GRAY = " is simply beginning — so begin before you feel ready.";
+      const S_CONT = " Everything else follows.";
+      const FULL = EXP + " " + S_NEW + S_GRAY + S_CONT;
+
+      // ---------- build typed text (per-char spans, layout-stable) ----------
+      function buildText(container, text) {
+        const chars = [];
+        text.split(" ").forEach((word, wi, arr) => {
+          const w = document.createElement("span"); w.style.whiteSpace = "nowrap";
+          for (const ch of word) { const s = document.createElement("span"); s.className = "ch"; s.textContent = ch; w.appendChild(s); chars.push(s); }
+          container.appendChild(w);
+          if (wi < arr.length - 1) { const sp = document.createElement("span"); sp.className = "ch"; sp.textContent = " "; container.appendChild(sp); chars.push(sp); }
+        });
+        return chars;
+      }
+      const titleChars = buildText(document.getElementById("title"), TITLE);
+      const shortChars = buildText(document.getElementById("bodyShort"), SHORT);
+      const longChars = buildText(document.getElementById("bodyLong"), FULL);
+
+      // long-text segment boundaries (chars index == string index for single-spaced text)
+      const E = EXP.length;
+      const iNewStart = E + 1, iNewEnd = iNewStart + S_NEW.length;
+      const iGrayStart = iNewEnd, iGrayEnd = iGrayStart + S_GRAY.length;
+      const iContStart = iGrayEnd;
+      const grayChars = longChars.slice(iGrayStart, iGrayEnd);
+      grayChars.forEach((c) => c.classList.add("gray"));
+
+      // ---------- measure caret positions & selection lines ----------
+      const measure = (chars) => chars.map((c) => { const r = c.getBoundingClientRect(); return { l: r.left, x: r.right, y: r.top, h: r.height }; });
+      const mTitle = measure(titleChars), mShort = measure(shortChars), mLong = measure(longChars);
+
+      // selection highlight rectangles for the two short sentences
+      const selLayer = document.getElementById("selLayer");
+      const lines = [];
+      mShort.forEach((p) => { let L = lines.find((q) => Math.abs(q.y - p.y) < 6); if (!L) lines.push({ y: p.y, l: p.l, x: p.x, h: p.h }); else { L.l = Math.min(L.l, p.l); L.x = Math.max(L.x, p.x); } });
+      const selDivs = lines.map((L) => { const d = document.createElement("div"); d.className = "selhi"; d.style.left = L.l + "px"; d.style.top = (L.y - 1) + "px"; d.style.width = (L.x - L.l) + "px"; d.style.height = (L.h + 2) + "px"; selLayer.appendChild(d); return d; });
+
+      // position AI button + menu above the selection
+      const aibtn = document.getElementById("aibtn"), aimenu = document.getElementById("aimenu");
+      aibtn.style.left = (lines[0].l + 40) + "px"; aibtn.style.top = (lines[0].y - 52) + "px";
+      aimenu.style.left = (lines[0].l + 40) + "px"; aimenu.style.top = (lines[0].y - 10) + "px";
+      const tabkey = document.getElementById("tabkey");
+
+      // ---------- measure interactive targets (before hiding) ----------
+      const rectC = (e) => { const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
+      const AIBTN = rectC(aibtn);
+      const EXPAND = rectC(aimenu.querySelector('[data-k="expand"]'));
+
+      // ---------- caret + cursor setup ----------
+      const caret = document.getElementById("caret"), cursor = document.getElementById("cursor"), ring = document.getElementById("ring"), glow = document.getElementById("glow");
+      const TIPX = 4.5, TIPY = 3;
+      const tl = gsap.timeline({ paused: true });
+      gsap.set([ring, glow], { autoAlpha: 0, scale: 0.3, left: -400, top: -400, transformOrigin: "center center" });
+      gsap.set(selDivs, { scaleX: 0, transformOrigin: "left center" });
+      gsap.set([aimenu, tabkey], { autoAlpha: 0 });
+      const setCaret = (t, p) => tl.set(caret, { x: p.x, y: p.y + p.h * 0.13, height: p.h * 0.74 }, t);
+      const caretAfter = (m, i) => ({ x: m[i].x, y: m[i].y, h: m[i].h });
+      // place caret at very start of title, solid
+      setCaret(0, { x: mTitle[0].l, y: mTitle[0].y, h: mTitle[0].h });
+      gsap.set(caret, { opacity: 1 });
+
+      const move = (t, p, d = 0.5) => tl.to(cursor, { x: p.x - TIPX, y: p.y - TIPY, duration: d, ease: "power3.inOut" }, t);
+      const click = (t, p) => {
+        tl.to(cursor, { scale: 0.82, duration: 0.08, transformOrigin: "0 0" }, t);
+        tl.to(cursor, { scale: 1, duration: 0.14, ease: "back.out(2.6)" }, t + 0.08);
+        tl.set(glow, { left: p.x - 46, top: p.y - 46 }, t);
+        tl.fromTo(glow, { scale: 0.3, autoAlpha: 0.95 }, { scale: 1.7, autoAlpha: 0, duration: 0.52, ease: "power2.out" }, t);
+        tl.set(ring, { left: p.x - 22, top: p.y - 22 }, t);
+        tl.fromTo(ring, { scale: 0.35, autoAlpha: 0.85 }, { scale: 1.95, autoAlpha: 0, duration: 0.52, ease: "power2.out" }, t);
+      };
+      const wc = document.getElementById("wc");
+      const setWords = (t, n) => { const o = { v: 0 }; tl.to(o, { v: n, duration: 0.5, onUpdate: () => { wc.textContent = Math.round(o.v) + " words"; } }, t); };
+      const blink = (startT, dur) => { tl.set(caret, { opacity: 1 }, startT); let k = 0; for (let tt = 0.32; tt < dur; tt += 0.53) { tl.set(caret, { opacity: 0 }, startT + tt); tl.set(caret, { opacity: 1 }, startT + tt + 0.27); k++; } };
+
+      // type a block of chars with the caret following each keystroke
+      function typeBlock(startT, chars, m, offset, perChar, withCaret) {
+        chars.forEach((c, k) => {
+          const i = offset + k;
+          tl.set(c, { opacity: 1 }, startT + k * perChar);
+          if (withCaret !== false) setCaret(startT + k * perChar, caretAfter(m, i));
+        });
+        return startT + chars.length * perChar;
+      }
+
+      // ===================== TIMELINE =====================
+      let t = 0;
+      blink(0, 0.7);                 // cursor sits on the first line
+      t = 0.7;
+
+      // title types — slow, deliberate
+      t = typeBlock(t, titleChars, mTitle, 0, 0.072, true);
+      t += 0.25;
+      // caret drops to the body line
+      setCaret(t, { x: mShort[0].l, y: mShort[0].y, h: mShort[0].h });
+      t += 0.2;
+      // two sentences of body copy
+      t = typeBlock(t, shortChars, mShort, 0, 0.0205, true);
+      setWords(t - 0.3, 18);
+
+      // the cursor sits — thinking (~2s)
+      blink(t, 1.85);
+      t += 1.95;
+
+      // mouse cursor enters and selects the two sentences (click + drag highlight)
+      tl.to(caret, { autoAlpha: 0, duration: 0.2 }, t);
+      const selStart = { x: lines[0].l, y: lines[0].y + lines[0].h / 2 };
+      const lastL = lines[lines.length - 1];
+      const selEnd = { x: lastL.x, y: lastL.y + lastL.h / 2 };
+      tl.to(cursor, { autoAlpha: 1, duration: 0.3 }, t);
+      move(t, selStart, 0.55); t += 0.55;
+      tl.to(cursor, { scale: 0.85, duration: 0.1 }, t);              // press
+      // drag highlight across lines while cursor travels to the end
+      const dragDur = 0.7;
+      selDivs.forEach((d, li) => tl.to(d, { scaleX: 1, duration: dragDur / selDivs.length, ease: "none" }, t + li * (dragDur / selDivs.length)));
+      tl.to(cursor, { x: selEnd.x - TIPX, y: selEnd.y - TIPY, duration: dragDur, ease: "power1.inOut" }, t);
+      tl.to(cursor, { scale: 1, duration: 0.16, ease: "power2.out" }, t + dragDur);
+      t += dragDur + 0.12;
+
+      // AI button appears above the selection; cursor moves to it and clicks
+      tl.fromTo(aibtn, { autoAlpha: 0, y: 8, scale: 0.92, transformOrigin: "left bottom" }, { autoAlpha: 1, y: 0, scale: 1, duration: 0.28, ease: "back.out(1.7)" }, t);
+      t += 0.34;
+      move(t, AIBTN, 0.42); t += 0.42;
+      click(t, AIBTN);
+      tl.fromTo(aimenu, { autoAlpha: 0, y: -6, scale: 0.98, transformOrigin: "top left" }, { autoAlpha: 1, y: 0, scale: 1, duration: 0.24, ease: "power2.out" }, t + 0.12);
+      t += 0.5;
+      // click Expand
+      move(t, EXPAND, 0.4); t += 0.4;
+      tl.to(aimenu.querySelector('[data-k="expand"]'), { backgroundColor: "#f1effe", duration: 0.1 }, t - 0.04);
+      click(t, EXPAND);
+      tl.to([aimenu, aibtn], { autoAlpha: 0, duration: 0.2 }, t + 0.14);
+      t += 0.45;
+
+      // the two sentences blur (4-frame defocus) then resolve into six, typed at high speed
+      tl.to("#bodyShort", { filter: "blur(5px)", duration: 0.13, ease: "power1.in" }, t);
+      tl.to(selDivs, { autoAlpha: 0, duration: 0.2 }, t);
+      tl.to("#bodyShort", { autoAlpha: 0, duration: 0.18 }, t + 0.13);
+      tl.fromTo("#bodyLong", { filter: "blur(6px)" }, { filter: "blur(0px)", duration: 0.35, ease: "power2.out" }, t + 0.1);
+      const expandStart = t + 0.18;
+      t = typeBlock(expandStart, longChars.slice(0, E), mLong, 0, 0.0055, false);
+      setWords(t - 0.6, 84);
+      t += 0.3;
+
+      // settle, then the cursor clicks outside the selection (deselect) — paragraph is done
+      move(t, { x: 1360, y: mLong[Math.floor(E / 2)].y }, 0.5); t += 0.5;
+      click(t, { x: 1360, y: mLong[Math.floor(E / 2)].y });
+      t += 0.3;
+
+      // cursor clicks at the end of the paragraph; the text caret lands there
+      const endPara = caretAfter(mLong, E - 1);
+      move(t, { x: endPara.x + 8, y: endPara.y + endPara.h / 2 }, 0.5); t += 0.5;
+      click(t, { x: endPara.x + 8, y: endPara.y + endPara.h / 2 });
+      tl.to(cursor, { autoAlpha: 0, duration: 0.3 }, t + 0.2);
+      tl.set(caret, { autoAlpha: 1 }, t + 0.1);
+      setCaret(t + 0.1, endPara);
+      t += 0.5;
+
+      // type a new sentence — three words, then stop (slice from E to include the joining space)
+      const newChars = longChars.slice(E, iNewEnd);
+      t = typeBlock(t, newChars, mLong, E, 0.052, true);
+      blink(t, 0.5); t += 0.55;
+
+      // autocomplete suggestion appears in light gray, extending the sentence (as one block)
+      gsap.set(grayChars, { opacity: 0 });
+      tl.to(grayChars, { opacity: 1, duration: 0.28, ease: "power1.out" }, t);
+      // Tab hint sits just to the right of the suggestion's end
+      const grayEnd = caretAfter(mLong, iGrayEnd - 1);
+      tabkey.style.left = (grayEnd.x + 14) + "px";
+      tabkey.style.top = (grayEnd.y + grayEnd.h * 0.1) + "px";
+      tl.fromTo(tabkey, { autoAlpha: 0, y: 6 }, { autoAlpha: 1, y: 0, duration: 0.3, ease: "back.out(1.6)" }, t + 0.12);
+      t += 0.7;
+
+      // hit Tab -> suggestion accepts, gray turns black, caret jumps to the end
+      tl.to(grayChars, { color: "#2b3140", duration: 0.18, ease: "power1.out" }, t);
+      tl.to(tabkey, { autoAlpha: 0, y: -6, duration: 0.22 }, t);
+      setCaret(t + 0.05, caretAfter(mLong, iGrayEnd - 1));
+      t += 0.45;
+
+      // continue typing the next sentence — faster than one person could alone
+      const contChars = longChars.slice(iContStart);
+      t = typeBlock(t, contChars, mLong, iContStart, 0.044, true);
+      setWords(t - 0.3, 96);
+      // caret blinks; the document holds
+      blink(t + 0.05, 1.6);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
