@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=3840, height=2160" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 3840px; height: 2160px; overflow: hidden; background: #070a16;
+        font-family: "Inter", Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; color: #fff; }
+      .stage { position: absolute; inset: 0; overflow: hidden; background: radial-gradient(1700px 1200px at 50% 44%, #131a32 0%, #0a0e1e 58%, #05070f 100%); }
+      .bgblob { position: absolute; border-radius: 50%; filter: blur(180px); opacity: .55; }
+      .bb1 { width: 1300px; height: 1300px; left: 260px; top: 120px; background: #4f46e5; }
+      .bb2 { width: 1200px; height: 1200px; right: 220px; top: 240px; background: #0ea5e9; }
+      .bb3 { width: 1100px; height: 1100px; left: 1300px; bottom: -260px; background: #d946b0; }
+
+      .scene { position: absolute; inset: 0; }
+
+      /* floor shadow */
+      #shadow { position: absolute; left: 50%; top: 1640px; width: 1700px; height: 240px; margin-left: -850px; border-radius: 50%;
+        background: radial-gradient(ellipse, rgba(0,0,0,.66) 0%, rgba(0,0,0,0) 70%); filter: blur(30px); }
+
+      /* card */
+      #cardWrap { position: absolute; left: 970px; top: 490px; width: 1900px; height: 1180px; }
+      #card { position: absolute; inset: 0; border-radius: 44px; padding: 64px 70px;
+        background: linear-gradient(150deg, rgba(255,255,255,.16) 0%, rgba(255,255,255,.06) 46%, rgba(255,255,255,.03) 100%);
+        border: 1.5px solid rgba(255,255,255,.22);
+        box-shadow: 0 40px 110px -40px rgba(0,0,0,.7), inset 0 1px 1px rgba(255,255,255,.4), inset 0 -30px 60px -40px rgba(255,255,255,.08); }
+      #card .sheen { position: absolute; left: 0; right: 0; top: 0; height: 50%; border-radius: 44px 44px 0 0; background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,0)); pointer-events: none; }
+      #rim { position: absolute; inset: 0; border-radius: 44px; pointer-events: none; opacity: 0;
+        box-shadow: inset 0 2px 0 rgba(255,255,255,.85), inset 0 0 0 2px rgba(255,255,255,.5), 0 0 70px 4px rgba(255,255,255,.4); }
+
+      /* content */
+      .head { display: flex; align-items: flex-start; }
+      .head .lt .k { font-size: 30px; font-weight: 620; letter-spacing: 2px; color: rgba(255,255,255,.55); text-transform: uppercase; }
+      .head .lt .h { font-size: 56px; font-weight: 800; letter-spacing: -1px; margin-top: 8px; }
+      .head .live { margin-left: auto; display: flex; align-items: center; gap: 12px; font-size: 26px; font-weight: 620; color: #6ee7a8; background: rgba(110,231,168,.12); border: 1px solid rgba(110,231,168,.3); border-radius: 30px; padding: 12px 22px; }
+      .head .live .d { width: 16px; height: 16px; border-radius: 50%; background: #34d399; box-shadow: 0 0 14px #34d399; }
+      .metric { margin-top: 36px; display: flex; align-items: baseline; gap: 26px; }
+      .metric .v { font-size: 110px; font-weight: 820; letter-spacing: -3px; }
+      .metric .chg { font-size: 40px; font-weight: 740; color: #6ee7a8; }
+      .metric .sub { font-size: 30px; font-weight: 520; color: rgba(255,255,255,.5); margin-left: 6px; }
+
+      .chart { position: absolute; left: 70px; right: 70px; bottom: 70px; height: 560px; }
+      .chart .yl { position: absolute; left: 0; right: 0; height: 1px; background: rgba(255,255,255,.08); }
+      .chart svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+      .chart .xlabels { position: absolute; left: 0; right: 0; bottom: -46px; display: flex; justify-content: space-between; font-size: 24px; font-weight: 560; color: rgba(255,255,255,.45); }
+      .legend { position: absolute; right: 0; top: -10px; display: flex; gap: 28px; }
+      .legend .lg { display: flex; align-items: center; gap: 11px; font-size: 26px; font-weight: 580; color: rgba(255,255,255,.7); }
+      .legend .lg .sw { width: 26px; height: 8px; border-radius: 4px; }
+      #endDot { filter: drop-shadow(0 0 12px #8b8bff); }
+
+      #cursor { position: absolute; top: 0; left: 0; z-index: 50; filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="20" data-width="3840" data-height="2160">
+      <div class="stage">
+        <div class="bgblob bb1"></div><div class="bgblob bb2"></div><div class="bgblob bb3" data-layout-allow-overflow></div>
+        <div class="scene">
+          <div id="shadow"></div>
+          <div id="cardWrap" data-layout-allow-overflow>
+            <div id="card">
+              <div class="sheen"></div>
+              <div class="head">
+                <div class="lt"><div class="k">Revenue Analytics</div><div class="h">Performance Overview</div></div>
+                <div class="live"><div class="d"></div>Live</div>
+              </div>
+              <div class="metric"><div class="v">$48,250</div><div class="chg">▲ 18.2%</div><div class="sub">vs last month</div></div>
+              <div class="chart" data-layout-allow-overflow>
+                <div class="legend">
+                  <div class="lg"><div class="sw" style="background:#8b8bff"></div>This year</div>
+                  <div class="lg"><div class="sw" style="background:rgba(255,255,255,.3)"></div>Last year</div>
+                </div>
+                <div class="yl" style="top:0"></div><div class="yl" style="top:33%"></div><div class="yl" style="top:66%"></div><div class="yl" style="top:100%"></div>
+                <svg viewBox="0 0 1760 500" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="area" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#8b8bff" stop-opacity="0.42"/>
+                      <stop offset="100%" stop-color="#8b8bff" stop-opacity="0"/>
+                    </linearGradient>
+                    <linearGradient id="lineg" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stop-color="#6d5cff"/><stop offset="100%" stop-color="#22d3ee"/>
+                    </linearGradient>
+                  </defs>
+                  <path id="area1" d="M40 380 L240 360 L440 380 L640 280 L840 300 L1040 200 L1240 230 L1440 120 L1640 80 L1720 60 L1720 500 L40 500 Z" fill="url(#area)" opacity="0"/>
+                  <path id="line2" d="M40 420 L240 410 L440 415 L640 380 L840 392 L1040 350 L1240 366 L1440 320 L1640 300 L1720 296" fill="none" stroke="rgba(255,255,255,.34)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path id="line1" d="M40 380 L240 360 L440 380 L640 280 L840 300 L1040 200 L1240 230 L1440 120 L1640 80 L1720 60" fill="none" stroke="url(#lineg)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+                  <circle id="endDot" cx="1720" cy="60" r="16" fill="#fff"/>
+                </svg>
+                <div class="xlabels"><span>Jan</span><span>Mar</span><span>May</span><span>Jul</span><span>Sep</span><span>Nov</span></div>
+              </div>
+            </div>
+            <div id="rim"></div>
+          </div>
+        </div>
+
+        <div id="cursor"><svg viewBox="0 0 20 32" width="40" height="64"><path d="M0 0 L0 27 L6.3 20.7 L10.5 30 L13.9 28.5 L9.75 19.5 L18 18.9 Z" fill="#fff" stroke="#1a1a1a" stroke-width="1"/></svg></div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const $ = (id) => document.getElementById(id);
+      const tl = gsap.timeline({ paused: true });
+
+      const CX = 1920, CY = 1080;        // card center (screen coords)
+      const clamp = (v, m) => Math.max(-m, Math.min(m, v));
+
+      // move cursor + tilt the card toward the pointer (parallax)
+      function tiltTo(px, py, at, dur) {
+        tl.to("#cursor", { x: px, y: py, duration: dur, ease: "power2.inOut" }, at);
+        const rotY = clamp((px - CX) / 950 * 12, 12);
+        const rotX = clamp(-(py - CY) / 620 * 9, 10);
+        tl.to("#card", { rotationY: rotY, rotationX: rotX, duration: dur, ease: "power2.out" }, at);
+      }
+      function lift(at) {
+        tl.to("#card", { z: 150, scale: 1.025, duration: 0.6, ease: "power3.out", overwrite: "auto" }, at);
+        tl.to("#rim", { opacity: 1, duration: 0.45, ease: "power2.out", overwrite: "auto" }, at);
+        tl.to("#shadow", { scale: 1.28, y: 70, opacity: 1, duration: 0.6, ease: "power3.out", overwrite: "auto" }, at);
+      }
+      function drop(at) {
+        tl.to("#card", { z: 0, scale: 1, duration: 0.55, ease: "power2.inOut", overwrite: "auto" }, at);
+        tl.to("#rim", { opacity: 0, duration: 0.4, ease: "power2.in", overwrite: "auto" }, at);
+        tl.to("#shadow", { scale: 1, y: 0, opacity: 0.85, duration: 0.55, ease: "power2.inOut", overwrite: "auto" }, at);
+      }
+
+      // initial
+      gsap.set("#card", { transformPerspective: 2600, transformOrigin: "50% 50%", rotationX: -16, rotationY: 0, z: 0, scale: 1 });
+      gsap.set("#cardWrap", { y: 1320, autoAlpha: 0 });
+      gsap.set("#shadow", { scale: 0.7, opacity: 0, transformOrigin: "50% 50%" });
+      gsap.set("#rim", { opacity: 0 });
+      gsap.set("#cursor", { x: 1980, y: 1860, autoAlpha: 0 });
+      gsap.set(["#line1", "#line2"], { strokeDasharray: 3200, strokeDashoffset: 3200 });
+      gsap.set("#endDot", { autoAlpha: 0, scale: 0, transformOrigin: "50% 50%" });
+      gsap.set("#area1", { opacity: 0 });
+
+      // ===== float in from below — spring physics =====
+      tl.to("#cardWrap", { autoAlpha: 1, duration: 0.3 }, 0.2);
+      tl.to("#cardWrap", { y: 0, duration: 1.35, ease: "elastic.out(1, 0.62)" }, 0.25);
+      tl.to("#card", { rotationX: 6, duration: 1.2, ease: "back.out(1.3)" }, 0.25);
+      tl.to("#shadow", { opacity: 0.85, scale: 1, duration: 1.0, ease: "power2.out" }, 0.5);
+      tl.to("#cursor", { autoAlpha: 1, duration: 0.4 }, 0.6);
+
+      // settle tilt toward neutral
+      tl.to("#card", { rotationX: 2, rotationY: 0, duration: 0.6, ease: "power2.out" }, 1.6);
+
+      // gentle idle bob (whole sequence)
+      tl.to("#cardWrap", { y: -22, duration: 2.4, ease: "sine.inOut", repeat: 7, yoyo: true }, 2.0);
+
+      // ===== data lines graph themselves on =====
+      tl.to("#line2", { strokeDashoffset: 0, duration: 1.5, ease: "power1.inOut" }, 2.3);
+      tl.to("#line1", { strokeDashoffset: 0, duration: 1.8, ease: "power1.inOut" }, 2.5);
+      tl.to("#area1", { opacity: 1, duration: 1.2, ease: "power2.out" }, 3.2);
+      tl.to("#endDot", { autoAlpha: 1, scale: 1, duration: 0.4, ease: "back.out(2.4)" }, 4.3);
+      tl.to("#endDot", { scale: 1.35, duration: 0.8, ease: "sine.inOut", repeat: 5, yoyo: true, transformOrigin: "50% 50%" }, 4.7);
+
+      // ===== idle parallax (cursor wanders) =====
+      tiltTo(1520, 1560, 2.4, 1.0);
+      tiltTo(2360, 1480, 3.6, 1.1);
+      tiltTo(1640, 1640, 4.9, 1.0);
+      tiltTo(2180, 1520, 6.0, 0.9);
+
+      // ===== hover: cursor onto card → lift, rim light =====
+      tiltTo(1920, 1040, 6.9, 0.7);
+      lift(7.1);
+      tiltTo(1560, 880, 8.4, 1.0);
+      tiltTo(2320, 1180, 9.7, 1.1);
+      tiltTo(1740, 1000, 11.0, 1.0);
+      tiltTo(2120, 1120, 12.0, 0.8);
+
+      // ===== cursor leaves → drop =====
+      tiltTo(1960, 1780, 13.0, 0.9);
+      drop(13.1);
+      tiltTo(1520, 1620, 14.4, 1.1);
+      tiltTo(2240, 1560, 15.6, 1.0);
+
+      // ===== one more hover =====
+      tiltTo(1920, 1060, 16.6, 0.7);
+      lift(16.8);
+      tiltTo(2080, 980, 18.0, 0.9);
+      tiltTo(1820, 1120, 18.9, 0.7);
+
+      // settle & hold
+      tiltTo(1900, 1720, 19.3, 0.7);
+      drop(19.4);
+      tl.to("#card", { rotationX: 2, rotationY: 0, duration: 0.6, ease: "power2.out" }, 19.5);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
