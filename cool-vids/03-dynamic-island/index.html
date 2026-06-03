@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=3840, height=2160" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 3840px; height: 2160px; overflow: hidden; background: #0a0910;
+        font-family: "Inter", Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; color: #fff; }
+      .stage { position: absolute; inset: 0; overflow: hidden; background: radial-gradient(1500px 1100px at 50% 42%, #211c30 0%, #120f1c 55%, #07060d 100%); }
+
+      .phone { position: absolute; left: 50%; top: 40px; transform: translateX(-50%); width: 1040px; height: 2080px; border-radius: 132px;
+        background: #050507; padding: 22px; box-shadow: 0 60px 140px -40px rgba(0,0,0,.8), inset 0 0 0 3px #1c1c22; }
+      .screen { position: absolute; inset: 22px; border-radius: 112px; overflow: hidden;
+        background: linear-gradient(165deg,#2a3aa8 0%, #5b3fb8 42%, #9b3ec9 74%, #c8489f 100%); }
+      .screen .blob { position: absolute; border-radius: 50%; filter: blur(60px); opacity: .55; }
+      .screen .b1 { width: 700px; height: 700px; left: -160px; top: 480px; background: #ff8fd0; }
+      .screen .b2 { width: 620px; height: 620px; right: -160px; top: 1100px; background: #5fd0ff; }
+      .lock .time { position: absolute; left: 0; right: 0; top: 470px; text-align: center; font-size: 250px; font-weight: 600; letter-spacing: -6px; color: rgba(255,255,255,.96); }
+      .lock .date { position: absolute; left: 0; right: 0; top: 408px; text-align: center; font-size: 42px; font-weight: 560; color: rgba(255,255,255,.82); }
+
+      /* dynamic island (pill that morphs) */
+      .island { position: absolute; left: 50%; top: 52px; width: 400px; height: 116px; border-radius: 58px;
+        background: #000; overflow: hidden; z-index: 10; }
+      .island .glow { position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+        box-shadow: 0 0 70px 6px rgba(255,255,255,.22), 0 0 26px 2px rgba(255,255,255,.30), inset 0 0 0 2px rgba(255,255,255,.16); }
+      .island .cam { position: absolute; right: 44px; top: 50%; transform: translateY(-50%); width: 26px; height: 26px; border-radius: 50%; background: #0c1418; box-shadow: inset 0 0 6px rgba(80,140,255,.5); }
+
+      /* content overlays — fixed expanded size, sit on top of the island, fade in/out (never clipped) */
+      .ov { position: absolute; left: 50%; transform: translateX(-50%); top: 52px; display: flex; align-items: center; z-index: 11; opacity: 0; }
+      .music { width: 900px; height: 300px; gap: 30px; padding: 0 42px; }
+      .music .art { width: 176px; height: 176px; border-radius: 30px; flex-shrink: 0; background: linear-gradient(140deg,#ff5f6d,#ffc371); position: relative; overflow: hidden; box-shadow: 0 14px 30px -10px rgba(0,0,0,.6); }
+      .music .art::after { content: ""; position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 58px; height: 58px; border-radius: 50%; background: #1a1a1a; box-shadow: 0 0 0 20px rgba(255,255,255,.14); }
+      .music .art .hole { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 16px; height: 16px; border-radius: 50%; background: #ff5f6d; z-index: 2; }
+      .music .mid { flex: 1; min-width: 0; }
+      .music .mid .tt { font-size: 40px; font-weight: 760; letter-spacing: -0.5px; white-space: nowrap; }
+      .music .mid .ar { font-size: 30px; font-weight: 540; color: #ff8a9b; margin-top: 4px; }
+      .wave { display: flex; align-items: center; gap: 7px; height: 170px; width: 286px; flex-shrink: 0; justify-content: flex-end; }
+      .wave i { width: 11px; border-radius: 6px; background: linear-gradient(180deg,#ffd36e,#ff7b8a); display: block; height: 150px; transform-origin: 50% 50%; }
+
+      .call { width: 900px; height: 320px; gap: 32px; padding: 0 46px; }
+      .call .avwrap { position: relative; width: 176px; height: 176px; flex-shrink: 0; }
+      .call .av { position: absolute; inset: 0; border-radius: 50%; background: linear-gradient(145deg,#36d1dc,#5b86e5); display: flex; align-items: center; justify-content: center; font-size: 66px; font-weight: 800; color: #fff; }
+      .call .avglow { position: absolute; inset: -16px; border-radius: 50%; box-shadow: 0 0 60px 14px rgba(91,134,229,.7); }
+      .call .mid { flex: 1; min-width: 0; }
+      .call .mid .lbl { font-size: 30px; font-weight: 600; color: #9fb4d8; white-space: nowrap; }
+      .call .mid .nm { font-size: 48px; font-weight: 800; letter-spacing: -0.6px; margin-top: 4px; white-space: nowrap; }
+      .call .btns { display: flex; gap: 26px; flex-shrink: 0; }
+      .call .cb { width: 110px; height: 110px; border-radius: 50%; position: relative; }
+      .call .cb.dec { background: #ff3b30; box-shadow: 0 14px 30px -10px rgba(255,59,48,.7); }
+      .call .cb.acc { background: #34c759; box-shadow: 0 14px 30px -10px rgba(52,199,89,.7); }
+      .call .cb .ph { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; transform: translate(-50%,-50%); }
+      .call .cb .ph svg { width: 100%; height: 100%; display: block; }
+      .call .cb.dec .ph { transform: translate(-50%,-50%) rotate(135deg); }
+
+      .ripple { position: absolute; left: 50%; top: 210px; width: 200px; height: 200px; margin: -100px 0 0 -100px; border-radius: 50%; border: 5px solid rgba(255,255,255,.7); opacity: 0; z-index: 12; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="16" data-width="3840" data-height="2160">
+      <div class="stage">
+        <div class="phone">
+          <div class="screen lock" data-layout-allow-overflow>
+            <div class="blob b1"></div><div class="blob b2"></div>
+            <div class="date">Tuesday, June 3</div>
+            <div class="time">9:41</div>
+
+            <div class="island" id="island" data-layout-allow-overflow>
+              <div class="glow" id="glow"></div>
+              <div class="cam" id="cam"></div>
+            </div>
+
+            <div class="ov music" id="music">
+              <div class="art"><div class="hole"></div></div>
+              <div class="mid"><div class="tt">Midnight City</div><div class="ar">M83</div></div>
+              <div class="wave" id="wave"></div>
+            </div>
+
+            <div class="ov call" id="call">
+              <div class="avwrap"><div class="avglow" id="avglow"></div><div class="av">MC</div></div>
+              <div class="mid"><div class="lbl">Incoming call</div><div class="nm">Maya Chen</div></div>
+              <div class="btns">
+                <div class="cb dec"><div class="ph"><svg viewBox="0 0 24 24"><path d="M6.6 10.8a15 15 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.24 11.4 11.4 0 0 0 3.6.58 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.46.58 3.6a1 1 0 0 1-.25 1z" fill="#fff"/></svg></div></div>
+                <div class="cb acc"><div class="ph"><svg viewBox="0 0 24 24"><path d="M6.6 10.8a15 15 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.24 11.4 11.4 0 0 0 3.6.58 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.46.58 3.6a1 1 0 0 1-.25 1z" fill="#fff"/></svg></div></div>
+              </div>
+            </div>
+
+            <div class="ripple" id="ripple"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const $ = (id) => document.getElementById(id);
+      const tl = gsap.timeline({ paused: true });
+
+      const wave = $("wave");
+      const NB = 16, bars = [];
+      for (let i = 0; i < NB; i++) { const b = document.createElement("i"); wave.appendChild(b); bars.push(b); }
+
+      const IDLE = { width: 400, height: 116, radius: 58 };
+      const MUSIC = { width: 900, height: 300, radius: 78 };
+      const CALL = { width: 900, height: 320, radius: 84 };
+
+      gsap.set(".phone", { autoAlpha: 0, scale: 0.985, transformOrigin: "50% 50%" });
+      gsap.set("#island", { xPercent: -50, width: IDLE.width, height: IDLE.height, borderRadius: IDLE.radius, transformOrigin: "50% 50%" });
+      gsap.set(["#music", "#call"], { autoAlpha: 0 });
+      gsap.set("#ripple", { autoAlpha: 0, scale: 0.3, transformOrigin: "50% 50%" });
+      gsap.set("#avglow", { autoAlpha: 0 });
+      gsap.set(bars, { scaleY: 0.22 });
+
+      function expand(state, at) {
+        const r = state === "music" ? MUSIC : CALL;
+        tl.to("#island", { width: r.width, height: r.height, borderRadius: r.radius, duration: 0.72, ease: "elastic.out(1, 0.78)", overwrite: "auto" }, at);
+        tl.to("#cam", { autoAlpha: 0, duration: 0.15, overwrite: "auto" }, at);
+        tl.to("#" + state, { autoAlpha: 1, duration: 0.32, ease: "power2.out" }, at + 0.5);
+      }
+      function shrink(state, at, ease) {
+        tl.to("#" + state, { autoAlpha: 0, duration: 0.2, ease: "power2.in" }, at);
+        tl.to("#island", { width: IDLE.width, height: IDLE.height, borderRadius: IDLE.radius, duration: 0.55, ease: ease || "back.inOut(1.4)", overwrite: "auto" }, at + 0.18);
+        tl.to("#cam", { autoAlpha: 1, duration: 0.2, overwrite: "auto" }, at + 0.45);
+      }
+
+      // ===== intro =====
+      tl.to(".phone", { autoAlpha: 1, scale: 1, duration: 0.7, ease: "power2.out" }, 0.1);
+      // white ambient edge glow — gentle breathing throughout
+      tl.fromTo("#glow", { opacity: 0.32 }, { opacity: 0.62, duration: 1.4, ease: "sine.inOut", repeat: 9, yoyo: true }, 0.4);
+      // idle pill subtle breath (ends before first expand)
+      tl.to("#island", { scaleY: 1.04, scaleX: 1.01, duration: 0.42, ease: "sine.inOut", repeat: 1, yoyo: true, transformOrigin: "50% 50%" }, 0.55);
+
+      // ===== expand to MUSIC =====
+      expand("music", 1.5);
+      bars.forEach((b, i) => {
+        const hi = 0.55 + ((i * 37) % 11) / 16;
+        const dur = 0.34 + ((i * 13) % 7) / 22;
+        tl.to(b, { scaleY: hi, duration: dur, ease: "sine.inOut", repeat: 9, yoyo: true, overwrite: "auto" }, 2.1 + (i % 6) * 0.05);
+      });
+
+      // ===== shrink back to idle =====
+      shrink("music", 5.9);
+      tl.set(bars, { scaleY: 0.22 }, 6.7);
+
+      // ===== expand to INCOMING CALL =====
+      expand("call", 7.2);
+      tl.to("#avglow", { autoAlpha: 1, duration: 0.4 }, 7.72);
+      tl.fromTo("#avglow", { scale: 0.92, opacity: 0.55 }, { scale: 1.12, opacity: 1, duration: 0.85, ease: "sine.inOut", repeat: 4, yoyo: true, transformOrigin: "50% 50%" }, 7.8);
+
+      // ===== tap to dismiss → spring compression =====
+      const TAP = 12.4;
+      tl.set("#ripple", { scale: 0.3, autoAlpha: 0.7 }, TAP);
+      tl.to("#ripple", { scale: 2.6, autoAlpha: 0, duration: 0.55, ease: "power2.out" }, TAP);
+      tl.to("#call", { autoAlpha: 0, duration: 0.2, ease: "power2.in" }, TAP + 0.08);
+      tl.to("#avglow", { autoAlpha: 0, duration: 0.18 }, TAP + 0.08);
+      tl.to("#island", { keyframes: [
+        { scaleY: 0.7, scaleX: 1.06, duration: 0.12, ease: "power2.in" },
+        { scaleY: 1, scaleX: 1, duration: 0.55, ease: "elastic.out(1, 0.5)" },
+      ], transformOrigin: "50% 50%" }, TAP + 0.12);
+      tl.to("#island", { width: IDLE.width, height: IDLE.height, borderRadius: IDLE.radius, duration: 0.5, ease: "back.inOut(1.6)", overwrite: "auto" }, TAP + 0.2);
+      tl.to("#cam", { autoAlpha: 1, duration: 0.25, overwrite: "auto" }, TAP + 0.6);
+
+      tl.to("#island", { scaleY: 1.03, duration: 0.6, ease: "sine.inOut", repeat: 1, yoyo: true, transformOrigin: "50% 50%" }, 14.2);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
