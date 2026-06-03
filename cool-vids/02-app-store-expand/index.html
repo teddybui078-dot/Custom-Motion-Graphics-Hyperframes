@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=3840, height=2160" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 3840px; height: 2160px; overflow: hidden; background: #f2f3f7;
+        font-family: "Inter", Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; color: #14151a; }
+      .stage { position: absolute; inset: 0; overflow: hidden; background: linear-gradient(180deg,#f6f7fb 0%,#eceef4 100%); }
+
+      /* feed behind (gets blurred on expand) */
+      #feed { position: absolute; inset: 0; transform-origin: 50% 46%; filter: blur(var(--b, 0px)); }
+      .feedhead { position: absolute; top: 150px; left: 220px; right: 220px; display: flex; align-items: flex-end; }
+      .feedhead .day { font-size: 34px; font-weight: 720; color: #8a90a0; letter-spacing: 1px; text-transform: uppercase; }
+      .feedhead .ttl { font-size: 96px; font-weight: 820; letter-spacing: -2.5px; margin-top: 6px; }
+      .feedhead .pf { margin-left: auto; width: 96px; height: 96px; border-radius: 50%; background: linear-gradient(135deg,#c7cdfb,#8b93f0); }
+      .ghost { position: absolute; left: 220px; right: 220px; border-radius: 44px; background: #fff; box-shadow: 0 30px 70px -36px rgba(16,17,21,.18); }
+      #ghostTop { top: 360px; height: 240px; }
+      #ghostBot { top: 1640px; height: 460px; }
+      #ghostBot .gimg { position:absolute; inset:0; border-radius:44px; background: linear-gradient(135deg,#ffd3a5,#fd9d6e); opacity:.9; }
+      #ghostBot .glabel { position:absolute; left:54px; top:46px; }
+      #ghostBot .glabel .a { font-size:28px; font-weight:760; color:rgba(255,255,255,.85); letter-spacing:1.5px; }
+      #ghostBot .glabel .b { font-size:56px; font-weight:800; color:#fff; margin-top:6px; }
+
+      #dim { position: absolute; inset: 0; background: #0b0d16; opacity: 0; }
+
+      /* the expanding card */
+      #card { position: absolute; border-radius: 40px; overflow: hidden; background: #fff;
+        box-shadow: 0 40px 90px -50px rgba(16,17,21,.4); will-change: left, top, width, height; }
+      .hero { position: absolute; left: 0; top: 0; width: 100%; height: 820px; overflow: hidden;
+        background: linear-gradient(150deg,#5b6bff 0%,#7c3aed 52%, #b833c9 100%); }
+      .hero .orb { position: absolute; border-radius: 50%; filter: blur(2px); opacity: .5; }
+      .hero .o1 { width: 900px; height: 900px; right: -180px; top: -260px; background: radial-gradient(circle,#9fb4ff,transparent 62%); }
+      .hero .o2 { width: 760px; height: 760px; left: -160px; bottom: -300px; background: radial-gradient(circle,#ff8fe0,transparent 62%); }
+      .hero .grain { position:absolute; inset:0; background:
+        radial-gradient(circle at 30% 40%, rgba(255,255,255,.18), transparent 40%),
+        radial-gradient(circle at 78% 70%, rgba(255,255,255,.12), transparent 38%); }
+      .herolabel { position: absolute; left: 70px; top: 66px; }
+      .herolabel .cat { font-size: 34px; font-weight: 760; color: rgba(255,255,255,.82); letter-spacing: 2.5px; }
+      .herolabel .h1 { font-size: 116px; font-weight: 850; color: #fff; letter-spacing: -3px; margin-top: 8px; line-height: 0.98; }
+      .herolabel .h2 { font-size: 42px; font-weight: 600; color: rgba(255,255,255,.86); margin-top: 16px; }
+
+      /* preview content (revealed on expand) */
+      .preview { position: absolute; left: 0; top: 820px; right: 0; bottom: 0; background: #fff; padding: 56px 70px; }
+      .apphead { display: flex; align-items: center; gap: 36px; }
+      .apphead .ic { width: 168px; height: 168px; border-radius: 40px; background: linear-gradient(150deg,#5b6bff,#b833c9); flex-shrink: 0; box-shadow: 0 16px 34px -14px rgba(91,107,255,.6); }
+      .apphead .nm { font-size: 64px; font-weight: 800; letter-spacing: -1.5px; }
+      .apphead .sb { font-size: 38px; font-weight: 540; color: #8a90a0; margin-top: 8px; }
+      .apphead .get { margin-left: auto; height: 84px; padding: 0 56px; border-radius: 42px; background: #2f6bff; color: #fff; font-size: 40px; font-weight: 760; display: flex; align-items: center; letter-spacing: .5px; box-shadow: 0 16px 30px -12px rgba(47,107,255,.6); }
+      .reelwrap { position: absolute; left: 0; right: 0; top: 280px; height: 800px; overflow: hidden; }
+      .reel { position: absolute; left: 70px; top: 0; display: flex; gap: 44px; }
+      .phone { width: 460px; height: 780px; border-radius: 52px; background: #0b0d16; padding: 14px; flex-shrink: 0; box-shadow: 0 30px 60px -30px rgba(16,17,21,.5); }
+      .phone .scr { width: 100%; height: 100%; border-radius: 40px; overflow: hidden; position: relative; }
+      .phone .notch { position: absolute; left: 50%; transform: translateX(-50%); top: 16px; width: 130px; height: 30px; border-radius: 16px; background: rgba(0,0,0,.55); z-index: 3; }
+      .phone .bar { position:absolute; left:34px; right:34px; height:26px; border-radius:13px; background:rgba(255,255,255,.85); }
+      .phone .chip2 { position:absolute; border-radius:20px; }
+
+      .glow { position: absolute; width: 360px; height: 360px; border-radius: 50%; pointer-events: none; opacity: 0;
+        background: radial-gradient(circle, rgba(255,255,255,.85) 0%, rgba(255,255,255,0) 66%); mix-blend-mode: screen; }
+      .glow.tl { left: -150px; top: -150px; } .glow.tr { right: -150px; top: -150px; }
+      .glow.bl { left: -150px; bottom: -150px; } .glow.br { right: -150px; bottom: -150px; }
+
+      #closeBtn { position: absolute; top: 48px; right: 48px; width: 112px; height: 112px; border-radius: 50%;
+        background: rgba(255,255,255,.18); border: 2px solid rgba(255,255,255,.55); opacity: 0;
+        box-shadow: 0 10px 30px -8px rgba(0,0,0,.3), inset 0 1px 6px rgba(255,255,255,.5); z-index: 20; }
+      #closeBtn::before, #closeBtn::after { content: ""; position: absolute; left: 50%; top: 50%; width: 46px; height: 6px; border-radius: 3px; background: #fff; }
+      #closeBtn::before { transform: translate(-50%,-50%) rotate(45deg); }
+      #closeBtn::after { transform: translate(-50%,-50%) rotate(-45deg); }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="13" data-width="3840" data-height="2160">
+      <div class="stage">
+        <div id="feed" data-layout-allow-overflow>
+          <div class="feedhead"><div><div class="day">Friday, June 3</div><div class="ttl">Today</div></div><div class="pf"></div></div>
+          <div class="ghost" id="ghostTop"></div>
+          <div class="ghost" id="ghostBot"><div class="gimg"></div><div class="glabel"><div class="a">NOW TRENDING</div><div class="b">Pixel Racer X</div></div></div>
+        </div>
+        <div id="dim"></div>
+
+        <div id="card">
+          <div class="glow tl" data-layout-allow-overflow></div><div class="glow tr" data-layout-allow-overflow></div><div class="glow bl" data-layout-allow-overflow></div><div class="glow br" data-layout-allow-overflow></div>
+          <div class="hero" data-layout-allow-overflow>
+            <div class="orb o1"></div><div class="orb o2"></div><div class="grain"></div>
+            <div class="herolabel">
+              <div class="cat">GAME OF THE DAY</div>
+              <div class="h1">Skyward<br/>Saga</div>
+              <div class="h2">Soar through a hand-painted open world</div>
+            </div>
+          </div>
+          <div class="preview" id="preview">
+            <div class="apphead">
+              <div class="ic"></div>
+              <div><div class="nm">Skyward Saga</div><div class="sb">Epic open-world adventure · 4.9 ★</div></div>
+              <div class="get">GET</div>
+            </div>
+            <div class="reelwrap"><div class="reel" id="reel" data-layout-allow-overflow></div></div>
+          </div>
+          <div id="closeBtn"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // build the screenshot reel
+      const reel = document.getElementById("reel");
+      const grads = [
+        ["#5b6bff","#b833c9"], ["#0ea5e9","#22d3ee"], ["#f59e0b","#ef4444"], ["#10b981","#34d399"], ["#8b5cf6","#ec4899"],
+        ["#1e293b","#475569"], ["#f43f5e","#fb7185"], ["#3b82f6","#6366f1"], ["#14b8a6","#0ea5e9"], ["#a855f7","#6d28d9"],
+      ];
+      grads.forEach((g) => {
+        const p = document.createElement("div"); p.className = "phone";
+        p.innerHTML = '<div class="scr" style="background:linear-gradient(160deg,' + g[0] + ',' + g[1] + ')">' +
+          '<div class="notch"></div>' +
+          '<div class="chip2" style="left:40px;top:120px;width:220px;height:60px;background:rgba(255,255,255,.9)"></div>' +
+          '<div class="chip2" style="left:40px;top:210px;width:380px;height:300px;background:rgba(255,255,255,.16);border:2px solid rgba(255,255,255,.35)"></div>' +
+          '<div class="bar" style="top:560px;width:auto"></div>' +
+          '<div class="bar" style="top:610px;right:120px;background:rgba(255,255,255,.55)"></div>' +
+          '<div class="chip2" style="left:40px;bottom:60px;right:40px;height:84px;border-radius:24px;background:rgba(255,255,255,.92)"></div>' +
+          '</div>';
+        reel.appendChild(p);
+      });
+
+      // rects
+      const TH = { left: 1170, top: 670, width: 1500, height: 820, r: 40 };
+      const EX = { left: 130, top: 120, width: 3580, height: 1920, r: 56 };
+
+      // initial states
+      gsap.set("#feed", { "--b": "0px", scale: 1, autoAlpha: 0 });
+      gsap.set("#dim", { opacity: 0 });
+      gsap.set("#card", { left: TH.left, top: TH.top, width: TH.width, height: TH.height, borderRadius: TH.r, autoAlpha: 0, scale: 0.96, transformOrigin: "50% 50%" });
+      gsap.set("#preview", { autoAlpha: 0 });
+      gsap.set(".apphead", { autoAlpha: 0, y: 30 });
+      gsap.set("#reel", { autoAlpha: 0, x: 0 });
+      gsap.set(".glow", { autoAlpha: 0 });
+      gsap.set("#closeBtn", { autoAlpha: 0, scale: 0.8, transformOrigin: "50% 50%" });
+
+      // ===== intro: feed + thumbnail card =====
+      tl.to("#feed", { autoAlpha: 1, duration: 0.5, ease: "power2.out" }, 0.1);
+      tl.to("#card", { autoAlpha: 1, scale: 1, duration: 0.55, ease: "back.out(1.5)" }, 0.35);
+
+      // ===== lift-off: shadow bloom =====
+      tl.to("#card", { scale: 1.025, duration: 0.32, ease: "power2.out" }, 1.15);
+      tl.to("#card", { boxShadow: "0 90px 200px -60px rgba(16,17,21,.55)", duration: 0.7, ease: "power2.out" }, 1.15);
+
+      // ===== spring expansion to full-screen + background blur =====
+      const E = 1.55;
+      tl.to("#card", { scale: 1, duration: 0.2 }, E);
+      tl.to("#card", { left: EX.left, top: EX.top, width: EX.width, height: EX.height, borderRadius: EX.r, duration: 1.15, ease: "back.out(1.35)" }, E);
+      tl.to("#feed", { "--b": "30px", scale: 1.06, duration: 1.0, ease: "power2.inOut" }, E);
+      tl.to("#dim", { opacity: 0.42, duration: 1.0, ease: "power2.inOut" }, E);
+
+      // ===== frosted close button + white corner glows fade in =====
+      tl.to("#closeBtn", { autoAlpha: 1, scale: 1, duration: 0.5, ease: "back.out(2)" }, E + 0.9);
+      tl.to(".glow", { autoAlpha: 0.85, duration: 0.6, ease: "power2.out", stagger: 0.05 }, E + 0.75);
+      // gentle corner-glow shimmer
+      tl.to(".glow", { autoAlpha: 0.5, duration: 1.2, ease: "sine.inOut", repeat: 3, yoyo: true }, E + 1.4);
+
+      // ===== reveal preview content =====
+      tl.to("#preview", { autoAlpha: 1, duration: 0.4 }, E + 0.85);
+      tl.to(".apphead", { autoAlpha: 1, y: 0, duration: 0.6, ease: "power3.out" }, E + 0.95);
+      tl.to("#reel", { autoAlpha: 1, duration: 0.5, ease: "power2.out" }, E + 1.15);
+
+      // ===== scroll the screenshot reel =====
+      tl.to("#reel", { x: -1150, duration: 3.1, ease: "power1.inOut" }, E + 1.9);
+      tl.to("#reel", { x: -2080, duration: 2.7, ease: "power1.inOut" }, E + 5.2);
+
+      // ===== close: collapse back to thumbnail =====
+      const C = E + 8.4; // ~9.95
+      tl.to("#closeBtn", { keyframes: [{ scale: 0.84, duration: 0.1 }, { scale: 1, duration: 0.18, ease: "back.out(2)" }] }, C);
+      tl.to(["#preview", "#closeBtn", ".glow"], { autoAlpha: 0, duration: 0.3, ease: "power2.in" }, C + 0.15);
+      tl.to("#card", { left: TH.left, top: TH.top, width: TH.width, height: TH.height, borderRadius: TH.r, boxShadow: "0 40px 90px -50px rgba(16,17,21,.4)", duration: 0.85, ease: "back.out(1.2)" }, C + 0.25);
+      tl.to("#feed", { "--b": "0px", scale: 1, duration: 0.8, ease: "power2.inOut" }, C + 0.25);
+      tl.to("#dim", { opacity: 0, duration: 0.8, ease: "power2.inOut" }, C + 0.25);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
