@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=3840, height=2160" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 3840px; height: 2160px; overflow: hidden; font-family: -apple-system, "SF Pro Display", "Inter", system-ui, sans-serif; }
+      .stage { position: absolute; inset: 0; overflow: visible; }
+      /* macOS-style flowing wallpaper */
+      .wall { position: absolute; inset: 0;
+        background:
+          radial-gradient(60% 70% at 22% 18%, rgba(99,102,241,0.9), transparent 70%),
+          radial-gradient(55% 65% at 84% 14%, rgba(14,165,233,0.85), transparent 70%),
+          radial-gradient(60% 70% at 80% 88%, rgba(20,184,166,0.7), transparent 70%),
+          radial-gradient(58% 66% at 16% 92%, rgba(139,92,246,0.7), transparent 70%),
+          linear-gradient(150deg, #1b2a6b 0%, #122253 42%, #0b1430 100%); }
+      .vig { position: absolute; inset: 0; background: radial-gradient(120% 120% at 50% 45%, transparent 55%, rgba(0,0,0,0.35)); }
+
+      .glass { background: rgba(28,30,42,0.5); backdrop-filter: blur(40px) saturate(180%); -webkit-backdrop-filter: blur(40px) saturate(180%);
+        border: 1.5px solid rgba(255,255,255,0.14); }
+
+      /* dock */
+      .dock { position: absolute; left: 50%; bottom: 64px; transform: translateX(-50%); height: 172px; border-radius: 44px; display: flex; align-items: center; padding: 0 40px; gap: 36px; z-index: 12;
+        box-shadow: 0 50px 120px rgba(0,0,0,0.5), inset 0 2px 0 rgba(255,255,255,0.16); }
+      .dik { position: relative; width: 132px; height: 132px; }
+      .dik .ico { width: 132px; height: 132px; border-radius: 30px; display: flex; align-items: center; justify-content: center; box-shadow: 0 14px 30px rgba(0,0,0,0.35), inset 0 2px 0 rgba(255,255,255,0.2); }
+      .run { position: absolute; left: 50%; bottom: -22px; transform: translateX(-50%); width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,0.85); opacity: 0; }
+      #folder { position: absolute; width: 150px; height: 150px; z-index: 13; }
+
+      /* finder window */
+      .finder { position: absolute; left: 720px; top: 300px; width: 2400px; height: 1500px; border-radius: 26px; overflow: hidden; z-index: 11; opacity: 0; display: none;
+        box-shadow: 0 80px 180px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.15); }
+      .ftitle { height: 88px; display: flex; align-items: center; padding: 0 28px; gap: 22px; background: rgba(40,42,54,0.55); border-bottom: 1px solid rgba(255,255,255,0.07); }
+      .lights { display: flex; gap: 16px; }
+      .lights i { width: 26px; height: 26px; border-radius: 50%; }
+      .tbtns { display: flex; gap: 10px; margin-left: 14px; }
+      .tbtns b { width: 44px; height: 44px; border-radius: 11px; background: rgba(255,255,255,0.07); display: flex; align-items: center; justify-content: center; }
+      .ftname { font-size: 34px; font-weight: 700; color: #fff; margin-left: 14px; }
+      .fsearch { margin-left: auto; width: 320px; height: 50px; border-radius: 12px; background: rgba(255,255,255,0.08); display: flex; align-items: center; gap: 12px; padding: 0 16px; color: rgba(255,255,255,0.45); font-size: 24px; }
+      .fbody { display: flex; height: calc(100% - 88px); }
+      .sidebar { width: 460px; background: rgba(30,32,44,0.4); border-right: 1px solid rgba(255,255,255,0.06); padding: 26px 18px; }
+      .sgrp { font-size: 22px; font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; padding: 18px 16px 10px; }
+      .sitem { display: flex; align-items: center; gap: 16px; height: 60px; padding: 0 16px; border-radius: 12px; font-size: 28px; color: #dfe3ee; font-weight: 500; }
+      .sitem.on { background: rgba(120,160,255,0.22); }
+      .sitem .sic { width: 32px; height: 32px; border-radius: 8px; flex: none; }
+      .main { flex: 1; background: rgba(22,24,34,0.34); padding: 40px 46px; }
+      .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 30px 24px; }
+      .item { display: flex; flex-direction: column; align-items: center; gap: 18px; opacity: 0; }
+      .item .ig { width: 150px; height: 130px; display: flex; align-items: center; justify-content: center; }
+      .item .il { font-size: 27px; color: #eef1f7; font-weight: 500; text-align: center; max-width: 240px; }
+      .item .il.sel { background: #2f6fe0; color: #fff; padding: 3px 14px; border-radius: 9px; }
+
+      #bloom { position: absolute; width: 700px; height: 700px; border-radius: 50%; z-index: 40; opacity: 0; pointer-events: none;
+        background: radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(180,210,255,0.5) 30%, rgba(180,210,255,0) 68%); }
+      #ring { position: absolute; width: 120px; height: 120px; border-radius: 50%; border: 6px solid rgba(200,220,255,0.75); z-index: 41; opacity: 0; }
+      #cursor { position: absolute; left: 0; top: 0; z-index: 90; filter: drop-shadow(0 6px 10px rgba(0,0,0,0.45)); }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="10" data-width="3840" data-height="2160">
+      <div class="stage" id="stage" data-layout-allow-overflow>
+        <div class="wall"></div>
+        <div class="vig"></div>
+
+        <div class="finder glass" id="finder" data-layout-allow-overflow>
+          <div class="ftitle">
+            <div class="lights"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></div>
+            <div class="tbtns"><b><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15,6 9,12 15,18"/></svg></b><b><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9,6 15,12 9,18"/></svg></b></div>
+            <div class="ftname">Projects</div>
+            <div class="fsearch"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="2.2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="7"/><line x1="16" y1="16" x2="21" y2="21"/></svg>Search</div>
+          </div>
+          <div class="fbody">
+            <div class="sidebar" id="sidebar"></div>
+            <div class="main"><div class="grid" id="grid"></div></div>
+          </div>
+        </div>
+
+        <div class="dock glass" id="dock"></div>
+        <div id="folder"></div>
+
+        <div id="bloom" data-layout-allow-overflow></div>
+        <div id="ring" data-layout-allow-overflow></div>
+        <div id="cursor"><svg width="64" height="76" viewBox="0 0 24 28"><path d="M3,2 L3,22 L8.5,16.8 L12,24.5 L15.4,23 L11.9,15.3 L19,15.3 Z" fill="#ffffff" stroke="#1b1b22" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const $ = (s) => document.querySelector(s);
+
+      // ---------- folder icon (reused) ----------
+      const folderSVG = (w) => '<svg width="' + w + '" height="' + (w * 0.84) + '" viewBox="0 0 120 100">' +
+        '<defs><linearGradient id="fbk' + w + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a92e0"/><stop offset="1" stop-color="#2f7fd0"/></linearGradient>' +
+        '<linearGradient id="ffr' + w + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7cc0ff"/><stop offset="1" stop-color="#4ea0f0"/></linearGradient></defs>' +
+        '<path d="M8 24a10 10 0 0 1 10-10h28l12 12h46a10 10 0 0 1 10 10v6H8z" fill="url(#fbk' + w + ')"/>' +
+        '<path d="M6 34h108v48a10 10 0 0 1-10 10H16a10 10 0 0 1-10-10z" fill="url(#ffr' + w + ')"/>' +
+        '<path d="M6 34h108v8H6z" fill="rgba(255,255,255,0.25)"/></svg>';
+
+      // ---------- dock ----------
+      const ICONS = [
+        ["#1a73e8", '<svg width="74" height="74" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="6" fill="#fff" opacity="0"/><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z" fill="#fff"/><path d="M12 3v18" stroke="#1a73e8" stroke-width="0"/><path d="M3 12h18" stroke="#1a73e8" stroke-width="1.4"/><path d="M12 3a9 9 0 0 1 0 18z" fill="#7fb0f5"/></svg>'],
+        ["radial-gradient(circle at 50% 40%,#5cc6ff,#1a73e8)", '<svg width="78" height="78" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="none" stroke="#fff" stroke-width="1.4"/><polygon points="12,5 14,12 12,19 10,12" fill="#fff"/><polygon points="12,5 12,12 10,12" fill="#ff5f57"/><polygon points="12,12 12,19 14,12" fill="#ff5f57"/></svg>'],
+        ["linear-gradient(135deg,#5ff07a,#16c750)", '<svg width="72" height="72" viewBox="0 0 24 24" fill="#fff"><path d="M12 4C6.5 4 2 7.6 2 12c0 2.2 1.1 4.2 2.9 5.6L4 21l3.8-1.4c1.3.5 2.7.7 4.2.7 5.5 0 10-3.6 10-8s-4.5-8-10-8z"/></svg>'],
+        ["linear-gradient(135deg,#9fd4ff,#2f8ef0)", '<svg width="70" height="70" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6"><rect x="2.5" y="5" width="19" height="14" rx="3" fill="#fff" stroke="none"/><path d="M3.5 7l8.5 6 8.5-6" stroke="#2f8ef0"/></svg>'],
+        ["folder", ""],
+        ["conic-gradient(from 0deg,#ff5f6d,#ffc371,#42e695,#3bb2f6,#a463f2,#ff5f6d)", '<svg width="62" height="62" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6" fill="#fff"/></svg>'],
+        ["linear-gradient(135deg,#ff7eb3,#ff5f6d)", '<svg width="64" height="64" viewBox="0 0 24 24" fill="#fff"><path d="M9 17V5l11-2v12" stroke="#fff" stroke-width="0"/><circle cx="7" cy="17" r="3"/><circle cx="18" cy="15" r="3"/><path d="M10 17V6l8-1.5V15" stroke="#fff" stroke-width="1.6" fill="none"/></svg>'],
+        ["linear-gradient(135deg,#ffe27a,#ffc83a)", '<svg width="66" height="66" viewBox="0 0 24 24" fill="none" stroke="#9a6b00" stroke-width="1.7" stroke-linecap="round"><line x1="7" y1="8" x2="17" y2="8"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="7" y1="16" x2="13" y2="16"/></svg>'],
+        ["linear-gradient(135deg,#cfd6e2,#9aa6bb)", '<svg width="66" height="66" viewBox="0 0 24 24" fill="none" stroke="#445" stroke-width="1.8" stroke-linecap="round"><path d="M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13"/></svg>'],
+      ];
+      const dock = $("#dock"); const dikEls = []; let folderHostIndex = 4;
+      ICONS.forEach((ic, i) => {
+        const dik = document.createElement("div"); dik.className = "dik";
+        if (ic[0] === "folder") {
+          dik.innerHTML = '<div class="ico" style="background:transparent;box-shadow:none"></div><div class="run" id="frun"></div>';
+        } else {
+          dik.innerHTML = '<div class="ico" style="background:' + ic[0] + '">' + ic[1] + '</div>';
+        }
+        dock.appendChild(dik); dikEls.push(dik);
+      });
+
+      // ---------- sidebar ----------
+      const SIDE = [["Favorites", null],
+        ["AirDrop", "#3aa0ff"], ["Recents", "#8b5cf6"], ["Applications", "#22c55e"], ["Desktop", "#f59e0b"], ["Documents", "#3aa0ff"], ["Downloads", "#06b6d4"],
+        ["iCloud", null], ["iCloud Drive", "#3aa0ff"], ["Shared", "#a78bfa"]];
+      const sb = $("#sidebar");
+      SIDE.forEach((s, i) => {
+        if (s[1] === null) { const g = document.createElement("div"); g.className = "sgrp"; g.textContent = s[0]; sb.appendChild(g); }
+        else { const it = document.createElement("div"); it.className = "sitem" + (s[0] === "Desktop" ? " on" : ""); it.innerHTML = '<div class="sic" style="background:' + s[1] + '"></div>' + s[0]; sb.appendChild(it); }
+      });
+
+      // ---------- grid items ----------
+      const docIc = (c) => '<svg width="118" height="130" viewBox="0 0 24 28" fill="none"><path d="M4 2h11l6 6v18a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" fill="#fff"/><path d="M15 2v6h6" fill="#c9d3e6"/><line x1="6" y1="13" x2="18" y2="13" stroke="' + c + '" stroke-width="1.3"/><line x1="6" y1="17" x2="18" y2="17" stroke="' + c + '" stroke-width="1.3"/><line x1="6" y1="21" x2="13" y2="21" stroke="' + c + '" stroke-width="1.3"/></svg>';
+      const GRID = [
+        ["folder", "Design", true], ["folder", "Assets", false], ["folder", "Exports", false], ["folder", "Archive", false],
+        ["doc#ec5f8a", "Brand.sketch", false], ["doc#5b8def", "logo.svg", false], ["doc#22c55e", "notes.md", false], ["doc#a06bff", "README.md", false],
+      ];
+      const grid = $("#grid"); const itemEls = [];
+      GRID.forEach((g) => {
+        const it = document.createElement("div"); it.className = "item";
+        const ig = g[0] === "folder" ? folderSVG(150) : docIc(g[0].slice(3));
+        it.innerHTML = '<div class="ig">' + ig + '</div><div class="il' + (g[2] ? ' sel' : '') + '">' + g[1] + '</div>';
+        grid.appendChild(it); itemEls.push(it);
+      });
+
+      // ---------- place the dock folder ----------
+      $("#folder").innerHTML = folderSVG(150);
+
+      // ---------- measure ----------
+      const rectC = (e) => { const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
+      const host = dikEls[folderHostIndex].querySelector(".ico");
+      const hostR = host.getBoundingClientRect();
+      const folderHome = { x: hostR.left + hostR.width / 2, y: hostR.top + hostR.height / 2 };
+      // position #folder centered on the dock slot
+      gsap.set("#folder", { left: folderHome.x - 75, top: folderHome.y - 63 });
+      const finderEl = $("#finder");
+      const fR = finderEl.getBoundingClientRect();
+
+      // ---------- initial states ----------
+      const cursor = $("#cursor"), ring = $("#ring"), bloom = $("#bloom");
+      const TIPX = 9, TIPY = 6;
+      const tl = gsap.timeline({ paused: true });
+      gsap.set(".wall, .vig", { autoAlpha: 0 });
+      gsap.set("#dock", { autoAlpha: 0, y: 80 });
+      gsap.set("#folder", { autoAlpha: 0, y: 80, transformOrigin: "50% 88%" });
+      gsap.set("#finder", { autoAlpha: 0, display: "none", transformOrigin: "50% 100%" });
+      gsap.set(itemEls, { autoAlpha: 0, y: 24, scale: 0.9 });
+      gsap.set([bloom, ring], { autoAlpha: 0, scale: 0.3, left: -800, top: -800, transformOrigin: "center center" });
+      gsap.set(cursor, { x: 2500 - TIPX, y: 1500 - TIPY, autoAlpha: 0 });
+      gsap.set("#frun", { autoAlpha: 0 });
+
+      const move = (t, p, d = 0.5) => tl.to(cursor, { x: p.x - TIPX, y: p.y - TIPY, duration: d, ease: "power3.inOut" }, t);
+
+      // ===================== TIMELINE =====================
+      let t = 0;
+      tl.to(".wall, .vig", { autoAlpha: 1, duration: 0.55 }, 0);
+      tl.to("#dock", { autoAlpha: 1, y: 0, duration: 0.6, ease: "back.out(1.4)" }, 0.25);
+      tl.to("#folder", { autoAlpha: 1, y: 0, duration: 0.6, ease: "back.out(1.4)" }, 0.25);
+      t = 1.1;
+      // cursor approaches the folder
+      tl.to(cursor, { autoAlpha: 1, duration: 0.3 }, t);
+      move(t, { x: folderHome.x, y: folderHome.y }, 0.7); t += 0.7;
+      // press + radial bloom on impact
+      tl.to(cursor, { scale: 0.8, duration: 0.09, transformOrigin: "0 0" }, t);
+      tl.to(cursor, { scale: 1, duration: 0.16, ease: "back.out(2.6)" }, t + 0.09);
+      tl.to("#folder", { scale: 0.82, duration: 0.1, ease: "power2.out" }, t);
+      tl.set(bloom, { left: folderHome.x - 350, top: folderHome.y - 350 }, t);
+      tl.fromTo(bloom, { scale: 0.2, autoAlpha: 0.95 }, { scale: 2.6, autoAlpha: 0, duration: 0.6, ease: "power2.out" }, t);
+      tl.set(ring, { left: folderHome.x - 60, top: folderHome.y - 60 }, t);
+      tl.fromTo(ring, { scale: 0.3, autoAlpha: 0.9 }, { scale: 2.6, autoAlpha: 0, duration: 0.6, ease: "power2.out" }, t);
+      t += 0.3;
+
+      // ----- 3-bounce spring jump (dock bounce) -----
+      const f = "#folder";
+      tl.to(f, { scale: 1, duration: 0.12, ease: "back.out(3)" }, t);
+      let b = t + 0.05;
+      const bounce = (amp, up, down) => {
+        tl.to(f, { y: -amp, duration: up, ease: "power2.out" }, b);
+        tl.to(f, { scaleX: 1.06, scaleY: 0.94, duration: up * 0.5, ease: "power1.out" }, b);
+        tl.to(f, { scaleX: 1, scaleY: 1, duration: up * 0.5 }, b + up * 0.5);
+        tl.to(f, { y: 0, duration: down, ease: "power2.in" }, b + up);
+        tl.to(f, { scaleX: 1.1, scaleY: 0.88, duration: 0.09, ease: "power2.out" }, b + up + down - 0.04);
+        tl.to(f, { scaleX: 1, scaleY: 1, duration: 0.16, ease: "elastic.out(1,0.4)" }, b + up + down + 0.02);
+        b += up + down + 0.06;
+      };
+      bounce(220, 0.28, 0.30);
+      bounce(135, 0.22, 0.26);
+      bounce(64, 0.17, 0.20);
+      t = b + 0.05;
+
+      // ----- folder explodes open into the Finder window (spring overshoot) -----
+      tl.to(f, { scale: 1.18, duration: 0.12, ease: "power2.out" }, t);
+      tl.to(f, { autoAlpha: 0, scale: 1.5, duration: 0.22, ease: "power2.in" }, t + 0.08);
+      tl.set("#finder", { display: "block" }, t + 0.04);
+      tl.fromTo("#finder", { autoAlpha: 0, scale: 0.22 }, { autoAlpha: 1, scale: 1, duration: 0.78, ease: "back.out(1.5)", immediateRender: false }, t + 0.06);
+      // running indicator dot under the folder slot
+      tl.fromTo("#frun", { autoAlpha: 0, scale: 0.4 }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: "back.out(3)" }, t + 0.5);
+      t += 0.7;
+      // contents populate with a quick cascade
+      itemEls.forEach((it, i) => tl.to(it, { autoAlpha: 1, y: 0, scale: 1, duration: 0.34, ease: "back.out(1.6)" }, t + i * 0.06));
+      t += itemEls.length * 0.06 + 0.4;
+
+      // cursor drifts up into the window and hovers the first folder
+      const it0 = rectC(itemEls[0].querySelector(".ig"));
+      move(t, it0, 0.7); t += 0.7;
+      tl.to(itemEls[0].querySelector(".ig"), { scale: 1.08, duration: 0.3, ease: "power2.out" }, t);
+      tl.to(itemEls[0].querySelector(".ig"), { scale: 1, duration: 0.6, ease: "elastic.out(1,0.5)" }, t + 0.3);
+      // gentle window settle hold
+      tl.to("#finder", { y: -10, duration: 1.4, ease: "sine.inOut", yoyo: true, repeat: 1 }, t + 0.2);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
