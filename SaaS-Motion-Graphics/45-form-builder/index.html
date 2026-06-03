@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #eef0f4;
+        font-family: "Inter", Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; color: #14151a; }
+      .stage { position: absolute; inset: 0; overflow: hidden; background: radial-gradient(1200px 700px at 50% -10%, #f6f7fb 0%, #eaecf2 60%, #e5e7ee 100%); }
+      .browser { position: absolute; left: 200px; top: 110px; width: 1520px; height: 870px; background: #fff; border: 1px solid #e6e8ec; border-radius: 18px; overflow: hidden; box-shadow: 0 2px 6px rgba(16,17,21,.05), 0 44px 96px -30px rgba(16,17,21,.28); }
+      .titlebar { height: 50px; background: #f6f7f9; border-bottom: 1px solid #e8eaed; display: flex; align-items: center; padding: 0 18px; gap: 9px; }
+      .titlebar i { width: 12px; height: 12px; border-radius: 50%; display: block; }
+      .titlebar .r{background:#ff5f57}.titlebar .y{background:#febc2e}.titlebar .g{background:#28c840}
+      .titlebar .urlbar { margin-left: 18px; height: 28px; flex: 1; max-width: 420px; background: #eceef2; border-radius: 8px; display:flex; align-items:center; padding: 0 12px; font-size: 12.5px; color:#8a90a0; font-weight: 540; }
+      .main { position: absolute; top: 50px; left: 0; right: 0; bottom: 0; }
+
+      .topbar { position:absolute; top:0; left:0; right:0; height:62px; border-bottom:1px solid #ececf1; display:flex; align-items:center; padding:0 22px; gap:12px; z-index:10; background:#fff; }
+      .topbar .lg { display:flex; align-items:center; gap:10px; font-size:16px; font-weight:740; letter-spacing:-0.3px; }
+      .topbar .lg .d { width:26px; height:26px; border-radius:8px; background:linear-gradient(135deg,#6d5cff,#4f46e5); }
+      .gear { margin-left:auto; width:40px; height:40px; border-radius:10px; border:1px solid #e6e8ec; display:flex; align-items:center; justify-content:center; color:#6b7280; font-size:18px; }
+      .pvbtn { height:40px; padding:0 18px; border-radius:10px; background:#4f46e5; color:#fff; font-size:14.5px; font-weight:640; display:inline-flex; align-items:center; gap:8px; box-shadow:0 9px 20px -8px rgba(79,70,229,.55); }
+      .edbtn { height:40px; padding:0 16px; border-radius:10px; border:1.5px solid #e0e3ea; background:#fff; color:#3a4150; font-size:14.5px; font-weight:620; display:inline-flex; align-items:center; gap:8px; }
+
+      /* editor */
+      #editor { position:absolute; top:62px; left:0; right:0; bottom:0; display:flex; }
+      .work { flex:1; background:#f4f5f8; position:relative; overflow:hidden; }
+      .formcard { position:absolute; left:50%; transform:translateX(-50%); top:34px; width:680px; background:#fff; border:1px solid #ececf1; border-radius:16px; box-shadow:0 18px 44px -22px rgba(16,17,21,.18); padding:30px 34px; }
+      .formcard .accent { position:absolute; left:0; top:0; right:0; height:6px; border-radius:16px 16px 0 0; background:linear-gradient(90deg,#6d5cff,#4f46e5); }
+      #formTitle { font-size:27px; font-weight:760; letter-spacing:-0.6px; position:relative; margin-top:8px; margin-bottom:6px; }
+      #formTitle .ph { color:#c3c8d6; } #formTitle .lh { color:#14151a; }
+      .fsub { font-size:13.5px; color:#9ca3af; font-weight:520; margin-bottom:18px; }
+      .field { border:1px solid #eef0f4; border-radius:12px; padding:14px 16px; overflow:hidden; }
+      .flabel { font-size:15px; font-weight:660; position:relative; min-height:20px; }
+      .flabel .ph { color:#c3c8d6; }
+      .finput { margin-top:10px; height:42px; border:1.5px solid #e6e8ec; border-radius:9px; display:flex; align-items:center; padding:0 12px; font-size:14px; color:#b3b8c4; font-weight:500; }
+      .fdrop { margin-top:10px; height:42px; border:1.5px solid #e6e8ec; border-radius:9px; display:flex; align-items:center; padding:0 12px; font-size:14px; color:#8a90a0; font-weight:520; }
+      .fdrop .car { margin-left:auto; width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid #9ca3af; }
+      .opts { overflow:hidden; height:0; }
+      .opt { display:flex; align-items:center; gap:10px; height:38px; }
+      .opt .ob { width:16px; height:16px; border-radius:50%; border:2px solid #cfd4dd; flex-shrink:0; }
+      .opt .oin { flex:1; height:30px; border:1.5px solid #e6e8ec; border-radius:7px; display:flex; align-items:center; padding:0 10px; font-size:13.5px; font-weight:540; }
+      .dropzone { margin-top:10px; height:72px; border:1.5px dashed #cfd4dd; border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; color:#9ca3af; }
+      .dropzone .di { width:26px; height:26px; border-radius:7px; background:#eef0fe; }
+      .dropzone .dt { font-size:12.5px; font-weight:560; }
+      .datein { margin-top:10px; height:42px; border:1.5px solid #e6e8ec; border-radius:9px; display:flex; align-items:center; padding:0 12px; font-size:14px; color:#b3b8c4; font-weight:500; gap:10px; }
+      .datein .cal { width:18px; height:18px; border-radius:4px; border:2px solid #b3b8c4; }
+      .caret { display:inline-block; width:2px; height:19px; background:#4f46e5; vertical-align:-4px; opacity:0; }
+      .lh .ch, .oh .ch { display:none; white-space:pre; }
+
+      /* right library panel */
+      .lib { width:312px; flex-shrink:0; border-left:1px solid #ececf1; background:#fff; padding:20px 18px; position:relative; }
+      .lib .lh2 { font-size:13px; font-weight:700; color:#9ca3af; text-transform:uppercase; letter-spacing:.5px; margin-bottom:14px; }
+      .libcard { display:flex; align-items:center; gap:12px; border:1px solid #eceef2; border-radius:11px; padding:12px 13px; margin-bottom:10px; font-size:14.5px; font-weight:600; color:#3a4150; }
+      .libcard .ic { width:34px; height:34px; border-radius:9px; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:#fff; font-size:15px; font-weight:800; }
+      .libcard .gr { margin-left:auto; color:#cfd4dd; font-size:15px; letter-spacing:1px; }
+
+      /* settings panel */
+      .setp { position:absolute; right:0; top:0; bottom:0; width:340px; background:#fff; border-left:1px solid #ececf1; box-shadow:-24px 0 50px -30px rgba(16,17,21,.26); z-index:14; padding:22px 22px; }
+      .setp .sh { font-size:17px; font-weight:740; margin-bottom:4px; }
+      .setp .ss { font-size:12.5px; color:#9ca3af; font-weight:520; margin-bottom:20px; }
+      .trow { display:flex; align-items:center; gap:14px; padding:15px 0; border-bottom:1px solid #f2f3f6; }
+      .trow .tt { font-size:14.5px; font-weight:620; } .trow .td2 { font-size:12px; color:#9ca3af; font-weight:520; margin-top:2px; }
+      .sw { margin-left:auto; width:46px; height:26px; border-radius:14px; background:#d3d7e0; position:relative; flex-shrink:0; }
+      .sw .kn { position:absolute; left:3px; top:3px; width:20px; height:20px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.2); }
+
+      /* preview */
+      #preview { position:absolute; top:62px; left:0; right:0; bottom:0; background:#f4f5f8; }
+      .pvform { position:absolute; left:50%; transform:translateX(-50%); top:40px; width:600px; background:#fff; border-radius:16px; box-shadow:0 22px 54px -26px rgba(16,17,21,.22); padding:34px 38px; }
+      .pvform .accent { position:absolute; left:0; top:0; right:0; height:6px; border-radius:16px 16px 0 0; background:linear-gradient(90deg,#6d5cff,#4f46e5); }
+      .pvform h1 { font-size:28px; font-weight:770; letter-spacing:-0.6px; margin-top:10px; }
+      .pvform .psub { font-size:13.5px; color:#9ca3af; font-weight:520; margin-bottom:22px; }
+      .pf { margin-bottom:18px; }
+      .pf .pl { font-size:14.5px; font-weight:640; margin-bottom:7px; }
+      .pf .pl b { color:#ef4444; }
+      .pctl { height:44px; border:1.5px solid #e6e8ec; border-radius:9px; display:flex; align-items:center; padding:0 13px; font-size:14.5px; color:#b3b8c4; font-weight:500; }
+      .pctl.filled { color:#14151a; font-weight:560; }
+      .pctl.focus { border-color:#4f46e5; box-shadow:0 0 0 4px rgba(79,70,229,.1); }
+      .pctl .car { margin-left:auto; width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid #9ca3af; }
+      .pdz { height:64px; border:1.5px dashed #cfd4dd; border-radius:10px; display:flex; align-items:center; justify-content:center; gap:9px; color:#9ca3af; font-size:13.5px; font-weight:560; }
+      .pdz .fi { width:22px; height:22px; border-radius:5px; background:#eef0fe; }
+      .psubmit { height:48px; width:100%; border-radius:11px; background:#4f46e5; color:#fff; font-size:16px; font-weight:680; display:flex; align-items:center; justify-content:center; box-shadow:0 12px 26px -10px rgba(79,70,229,.55); margin-top:6px; }
+      .success { position:absolute; inset:0; background:#fff; border-radius:16px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; }
+      .success .ck { width:74px; height:74px; border-radius:50%; background:#16a34a; position:relative; box-shadow:0 14px 30px -10px rgba(22,163,74,.5); }
+      .success .ck::after { content:""; position:absolute; left:27px; top:18px; width:16px; height:30px; border:solid #fff; border-width:0 6px 6px 0; transform:rotate(42deg); }
+      .success h2 { font-size:24px; font-weight:740; } .success p { font-size:15px; color:#6b7280; font-weight:520; margin-top:-6px; }
+
+      #proxy { position:absolute; left:0; top:0; width:280px; height:52px; border-radius:11px; background:#eef0fe; border:1.5px solid #4f46e5; box-shadow:0 18px 36px -14px rgba(79,70,229,.45); display:flex; align-items:center; gap:11px; padding:0 14px; opacity:0; z-index:46; }
+      #proxy .ic { width:30px; height:30px; border-radius:8px; background:#4f46e5; flex-shrink:0; } #proxy .pb { width:120px; height:9px; border-radius:4px; background:#c7c4f5; }
+      #clickGlow { position:absolute; left:0; top:0; width:78px; height:78px; border-radius:50%; z-index:44; background: radial-gradient(circle, rgba(79,70,229,.3) 0%, rgba(79,70,229,.13) 42%, rgba(79,70,229,0) 70%); border:2px solid rgba(79,70,229,.42); opacity:0; }
+      #cursor { position: absolute; top: 0; left: 0; z-index: 50; filter: drop-shadow(0 1px 1.5px rgba(0,0,0,.3)); }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="22" data-width="1920" data-height="1080">
+      <div class="stage">
+        <div class="browser">
+          <div class="titlebar"><i class="r"></i><i class="y"></i><i class="g"></i><div class="urlbar">app.formcraft.io / build</div></div>
+          <div class="main">
+            <div class="topbar">
+              <div class="lg"><div class="d"></div>FormCraft</div>
+              <div class="gear" id="gearBtn">⚙</div>
+              <div class="pvbtn" id="previewBtn">▷ Preview</div>
+              <div class="edbtn" id="editorBtn" style="display:none">‹ Editor</div>
+            </div>
+
+            <!-- EDITOR -->
+            <div id="editor">
+              <div class="work" id="work" data-layout-allow-overflow>
+                <div class="formcard" id="formCard" data-layout-allow-overflow>
+                  <div class="accent"></div>
+                  <div id="formTitle"><span class="ph" id="ftph">Untitled Form</span><span class="lh" id="ftlh"></span><span class="caret" id="ftc"></span></div>
+                  <div class="fsub">Build your form by dragging fields from the right.</div>
+                  <div id="fields">
+                    <div class="field" id="f1"><div class="flabel"><span class="ph" id="f1ph">Question label</span><span class="lh" id="f1lh"></span><span class="caret" id="f1c"></span></div><div class="finput">Short answer text</div></div>
+                    <div class="field" id="f2"><div class="flabel"><span class="ph" id="f2ph">Question label</span><span class="lh" id="f2lh"></span><span class="caret" id="f2c"></span></div>
+                      <div class="fdrop" id="f2drop">Select an option<div class="car"></div></div>
+                      <div class="opts" id="optEditor">
+                        <div class="opt" id="opt0" style="margin-top:10px"><div class="ob"></div><div class="oin"><span class="oh" id="oh0"></span></div></div>
+                        <div class="opt" id="opt1"><div class="ob"></div><div class="oin"><span class="oh" id="oh1"></span></div></div>
+                        <div class="opt" id="opt2"><div class="ob"></div><div class="oin"><span class="oh" id="oh2"></span></div></div>
+                        <div class="opt" id="opt3"><div class="ob"></div><div class="oin"><span class="oh" id="oh3"></span></div></div>
+                      </div>
+                    </div>
+                    <div class="field" id="f3"><div class="flabel">Upload your ticket</div><div class="dropzone"><div class="di"></div><div class="dt">Drop a file or click to upload</div></div></div>
+                    <div class="field" id="f4"><div class="flabel">Preferred date</div><div class="datein"><div class="cal"></div>mm / dd / yyyy</div></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="lib">
+                <div class="lh2">Add a field</div>
+                <div class="libcard" id="libText"><div class="ic" style="background:#4f46e5">T</div>Text<div class="gr">⠿</div></div>
+                <div class="libcard" id="libDrop"><div class="ic" style="background:#0d9488">▾</div>Dropdown<div class="gr">⠿</div></div>
+                <div class="libcard" id="libFile"><div class="ic" style="background:#f59e0b">⤒</div>File Upload<div class="gr">⠿</div></div>
+                <div class="libcard" id="libDate"><div class="ic" style="background:#ec4899">▦</div>Date Picker<div class="gr">⠿</div></div>
+                <div class="libcard"><div class="ic" style="background:#64748b">#</div>Number<div class="gr">⠿</div></div>
+                <div class="libcard"><div class="ic" style="background:#8b5cf6">☑</div>Checkbox<div class="gr">⠿</div></div>
+              </div>
+
+              <!-- settings panel -->
+              <div class="setp" id="setPanel" data-layout-allow-overflow>
+                <div class="sh">Form settings</div>
+                <div class="ss">Behavior &amp; notifications</div>
+                <div class="trow"><div><div class="tt">Required fields</div><div class="td2">Respondents must answer all</div></div><div class="sw" id="sw0"><div class="kn" id="kn0"></div></div></div>
+                <div class="trow"><div><div class="tt">Email on submission</div><div class="td2">Notify me of new responses</div></div><div class="sw" id="sw1"><div class="kn" id="kn1"></div></div></div>
+                <div class="trow"><div><div class="tt">Redirect after submit</div><div class="td2">Send to a thank-you URL</div></div><div class="sw" id="sw2"><div class="kn" id="kn2"></div></div></div>
+              </div>
+            </div>
+
+            <!-- PREVIEW -->
+            <div id="preview" data-layout-allow-overflow>
+              <div class="pvform" id="pvform" data-layout-allow-overflow>
+                <div class="accent"></div>
+                <h1>Event Registration</h1>
+                <div class="psub">Please complete all fields below.</div>
+                <div class="pf"><div class="pl">Your full name <b>*</b></div><div class="pctl" id="pName"><span id="pNamePh" style="color:#b3b8c4">Type your answer…</span><span id="pNameVal" style="opacity:0">Alex Rivera</span></div></div>
+                <div class="pf"><div class="pl">Which session? <b>*</b></div><div class="pctl" id="pSession"><span id="pSessPh" style="color:#b3b8c4">Choose…</span><span id="pSessVal" style="position:absolute;opacity:0;color:#14151a;font-weight:560">Morning</span><div class="car"></div></div></div>
+                <div class="pf"><div class="pl">Upload your ticket <b>*</b></div><div class="pdz" id="pFile"><div class="fi"></div><span id="pFilePh">Drop a file or click to upload</span><span id="pFileVal" style="display:none;color:#14151a;font-weight:600">ticket.pdf · 2.4 MB</span></div></div>
+                <div class="pf"><div class="pl">Preferred date <b>*</b></div><div class="pctl" id="pDate"><span id="pDatePh" style="color:#b3b8c4">mm / dd / yyyy</span><span id="pDateVal" style="opacity:0">June 14, 2026</span><div class="car"></div></div></div>
+                <div class="psubmit" id="pSubmit">Submit</div>
+                <div class="success" id="success"><div class="ck"></div><h2>Thank you!</h2><p>Your response has been recorded.</p></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div id="proxy"><div class="ic"></div><div class="pb"></div></div>
+        <div id="clickGlow"></div>
+        <div id="cursor"><svg viewBox="0 0 20 32" width="26" height="42"><path d="M0 0 L0 27 L6.3 20.7 L10.5 30 L13.9 28.5 L9.75 19.5 L18 18.9 Z" fill="#0a0a0a"/></svg></div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const $ = (id) => document.getElementById(id);
+      const tl = gsap.timeline({ paused: true });
+      const cursor = $("cursor");
+      const cur = { x: 1500, y: 250 };
+      const tip = (el, fx, fy) => { const r = el.getBoundingClientRect(); return { x: r.left + r.width * (fx == null ? .5 : fx), y: r.top + r.height * (fy == null ? .5 : fy) }; };
+
+      function build(host, str) { const s = []; [...str].forEach((c) => { const e = document.createElement("span"); e.className = "ch"; e.textContent = c; host.appendChild(e); s.push(e); }); return s; }
+      const ftSpans = build($("ftlh"), "Event Registration");
+      const f1Spans = build($("f1lh"), "Your full name");
+      const f2Spans = build($("f2lh"), "Which session?");
+      const optWords = ["Morning", "Afternoon", "Evening", "Full day"];
+      const optSpans = optWords.map((w, i) => build($("oh" + i), w));
+
+      const reveal = (sp, at, per) => { sp.forEach((s, i) => tl.set(s, { display: "inline" }, at + i * per)); return at + sp.length * per; };
+      function blink(sel, at, until) { tl.set(sel, { opacity: 1 }, at); tl.to(sel, { opacity: 0, duration: .4, ease: "steps(1)", repeat: Math.max(1, Math.round((until - at) / .8)) * 2, yoyo: true, overwrite: "auto" }, at + .1); }
+      function glow(at, x, y) { const gx = x == null ? cur.x : x, gy = y == null ? cur.y : y; tl.set("#clickGlow", { x: gx, y: gy, scale: 0.34, autoAlpha: 0.55 }, at); tl.to("#clickGlow", { scale: 1.8, autoAlpha: 0, duration: 0.5, ease: "power2.out", overwrite: "auto" }, at); }
+      function click(at) { tl.to(cursor.querySelector("svg"), { transformOrigin: "0% 0%", keyframes: [{ scale: 0.78, duration: .06, ease: "power2.in" }, { scale: 1, duration: .14, ease: "back.out(2.6)" }] }, at); glow(at + 0.02); }
+      function press(sel, at) { tl.to(sel, { keyframes: [{ scale: .96, duration: .07 }, { scale: 1, duration: .15, ease: "back.out(2)" }], transformOrigin: "50% 50%", overwrite: "auto" }, at); }
+      let mc = 0;
+      function moveTo(tx, ty, at, dur, bow) { bow = bow == null ? 16 : bow; const dx = tx - cur.x, dy = ty - cur.y, d = Math.hypot(dx, dy) || 1; const ux = dx/d, uy = dy/d, px = -uy, py = ux, side = mc++ % 2 ? -1 : 1, k = Math.min(1, d/600);
+        tl.to(cursor, { keyframes: [ { x: cur.x + dx*0.5 + px*bow*side*k, y: cur.y + dy*0.5 + py*bow*side*k, duration: dur*0.46, ease:"power1.inOut" }, { x: tx+ux*8, y: ty+uy*8, duration: dur*0.34, ease:"power2.out" }, { x: tx, y: ty, duration: dur*0.20, ease:"power2.inOut" } ] }, at); cur.x = tx; cur.y = ty; }
+      function moveLin(tx, ty, at, dur) { tl.to(cursor, { x: tx, y: ty, duration: dur, ease: "power2.inOut" }, at); cur.x = tx; cur.y = ty; }
+
+      // measure
+      const fc = $("formCard").getBoundingClientRect();
+      const DROPX = fc.left + fc.width / 2;
+      const T = { ftitle: tip($("formTitle"), .25, .5), libText: tip($("libText")), libDrop: tip($("libDrop")), libFile: tip($("libFile")), libDate: tip($("libDate")),
+        f1lab: tip($("f1"), .3, .28), f2lab: tip($("f2"), .3, .2), f2drop: tip($("f2drop")),
+        gear: tip($("gearBtn")), sw0: tip($("sw0")), sw1: tip($("sw1")), sw2: tip($("sw2")), preview: tip($("previewBtn")),
+        pName: tip($("pName")), pSession: tip($("pSession")), pFile: tip($("pFile")), pDate: tip($("pDate")), pSubmit: tip($("pSubmit")), editor: tip($("editorBtn")) };
+
+      // initial states
+      gsap.set(cursor, { x: cur.x, y: cur.y, autoAlpha: 0 });
+      gsap.set("#clickGlow", { xPercent: -50, yPercent: -50, autoAlpha: 0, scale: 0.3 });
+      gsap.set("#proxy", { xPercent: -50, yPercent: -50, autoAlpha: 0 });
+      gsap.set(["#ftc","#f1c","#f2c"], { opacity: 0 });
+      gsap.set(["#f1","#f2","#f3","#f4"], { autoAlpha: 0, height: 0, marginBottom: 0, overflow: "hidden" });
+      gsap.set("#optEditor", { height: 0 });
+      gsap.set("#setPanel", { x: 360, autoAlpha: 0 });
+      gsap.set("#preview", { autoAlpha: 0 });
+      gsap.set("#success", { autoAlpha: 0 });
+      gsap.set(["#kn0","#kn1","#kn2"], { x: 0 });
+
+      function dragField(lib, fieldSel, dropY, at) {
+        moveTo(lib.x, lib.y, at, 0.45, 12);
+        glow(at + 0.45);
+        tl.set("#proxy", { x: lib.x, y: lib.y, autoAlpha: 0.92 }, at + 0.48);
+        tl.to("#proxy", { x: DROPX, y: dropY, duration: 0.5, ease: "power2.inOut" }, at + 0.5);
+        moveLin(DROPX, dropY, at + 0.5, 0.5);
+        tl.to("#proxy", { autoAlpha: 0, duration: 0.15 }, at + 1.0);
+        tl.set(fieldSel, { height: "auto", marginBottom: 14 }, at + 1.0);
+        tl.fromTo(fieldSel, { autoAlpha: 0, y: -16, scale: 0.94 }, { autoAlpha: 1, y: 0, scale: 1, duration: 0.5, ease: "back.out(1.9)", overwrite: "auto" }, at + 1.0);
+      }
+
+      // ===== open =====
+      tl.to(cursor, { autoAlpha: 1, duration: 0.2 }, 0.3);
+
+      // 1) title
+      moveTo(T.ftitle.x, T.ftitle.y, 0.5, 0.6, 14);
+      click(1.0);
+      tl.to("#ftph", { autoAlpha: 0, duration: 0.12 }, 1.05);
+      blink("#ftc", 1.1, 1.95);
+      reveal(ftSpans, 1.18, 0.045);
+      tl.set("#ftc", { opacity: 0 }, 2.0);
+
+      // 2) drag Text field, label it
+      dragField(T.libText, "#f1", fc.top + 150, 2.2);
+      moveTo(T.f1lab.x, T.f1lab.y, 3.45, 0.5, 12);
+      click(3.9);
+      tl.to("#f1ph", { autoAlpha: 0, duration: 0.1 }, 3.95);
+      blink("#f1c", 4.0, 4.7);
+      reveal(f1Spans, 4.05, 0.04);
+      tl.set("#f1c", { opacity: 0 }, 4.75);
+
+      // 3) drag Dropdown, label it, add options
+      dragField(T.libDrop, "#f2", fc.top + 250, 4.8);
+      moveTo(T.f2lab.x, T.f2lab.y, 6.05, 0.45, 12);
+      click(6.45);
+      tl.to("#f2ph", { autoAlpha: 0, duration: 0.1 }, 6.5);
+      blink("#f2c", 6.55, 7.1);
+      reveal(f2Spans, 6.6, 0.04);
+      tl.set("#f2c", { opacity: 0 }, 7.15);
+      // open options editor
+      moveTo(T.f2drop.x, T.f2drop.y, 7.2, 0.4, 10);
+      click(7.55); press("#f2drop", 7.55);
+      tl.to("#optEditor", { height: 162, duration: 0.35, ease: "power2.out" }, 7.6);
+      // four options type one at a time
+      let ot = 7.95;
+      optSpans.forEach((sp) => { const end = reveal(sp, ot, 0.028); ot = end + 0.12; });
+
+      // 4) drag File Upload, then Date Picker
+      dragField(T.libFile, "#f3", fc.top + 430, ot + 0.1);
+      dragField(T.libDate, "#f4", fc.top + 520, ot + 1.25);
+      const afterFields = ot + 2.5;
+
+      // 5) settings gear → 3 toggles
+      moveTo(T.gear.x, T.gear.y, afterFields, 0.55, 14);
+      click(afterFields + 0.5); press("#gearBtn", afterFields + 0.5);
+      tl.to("#setPanel", { x: 0, autoAlpha: 1, duration: 0.4, ease: "power3.out" }, afterFields + 0.6);
+      const tg = afterFields + 0.9;
+      [["#sw0","#kn0"],["#sw1","#kn1"],["#sw2","#kn2"]].forEach((s, i) => {
+        const a = tg + i * 0.35;
+        moveTo(T["sw" + i].x, T["sw" + i].y, a, 0.34, 8);
+        click(a + 0.32);
+        tl.to(s[0], { backgroundColor: "#16a34a", duration: 0.25 }, a + 0.36);
+        tl.to(s[1], { x: 20, duration: 0.28, ease: "back.out(2)" }, a + 0.36);
+      });
+
+      // 6) Preview
+      const pvAt = tg + 1.3;
+      moveTo(T.preview.x, T.preview.y, pvAt, 0.55, 14);
+      click(pvAt + 0.5); press("#previewBtn", pvAt + 0.5);
+      tl.to("#editor", { autoAlpha: 0, duration: 0.35, ease: "power2.in" }, pvAt + 0.6);
+      tl.to("#setPanel", { autoAlpha: 0, duration: 0.2 }, pvAt + 0.6);
+      tl.set("#previewBtn", { display: "none" }, pvAt + 0.65);
+      tl.set("#editorBtn", { display: "inline-flex" }, pvAt + 0.65);
+      tl.fromTo("#preview", { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.45, ease: "power2.out" }, pvAt + 0.7);
+
+      // 7) fill the preview form
+      let f = pvAt + 1.15;
+      moveTo(T.pName.x, T.pName.y, f, 0.45, 10); click(f + 0.4);
+      tl.set("#pName", { className: "pctl focus" }, f + 0.42); tl.to("#pNamePh", { autoAlpha: 0, duration: 0.1 }, f + 0.45); tl.to("#pNameVal", { autoAlpha: 1, duration: 0.2 }, f + 0.5);
+      f += 0.7;
+      moveTo(T.pSession.x, T.pSession.y, f, 0.45, 10); click(f + 0.4);
+      tl.set("#pSession", { className: "pctl focus" }, f + 0.42); tl.to("#pSessPh", { autoAlpha: 0, duration: 0.1 }, f + 0.45); tl.to("#pSessVal", { autoAlpha: 1, duration: 0.2 }, f + 0.5);
+      f += 0.7;
+      moveTo(T.pFile.x, T.pFile.y, f, 0.45, 10); click(f + 0.4);
+      tl.set("#pFilePh", { display: "none" }, f + 0.45); tl.set("#pFileVal", { display: "inline" }, f + 0.45); tl.fromTo("#pFile", { borderColor: "#cfd4dd" }, { borderColor: "#4f46e5", duration: 0.2 }, f + 0.45);
+      f += 0.7;
+      moveTo(T.pDate.x, T.pDate.y, f, 0.45, 10); click(f + 0.4);
+      tl.set("#pDate", { className: "pctl focus" }, f + 0.42); tl.to("#pDatePh", { autoAlpha: 0, duration: 0.1 }, f + 0.45); tl.to("#pDateVal", { autoAlpha: 1, duration: 0.2 }, f + 0.5);
+
+      // 8) submit → success
+      f += 0.85;
+      moveTo(T.pSubmit.x, T.pSubmit.y, f, 0.5, 12); click(f + 0.5); press("#pSubmit", f + 0.5);
+      tl.fromTo("#success", { autoAlpha: 0, scale: 0.96 }, { autoAlpha: 1, scale: 1, duration: 0.4, ease: "power2.out" }, f + 0.7);
+      tl.fromTo("#success .ck", { scale: 0 }, { scale: 1, duration: 0.5, ease: "back.out(2.2)" }, f + 0.8);
+
+      // 9) back to editor
+      f += 1.5;
+      moveTo(T.editor.x, T.editor.y, f, 0.55, 14); click(f + 0.5); press("#editorBtn", f + 0.5);
+      tl.to("#preview", { autoAlpha: 0, duration: 0.35, ease: "power2.in" }, f + 0.6);
+      tl.set("#editorBtn", { display: "none" }, f + 0.65);
+      tl.set("#previewBtn", { display: "inline-flex" }, f + 0.65);
+      tl.fromTo("#editor", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.4, ease: "power2.out", immediateRender: false }, f + 0.7);
+      tl.to(cursor, { autoAlpha: 0, duration: 0.3 }, f + 1.1);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
