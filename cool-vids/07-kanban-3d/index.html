@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=3840, height=2160" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 3840px; height: 2160px; overflow: hidden; font-family: -apple-system, "SF Pro Display", "Inter", system-ui, sans-serif; }
+      .stage { position: absolute; inset: 0; overflow: visible; background:
+        radial-gradient(60% 70% at 50% 30%, #20264a 0%, transparent 70%),
+        radial-gradient(50% 60% at 14% 86%, rgba(80,50,140,0.4), transparent 70%),
+        radial-gradient(50% 60% at 88% 88%, rgba(30,90,130,0.4), transparent 70%),
+        linear-gradient(160deg, #11152e 0%, #0a0d20 55%, #060812 100%); }
+
+      .scene { position: absolute; inset: 0; perspective: 2900px; perspective-origin: 50% 34%; }
+      .board { position: absolute; left: 240px; top: 470px; width: 3360px; height: 1500px; transform-style: preserve-3d;
+        transform: rotateX(27deg) rotateY(-5deg); }
+      .col { position: absolute; top: 0; width: 780px; transform-style: preserve-3d; }
+      .chead { display: flex; align-items: center; gap: 16px; height: 76px; padding: 0 14px; }
+      .cdot { width: 18px; height: 18px; border-radius: 5px; }
+      .ctitle { font-size: 34px; font-weight: 800; color: #eef1fb; letter-spacing: -0.3px; }
+      .ccount { margin-left: auto; min-width: 50px; height: 44px; padding: 0 16px; border-radius: 12px; background: rgba(255,255,255,0.08); color: #aeb6ce; font-size: 26px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+      .collane { background: rgba(255,255,255,0.025); border: 1.5px solid rgba(255,255,255,0.06); border-radius: 26px; padding: 26px 26px 30px; min-height: 1120px; }
+
+      .card { position: relative; width: 728px; margin-bottom: 30px; border-radius: 22px; padding: 28px 30px; background: linear-gradient(180deg, #fbfcff, #eef1f8); transform-style: preserve-3d;
+        box-shadow:
+          0 2px 0 #d3d8e6, 0 4px 0 #cdd2e1, 0 6px 0 #c6ccdc, 0 8px 0 #c0c6d7, 0 11px 0 #b9c0d2, 0 14px 0 #b2bacd,
+          0 30px 40px -10px rgba(12,16,34,0.5); }
+      .ctag { display: inline-flex; height: 40px; align-items: center; padding: 0 16px; border-radius: 11px; font-size: 23px; font-weight: 800; }
+      .cname { font-size: 33px; font-weight: 700; color: #1d2238; margin-top: 16px; line-height: 1.25; letter-spacing: -0.3px; }
+      .cfoot { display: flex; align-items: center; margin-top: 22px; }
+      .cav { width: 50px; height: 50px; border-radius: 50%; color: #fff; font-size: 21px; font-weight: 800; display: flex; align-items: center; justify-content: center; border: 3px solid #fff; }
+      .cav + .cav { margin-left: -16px; }
+      .cprog { margin-left: auto; display: flex; align-items: center; gap: 12px; color: #8a93ad; font-size: 24px; font-weight: 600; }
+      .cprog .bar { width: 150px; height: 12px; border-radius: 6px; background: #dfe3ee; overflow: hidden; }
+      .cprog .bar i { display: block; height: 100%; border-radius: 6px; }
+
+      /* floating drag card (2D overlay) */
+      #flycard { position: absolute; width: 728px; border-radius: 22px; padding: 28px 30px; background: linear-gradient(180deg, #ffffff, #f1f4fb); z-index: 60; opacity: 0;
+        box-shadow: 0 3px 0 #d3d8e6, 0 6px 0 #c6ccdc, 0 9px 0 #b9c0d2, 0 14px 0 #b2bacd, 0 70px 90px -20px rgba(8,12,28,0.6); }
+      #flyshadow { position: absolute; border-radius: 50%; background: radial-gradient(ellipse, rgba(0,0,0,0.5), rgba(0,0,0,0) 70%); z-index: 30; opacity: 0; }
+
+      #cursor { position: absolute; left: 0; top: 0; z-index: 90; filter: drop-shadow(0 8px 12px rgba(0,0,0,0.5)); }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="12" data-width="3840" data-height="2160">
+      <div class="stage" id="stage" data-layout-allow-overflow>
+        <div class="scene">
+          <div class="board" id="board" data-layout-allow-overflow></div>
+        </div>
+        <div id="flyshadow" data-layout-allow-overflow></div>
+        <div id="flycard" data-layout-allow-overflow></div>
+        <div id="cursor"><svg width="64" height="76" viewBox="0 0 24 28"><path d="M3,2 L3,22 L8.5,16.8 L12,24.5 L15.4,23 L11.9,15.3 L19,15.3 Z" fill="#ffffff" stroke="#1b1b22" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const $ = (s) => document.querySelector(s);
+
+      // ---------- board data ----------
+      const AV = { JD: "#3b82f6", SC: "#8b5cf6", AR: "#14b8a6", ML: "#f59e0b", TK: "#ec4899", DV: "#06b6d4" };
+      const COLS = [
+        { name: "Backlog", dot: "#94a3b8", tagc: "#64748b", tagbg: "#e9edf5", cards: [
+          { tag: "Design", t: "Redesign onboarding flow", av: ["JD", "SC"], prog: 0, pc: "#3b82f6" },
+          { tag: "Bug", t: "Fix auth token refresh", av: ["AR"], prog: 0, pc: "#ef4444" },
+          { tag: "Docs", t: "Update API reference", av: ["ML"], prog: 0, pc: "#94a3b8" },
+        ] },
+        { name: "In Progress", dot: "#3b82f6", tagc: "#2563eb", tagbg: "#e3edfd", cards: [
+          { tag: "Feature", t: "Payment checkout flow", av: ["SC", "TK"], prog: 60, pc: "#3b82f6" },
+          { tag: "Infra", t: "Search indexing service", av: ["DV"], prog: 35, pc: "#06b6d4" },
+        ] },
+        { name: "Review", dot: "#a855f7", tagc: "#9333ea", tagbg: "#f0e7fd", cards: [
+          { tag: "Feature", t: "Dark mode theming", av: ["JD"], prog: 90, pc: "#a855f7" },
+          { tag: "Feature", t: "Export to PDF", av: ["ML", "AR"], prog: 80, pc: "#a855f7" },
+        ] },
+        { name: "Done", dot: "#22c55e", tagc: "#16a34a", tagbg: "#e3f6e9", cards: [
+          { tag: "Done", t: "New landing page", av: ["SC"], prog: 100, pc: "#22c55e" },
+          { tag: "Done", t: "Email templates", av: ["TK"], prog: 100, pc: "#22c55e" },
+        ] },
+      ];
+      const cardHTML = (c) => '<div class="ctag" style="color:' + c.tagc2 + ';background:' + c.tagbg2 + '">' + c.tag + '</div>' +
+        '<div class="cname">' + c.t + '</div>' +
+        '<div class="cfoot">' + c.av.map((a) => '<div class="cav" style="background:' + AV[a] + '">' + a + '</div>').join("") +
+        '<div class="cprog"><div class="bar"><i style="width:' + c.prog + '%;background:' + c.pc + '"></i></div>' + c.prog + '%</div></div>';
+
+      const board = $("#board"); const colEls = [], cardEls = [];
+      COLS.forEach((col, ci) => {
+        const ce = document.createElement("div"); ce.className = "col"; ce.style.left = (ci * 860) + "px";
+        let cardsHTML = "";
+        col.cards.forEach((c) => { c.tagc2 = col.tagc; c.tagbg2 = col.tagbg; });
+        ce.innerHTML = '<div class="chead"><div class="cdot" style="background:' + col.dot + '"></div><div class="ctitle">' + col.name + '</div><div class="ccount">' + col.cards.length + '</div></div>' +
+          '<div class="collane" data-lane="' + ci + '"></div>';
+        board.appendChild(ce); colEls.push(ce);
+        const lane = ce.querySelector(".collane"); const rowEls = [];
+        col.cards.forEach((c) => { const d = document.createElement("div"); d.className = "card"; d.innerHTML = cardHTML(c); lane.appendChild(d); rowEls.push(d); });
+        cardEls.push(rowEls);
+      });
+
+      // the dragged card: Backlog[0] -> In Progress (insert at top). Prebuild a collapsed copy at top of In Progress.
+      const srcCard = cardEls[0][0];
+      const dropCard = document.createElement("div"); dropCard.className = "card"; dropCard.innerHTML = cardHTML({ ...COLS[0].cards[0], prog: 10, pc: "#3b82f6", tagc2: COLS[1].tagc, tagbg2: COLS[1].tagbg });
+      const targetLane = colEls[1].querySelector(".collane");
+      targetLane.insertBefore(dropCard, targetLane.firstChild);
+      $("#flycard").innerHTML = srcCard.innerHTML;
+
+      // ---------- measure (before any collapse) ----------
+      const rectOf = (e) => { const r = e.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height, cx: r.left + r.width / 2, cy: r.top + r.height / 2 }; };
+      const srcR = rectOf(srcCard);
+      const dropR = rectOf(dropCard);
+      const srcH = srcCard.offsetHeight, dropH = dropCard.offsetHeight, flyH = $("#flycard").offsetHeight;
+      const srcScale = srcR.w / 728, dropScale = dropR.w / 728;
+
+      // ---------- initial states ----------
+      const cursor = $("#cursor"); const TIPX = 9, TIPY = 6;
+      const tl = gsap.timeline({ paused: true });
+      gsap.set("#board", { autoAlpha: 0 });
+      const allCards = []; cardEls.forEach((col) => col.forEach((c) => allCards.push(c)));
+      gsap.set(allCards, { autoAlpha: 0, z: -120, y: 40 });
+      gsap.set([srcCard, dropCard], { overflow: "hidden" });
+      gsap.set(dropCard, { autoAlpha: 0, height: 0, marginBottom: 0, paddingTop: 0, paddingBottom: 0 });
+      gsap.set(colEls.map((c) => c.querySelector(".chead")), { autoAlpha: 0, y: -20 });
+      gsap.set(colEls.map((c) => c.querySelector(".collane")), { autoAlpha: 0 });
+      gsap.set("#flycard", { autoAlpha: 0, width: 728, left: srcR.cx - 364, top: srcR.cy - flyH / 2, rotation: 0, scale: srcScale, transformOrigin: "50% 50%" });
+      gsap.set("#flyshadow", { autoAlpha: 0 });
+      gsap.set(cursor, { x: 2600 - TIPX, y: 1700 - TIPY, autoAlpha: 0 });
+
+      const move = (t, p, d = 0.5) => tl.to(cursor, { x: p.x - TIPX, y: p.y - TIPY, duration: d, ease: "power3.inOut" }, t);
+      const flyCenter = (t, cx, cy, d, ease, extra) => tl.to("#flycard", Object.assign({ left: cx - 364, top: cy - flyH / 2, duration: d, ease: ease }, extra || {}), t);
+
+      // ===================== TIMELINE =====================
+      // board tilts in
+      tl.fromTo("#board", { autoAlpha: 0, rotationX: 50, y: 80 }, { autoAlpha: 1, rotationX: 27, y: 0, duration: 0.9, ease: "power3.out" }, 0);
+      tl.to(colEls.map((c) => c.querySelector(".chead")), { autoAlpha: 1, y: 0, duration: 0.5, stagger: 0.08 }, 0.3);
+      tl.to(colEls.map((c) => c.querySelector(".collane")), { autoAlpha: 1, duration: 0.5, stagger: 0.08 }, 0.4);
+      cardEls.forEach((col, ci) => col.forEach((c, ri) => {
+        tl.to(c, { autoAlpha: 1, z: 0, y: 0, duration: 0.55, ease: "back.out(1.4)" }, 0.6 + ci * 0.12 + ri * 0.09);
+      }));
+      // gentle board breathe
+      tl.to("#board", { rotationY: -2, duration: 2.2, ease: "sine.inOut", yoyo: true, repeat: 3 }, 1.9);
+
+      // cursor approaches the source card
+      let t = 2.5;
+      tl.to(cursor, { autoAlpha: 1, duration: 0.3 }, t);
+      move(t, { x: srcR.cx, y: srcR.cy }, 0.7); t += 0.7;
+      // GRAB: press; source card collapses out; fly card lifts off (toward camera) with shadow bloom + rotation
+      tl.to(cursor, { scale: 0.82, duration: 0.1 }, t);
+      tl.to(cursor, { scale: 1, duration: 0.16, ease: "back.out(2.4)" }, t + 0.1);
+      tl.to(srcCard, { autoAlpha: 0, duration: 0.14 }, t + 0.04);
+      tl.to(srcCard, { height: 0, paddingTop: 0, paddingBottom: 0, marginBottom: 0, duration: 0.45, ease: "power2.inOut" }, t + 0.12);
+      tl.set("#flycard", { autoAlpha: 1 }, t + 0.05);
+      tl.to("#flycard", { scale: 1.12, rotation: -4, duration: 0.34, ease: "back.out(1.9)" }, t + 0.05);
+      tl.set("#flyshadow", { left: srcR.cx - 360, top: srcR.cy + 130, width: 720, height: 170 }, t + 0.05);
+      tl.fromTo("#flyshadow", { autoAlpha: 0, scale: 0.7 }, { autoAlpha: 0.5, scale: 1, duration: 0.34 }, t + 0.05);
+      t += 0.55;
+
+      // FLOAT across to the target column (3D arc: dip up midway), shadow trails on the board plane
+      const midX = (srcR.cx + dropR.cx) / 2, midY = Math.min(srcR.cy, dropR.cy) - 120;
+      move(t, { x: dropR.cx, y: dropR.cy }, 1.15);
+      flyCenter(t, midX, midY, 0.6, "power1.out", { rotation: -7 });
+      flyCenter(t + 0.6, dropR.cx, dropR.cy - 50, 0.6, "power1.in", { rotation: -2 });
+      tl.to("#flyshadow", { left: dropR.cx - 360, top: dropR.cy + 130, width: 720, height: 170, duration: 1.2, ease: "power1.inOut" }, t);
+      t += 1.25;
+
+      // DROP: fly card descends + shrinks back to board scale, hides; real drop card springs in (3D z-pop)
+      flyCenter(t, dropR.cx, dropR.cy, 0.26, "power2.in", { scale: dropScale, rotation: 0 });
+      tl.to("#flyshadow", { autoAlpha: 0, scale: 0.55, duration: 0.3 }, t + 0.1);
+      tl.set("#flycard", { autoAlpha: 0 }, t + 0.26);
+      tl.set(dropCard, { autoAlpha: 1 }, t + 0.24);
+      tl.to(dropCard, { height: dropH, paddingTop: 28, paddingBottom: 28, marginBottom: 30, duration: 0.4, ease: "power2.out" }, t + 0.24);
+      tl.fromTo(dropCard, { z: 110 }, { z: 0, duration: 0.6, ease: "back.out(2.2)" }, t + 0.24);   // spring settle
+      // RIPPLE shockwave through the neighbouring cards (staggered Z pop radiating from the drop)
+      cardEls[1].forEach((c, i) => {
+        tl.to(c, { z: 64, duration: 0.16, ease: "power2.out" }, t + 0.46 + i * 0.11);
+        tl.to(c, { z: 0, duration: 0.42, ease: "elastic.out(1,0.45)" }, t + 0.62 + i * 0.11);
+      });
+      t += 0.95;
+
+      // settle; slow cinematic board orbit to show the 3D depth
+      tl.to(cursor, { x: dropR.cx + 280 - TIPX, y: dropR.cy + 260 - TIPY, duration: 0.7, ease: "power2.inOut" }, t);
+      tl.to("#board", { rotationY: 5, rotationX: 24, duration: 3.2, ease: "sine.inOut" }, t + 0.3);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
