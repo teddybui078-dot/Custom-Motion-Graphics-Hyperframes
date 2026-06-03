@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=3840, height=2160" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 3840px; height: 2160px; overflow: hidden;
+        font-family: -apple-system, "SF Pro Display", "Inter", system-ui, sans-serif; }
+
+      .stage { position: absolute; inset: 0; overflow: hidden;
+        background: radial-gradient(130% 95% at 50% 14%, #18203c 0%, #0b1020 46%, #05060d 100%); }
+      /* ambient color glows */
+      .amb { position: absolute; border-radius: 50%; filter: blur(120px); opacity: 0.5; }
+      .amb.a { left: 760px; top: 120px; width: 1100px; height: 1100px; background: #2b3a8f; }
+      .amb.b { right: 640px; top: 60px; width: 1000px; height: 1000px; background: #1c5e57; }
+      .amb.c { left: 50%; top: 880px; width: 1600px; height: 900px; transform: translateX(-50%); background: #20284e; opacity: 0.4; }
+      .vig { position: absolute; inset: 0; pointer-events: none;
+        background: radial-gradient(120% 100% at 50% 46%, transparent 52%, rgba(0,0,0,0.55) 100%); }
+      .grain { position: absolute; inset: 0; opacity: 0.05; pointer-events: none;
+        background-image: radial-gradient(rgba(255,255,255,0.6) 1px, transparent 1px); background-size: 4px 4px; }
+
+      .world { position: absolute; inset: 0; perspective: 2600px; perspective-origin: 50% 40%; }
+      #float { position: absolute; inset: 0; transform-style: preserve-3d; }
+
+      /* ---------------- floating frosted glass platform ---------------- */
+      .pglow { position: absolute; left: 50%; top: 1370px; width: 2680px; height: 760px;
+        transform: translateX(-50%); border-radius: 50%; filter: blur(70px); opacity: 0;
+        background: radial-gradient(closest-side, rgba(120,150,255,0.5), rgba(80,110,220,0.18) 55%, transparent 75%); }
+      .platform { position: absolute; left: 50%; top: 1492px; width: 2460px; height: 540px;
+        transform: translateX(-50%) perspective(1700px) rotateX(64deg); transform-origin: 50% 0%;
+        border-radius: 70px; opacity: 0;
+        background: linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(190,205,255,0.07) 45%, rgba(255,255,255,0.03) 100%);
+        backdrop-filter: blur(44px) saturate(150%); -webkit-backdrop-filter: blur(44px) saturate(150%);
+        border: 1.5px solid rgba(255,255,255,0.22);
+        box-shadow: 0 60px 150px rgba(0,0,0,0.6), inset 0 2px 0 rgba(255,255,255,0.45), inset 0 0 90px rgba(120,150,255,0.12); }
+      .platform::after { content: ""; position: absolute; left: 8%; top: 14%; width: 84%; height: 40%;
+        border-radius: 50%; background: radial-gradient(closest-side, rgba(255,255,255,0.28), transparent 70%); filter: blur(8px); }
+      .pedge { position: absolute; left: 50%; top: 1968px; width: 2460px; height: 70px;
+        transform: translateX(-50%); border-radius: 0 0 70px 70px; opacity: 0;
+        background: linear-gradient(180deg, rgba(150,170,230,0.28), rgba(40,55,110,0.16));
+        box-shadow: 0 30px 60px rgba(0,0,0,0.5); }
+
+      /* ---------------- drums ---------------- */
+      .drum { position: absolute; transform-style: preserve-3d; }
+      .cyl-wrap { position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+        overflow: hidden; border-radius: 26px; }
+      .cyl { position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+        transform-style: preserve-3d; }
+      .face { position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+        display: flex; align-items: center; justify-content: center;
+        backface-visibility: hidden; -webkit-backface-visibility: hidden;
+        background: linear-gradient(180deg,
+          #f6f8fd 0%, #d2dae8 14%, #9aa4ba 30%, #565d76 47%,
+          #515872 50%, #6e7690 58%, #8c95ab 66%, #c8d0df 84%, #fbfcff 100%); }
+      .digit { font-weight: 800; letter-spacing: -3px; font-variant-numeric: tabular-nums;
+        color: #525a70; line-height: 1;
+        text-shadow: 0 -2px 1px rgba(0,0,0,0.55), 0 2px 2px rgba(255,255,255,0.9); }
+      /* curvature + sheen overlay that sells the round cylinder */
+      .curve { position: absolute; inset: 0; border-radius: 26px; pointer-events: none;
+        background:
+          linear-gradient(180deg, rgba(2,4,10,0.92) 0%, rgba(2,4,10,0.35) 16%, transparent 32%,
+                          transparent 68%, rgba(2,4,10,0.4) 84%, rgba(2,4,10,0.94) 100%),
+          linear-gradient(180deg, transparent 38%, rgba(255,255,255,0.32) 49%, transparent 60%); }
+      .edgesh { position: absolute; inset: 0; border-radius: 26px; pointer-events: none;
+        background: linear-gradient(90deg, rgba(0,0,0,0.5) 0%, transparent 14%, transparent 86%, rgba(0,0,0,0.5) 100%);
+        box-shadow: inset 0 0 0 2px rgba(255,255,255,0.12), inset 0 0 60px rgba(0,0,0,0.35); }
+      /* metallic end rims */
+      .rim { position: absolute; left: -10px; width: calc(100% + 20px); height: 46px;
+        border-radius: 50%; background: linear-gradient(180deg, #eef2fb, #aab4c8 40%, #6b7288 52%, #717a92 60%, #c7cfde);
+        box-shadow: 0 6px 18px rgba(0,0,0,0.45); }
+      .rim.top { top: -22px; }
+      .rim.bot { bottom: -22px; }
+      /* moving specular highlight (driven by timeline) */
+      .spec { position: absolute; top: 0; width: 140px; height: 100%; pointer-events: none; opacity: 0.0;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.85), transparent); filter: blur(6px); }
+
+      /* light burst from the face on land */
+      .burst { position: absolute; border-radius: 50%; pointer-events: none; opacity: 0; transform: scale(0.2);
+        background: radial-gradient(circle, rgba(255,255,255,0.98) 0%, rgba(200,220,255,0.7) 20%, rgba(130,170,255,0.0) 62%); }
+      .rays { position: absolute; border-radius: 50%; pointer-events: none; opacity: 0; transform: scale(0.2);
+        background: repeating-conic-gradient(from 0deg, rgba(255,255,255,0.55) 0deg 2.4deg, transparent 2.4deg 16deg);
+        -webkit-mask: radial-gradient(circle, #000 8%, rgba(0,0,0,0.5) 30%, transparent 62%);
+        mask: radial-gradient(circle, #000 8%, rgba(0,0,0,0.5) 30%, transparent 62%); }
+      .ring { position: absolute; border-radius: 50%; pointer-events: none; opacity: 0; transform: scale(0.2);
+        border: 6px solid rgba(190,215,255,0.9); box-shadow: 0 0 40px rgba(150,190,255,0.8); }
+
+      /* labels */
+      .lab { position: absolute; text-align: center; opacity: 0; }
+      .lab .name { font-size: 40px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase;
+        color: #cdd6ee; }
+      .lab .delta { margin-top: 14px; font-size: 34px; font-weight: 700; }
+
+      /* headline */
+      .kicker { position: absolute; left: 50%; top: 250px; transform: translateX(-50%); opacity: 0;
+        font-size: 34px; font-weight: 700; letter-spacing: 9px; text-transform: uppercase; color: #7d8bb8; }
+      .title { position: absolute; left: 50%; top: 312px; transform: translateX(-50%); opacity: 0;
+        font-size: 112px; font-weight: 800; letter-spacing: -1px; color: #eef2ff;
+        text-shadow: 0 6px 40px rgba(90,130,255,0.35); white-space: nowrap; }
+      .subtitle { position: absolute; left: 50%; top: 1820px; transform: translateX(-50%); opacity: 0;
+        font-size: 42px; font-weight: 600; letter-spacing: 1px; color: #9fb0d8; white-space: nowrap; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="14" data-width="3840" data-height="2160">
+      <div class="stage" data-layout-allow-overflow>
+        <div class="amb a"></div><div class="amb b"></div><div class="amb c"></div>
+
+        <div class="world" data-layout-allow-overflow>
+          <div id="float" data-layout-allow-overflow>
+            <div class="pglow" id="pglow"></div>
+            <div class="platform" id="platform"></div>
+            <div class="pedge" id="pedge"></div>
+
+            <div id="drums"></div>
+            <div id="labels"></div>
+          </div>
+        </div>
+
+        <div class="kicker" id="kicker">Annual Metrics</div>
+        <div class="title" id="title">Q4 Performance</div>
+        <div class="subtitle" id="subtitle">Records broken across the board.</div>
+
+        <div class="vig"></div>
+        <div class="grain"></div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const $ = (s) => document.querySelector(s);
+
+      // ---------- drum config ----------
+      const FACES = 12;                 // values around the cylinder
+      const FACE_ANGLE = 360 / FACES;   // degrees between faces
+      const DW = 600, DH = 320;         // drum face width / height
+      const R = Math.round(DH / (2 * Math.tan(Math.PI / FACES))); // cylinder radius
+      const CY = 980;                   // vertical center of drums (top of .drum)
+      const XS = [1130, 1920, 2710];    // horizontal centers of the three drums
+
+      const DRUMS = [
+        { value: "247K",  label: "New Signups", delta: "▲ 38% YoY", accent: "#6a9bff",
+          fill: ["182K","56K","93K","317K","74K","205K","41K","288K","129K","60K","233K"] },
+        { value: "99.9%", label: "Uptime SLA",  delta: "▲ 0.4 pts", accent: "#3ddc97",
+          fill: ["94.1%","87.6%","99.2%","76.0%","91.8%","82.4%","98.7%","70.3%","95.5%","88.9%","99.5%"] },
+        { value: "$4.2M", label: "Revenue",     delta: "▲ 21% YoY", accent: "#f5b54a",
+          fill: ["$1.8M","$3.1M","$0.9M","$5.6M","$2.7M","$4.9M","$1.2M","$3.8M","$0.6M","$5.1M","$2.3M"] },
+      ];
+      const LAND_INDEX = 6;             // which face index lands at the front
+
+      const drumsBox = $("#drums");
+      const labelsBox = $("#labels");
+      const cyls = [], bursts = [], rayEls = [], rings = [], specs = [], labelEls = [], drumEls = [], valFaces = [];
+
+      DRUMS.forEach((d, j) => {
+        const cx = XS[j];
+        const left = cx - DW / 2, top = CY;
+
+        // drum + cylinder
+        const drum = document.createElement("div");
+        drum.className = "drum";
+        drum.setAttribute("data-layout-allow-overflow", "");
+        drum.style.cssText = `left:${left}px; top:${top}px; width:${DW}px; height:${DH}px;`;
+        drum.innerHTML =
+          `<div class="rim top"></div><div class="rim bot"></div>` +
+          `<div class="cyl-wrap" data-layout-allow-overflow><div class="cyl" data-layout-allow-overflow></div>` +
+          `<div class="curve"></div><div class="edgesh"></div>` +
+          `<div class="spec"></div></div>`;
+        drumsBox.appendChild(drum);
+        drumEls.push(drum);
+
+        const cyl = drum.querySelector(".cyl");
+        specs.push(drum.querySelector(".spec"));
+
+        // build the faces around the cylinder
+        let fi = 0;
+        for (let i = 0; i < FACES; i++) {
+          const isVal = i === LAND_INDEX;
+          const text = isVal ? d.value : d.fill[fi++ % d.fill.length];
+          const fs = text.length > 3 ? 150 : 200;
+          const face = document.createElement("div");
+          face.className = "face";
+          face.style.transform = `rotateX(${i * FACE_ANGLE}deg) translateZ(${R}px)`;
+          face.innerHTML = `<span class="digit" style="font-size:${fs}px">${text}</span>`;
+          cyl.appendChild(face);
+          if (isVal) valFaces.push(face.querySelector(".digit"));
+        }
+        // initial rotation puts a random-looking face up front
+        gsap.set(cyl, { rotateX: 0, transformPerspective: 1600, transformOrigin: "50% 50%" });
+        cyls.push(cyl);
+
+        // burst / rays / ring (centered on the drum face, pushed slightly forward)
+        const bsz = 980;
+        const mk = (cls) => {
+          const e = document.createElement("div");
+          e.className = cls;
+          e.style.cssText = `left:${cx - bsz/2}px; top:${top + DH/2 - bsz/2}px; width:${bsz}px; height:${bsz}px; z-index:40;`;
+          drumsBox.appendChild(e);
+          return e;
+        };
+        bursts.push(mk("burst"));
+        rayEls.push(mk("rays"));
+        rings.push(mk("ring"));
+
+        // label under the drum
+        const lab = document.createElement("div");
+        lab.className = "lab";
+        lab.style.cssText = `left:${cx - 360}px; top:${top + DH + 150}px; width:720px;`;
+        lab.innerHTML = `<div class="name">${d.label}</div><div class="delta" style="color:${d.accent}">${d.delta}</div>`;
+        labelsBox.appendChild(lab);
+        labelEls.push(lab);
+      });
+
+      // ---------- initial states ----------
+      gsap.set("#float", { y: 40 });
+      gsap.set(drumEls, { autoAlpha: 0, y: 70, scale: 0.9, transformOrigin: "50% 50%" });
+      gsap.set(labelEls, { y: 30 });
+
+      // ===================== TIMELINE =====================
+      const tl = gsap.timeline({ paused: true });
+
+      // --- floating idle bob across the whole piece (deterministic yoyo) ---
+      tl.to("#float", { y: -10, duration: 3.4, ease: "sine.inOut", yoyo: true, repeat: 4 }, 0);
+
+      // --- intro: glass platform settles in, drums rise ---
+      tl.to("#pglow",    { autoAlpha: 1, duration: 1.2, ease: "power2.out" }, 0.2);
+      tl.fromTo("#platform", { autoAlpha: 0, scaleX: 0.86 }, { autoAlpha: 1, scaleX: 1, duration: 1.0, ease: "power3.out" }, 0.25);
+      tl.to("#pedge",    { autoAlpha: 1, duration: 0.9, ease: "power2.out" }, 0.4);
+      tl.to(drumEls,     { autoAlpha: 1, y: 0, scale: 1, duration: 0.9, ease: "back.out(1.5)", stagger: 0.12 }, 0.55);
+
+      // --- headline ---
+      tl.fromTo("#kicker", { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.7, ease: "power2.out" }, 0.5);
+      tl.fromTo("#title",  { autoAlpha: 0, y: 26 }, { autoAlpha: 1, y: 0, duration: 0.8, ease: "power3.out" }, 0.7);
+
+      // --- the spin + spring-snap landing, staggered like a slot machine ---
+      const SPIN_START = 1.7;
+      cyls.forEach((cyl, j) => {
+        const landAt = 3.5 + j * 0.92;
+        const spinDur = landAt - SPIN_START;
+        const turns = Math.max(4, Math.round(spinDur * 3.2)) + j; // later drums spin longer
+        const finalRot = -(turns * 360 + LAND_INDEX * FACE_ANGLE);
+
+        // fast continuous spin to one face short of the target
+        tl.to(cyl, { rotateX: finalRot + FACE_ANGLE, duration: spinDur - 0.5, ease: "power1.in" }, SPIN_START);
+        // spring snap onto the KPI face (back.out overshoots then seats it)
+        tl.to(cyl, { rotateX: finalRot, duration: 0.62, ease: "back.out(2.6)" }, landAt - 0.5);
+
+        // specular sweep races across the chrome while spinning
+        tl.fromTo(specs[j], { autoAlpha: 0, x: -120 }, { autoAlpha: 0.9, x: DW + 40, duration: spinDur, ease: "none" }, SPIN_START);
+        tl.to(specs[j], { autoAlpha: 0, duration: 0.3 }, landAt - 0.4);
+
+        // impact punch on the drum body
+        tl.to(drumEls[j], { scale: 1.06, duration: 0.12, ease: "power2.out" }, landAt - 0.04);
+        tl.to(drumEls[j], { scale: 1.0, duration: 0.5, ease: "elastic.out(1,0.5)" }, landAt + 0.08);
+
+        // burst of light from the face
+        tl.fromTo(bursts[j], { autoAlpha: 0, scale: 0.2 }, { autoAlpha: 1, duration: 0.16, ease: "power2.out" }, landAt - 0.02);
+        tl.to(bursts[j], { autoAlpha: 0, scale: 1.25, duration: 0.7, ease: "power2.out" }, landAt + 0.12);
+        tl.fromTo(rayEls[j], { autoAlpha: 0, scale: 0.3, rotate: -8 }, { autoAlpha: 0.85, scale: 1.05, rotate: 6, duration: 0.55, ease: "power2.out" }, landAt - 0.02);
+        tl.to(rayEls[j], { autoAlpha: 0, scale: 1.3, duration: 0.5, ease: "power1.out" }, landAt + 0.3);
+        tl.fromTo(rings[j], { autoAlpha: 0.9, scale: 0.25 }, { autoAlpha: 0, scale: 1.5, duration: 0.75, ease: "power2.out" }, landAt - 0.02);
+
+        // the seated KPI digit catches the accent light
+        tl.to(valFaces[j], { color: "#2a3145", textShadow: `0 -2px 1px rgba(0,0,0,0.55), 0 2px 2px rgba(255,255,255,0.95), 0 0 26px ${DRUMS[j].accent}`, duration: 0.3 }, landAt);
+
+        // label + delta pop in just after the land
+        tl.fromTo(labelEls[j], { autoAlpha: 0, y: 30 }, { autoAlpha: 1, y: 0, duration: 0.55, ease: "back.out(1.7)" }, landAt + 0.18);
+      });
+
+      // --- closing: a soft collective glow pulse + subtitle ---
+      const END = 3.5 + 2 * 0.92 + 0.7; // just after the last drum lands
+      tl.to("#pglow", { autoAlpha: 1.0, scale: 1.06, duration: 0.6, yoyo: true, repeat: 1, ease: "sine.inOut", transformOrigin: "50% 50%" }, END);
+      tl.fromTo("#subtitle", { autoAlpha: 0, y: 22 }, { autoAlpha: 1, y: 0, duration: 0.9, ease: "power3.out" }, END + 0.2);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
