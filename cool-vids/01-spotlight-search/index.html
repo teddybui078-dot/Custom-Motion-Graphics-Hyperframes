@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=3840, height=2160" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 3840px; height: 2160px; overflow: hidden; font-family: -apple-system, "SF Pro Display", "Inter", system-ui, sans-serif; }
+      .stage { position: absolute; inset: 0; overflow: hidden; }
+      /* vivid aurora wallpaper so the frosted glass reads */
+      .wall { position: absolute; inset: 0;
+        background:
+          radial-gradient(46% 58% at 18% 22%, rgba(124,58,237,0.85), transparent 70%),
+          radial-gradient(46% 56% at 82% 16%, rgba(37,99,235,0.85), transparent 70%),
+          radial-gradient(54% 60% at 74% 88%, rgba(219,39,119,0.7), transparent 70%),
+          radial-gradient(50% 56% at 20% 92%, rgba(14,165,233,0.7), transparent 70%),
+          radial-gradient(40% 44% at 50% 50%, rgba(244,114,182,0.32), transparent 70%),
+          linear-gradient(155deg, #211a47 0%, #121233 45%, #0a0d22 100%);
+      }
+      .grain { position: absolute; inset: 0; opacity: 0.05;
+        background-image: radial-gradient(rgba(255,255,255,0.7) 1px, transparent 1px); background-size: 6px 6px; }
+
+      .glass { background: rgba(22,24,34,0.52); backdrop-filter: blur(34px) saturate(170%); -webkit-backdrop-filter: blur(34px) saturate(170%);
+        border: 1.5px solid rgba(255,255,255,0.13); box-shadow: 0 50px 130px rgba(0,0,0,0.5), inset 0 2px 0 rgba(255,255,255,0.14); }
+
+      /* search bar */
+      .bar { position: absolute; left: 1100px; top: 560px; width: 1640px; height: 132px; border-radius: 32px; display: flex; align-items: center; padding: 0 44px; gap: 30px; z-index: 10; }
+      .mag { width: 56px; height: 56px; flex: none; }
+      .qwrap { position: relative; flex: 1; height: 80px; display: flex; align-items: center; }
+      .qph { position: absolute; left: 0; font-size: 54px; color: rgba(255,255,255,0.4); font-weight: 400; }
+      .qtext { position: absolute; left: 0; font-size: 54px; color: #fff; font-weight: 500; white-space: nowrap; letter-spacing: -0.5px; }
+      .qchar { opacity: 0; }
+      #qcaret { position: absolute; width: 4px; height: 66px; background: #6aa8ff; border-radius: 2px; opacity: 0; box-shadow: 0 0 16px rgba(106,168,255,0.8); }
+      .kbd { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+      .kbd span { height: 48px; min-width: 48px; padding: 0 14px; border-radius: 12px; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.55); font-size: 26px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+
+      /* results panel */
+      .panel { position: absolute; left: 1100px; top: 718px; width: 1640px; border-radius: 32px; padding: 16px; z-index: 9; overflow: hidden; }
+      .rsection { font-size: 24px; font-weight: 700; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 1.5px; padding: 12px 20px 10px; }
+      .rows { position: relative; }
+      .row { position: relative; display: flex; align-items: center; gap: 28px; height: 132px; padding: 0 26px; border-radius: 22px; }
+      .rhi { position: absolute; inset: 0; border-radius: 22px; background: linear-gradient(90deg, rgba(106,168,255,0.28), rgba(106,168,255,0.16)); box-shadow: inset 0 0 0 1.5px rgba(130,180,255,0.4), 0 12px 40px rgba(60,120,240,0.28); opacity: 0; }
+      .ricon { width: 88px; height: 88px; border-radius: 22px; flex: none; display: flex; align-items: center; justify-content: center; position: relative; z-index: 2; box-shadow: 0 10px 24px rgba(0,0,0,0.3); }
+      .rmain { flex: 1; position: relative; z-index: 2; }
+      .rtitle { font-size: 40px; font-weight: 600; color: #fff; letter-spacing: -0.3px; }
+      .rsub { font-size: 27px; color: rgba(255,255,255,0.55); margin-top: 5px; }
+      .rkind { position: relative; z-index: 2; font-size: 26px; color: rgba(255,255,255,0.4); font-weight: 500; }
+      .renter { position: relative; z-index: 2; width: 52px; height: 52px; border-radius: 12px; background: rgba(255,255,255,0.08); display: none; align-items: center; justify-content: center; margin-left: 18px; }
+      .row.on .renter { display: flex; }
+
+      /* preview card (expands from the clicked row) */
+      .card { position: absolute; left: 1100px; top: 718px; width: 1640px; border-radius: 32px; padding: 26px; z-index: 11; opacity: 0; }
+      .cthumb { height: 560px; border-radius: 22px; overflow: hidden; position: relative; background: linear-gradient(140deg,#10183a,#0b1024); border: 1.5px solid rgba(255,255,255,0.1); }
+      .ctopbar { height: 56px; background: rgba(255,255,255,0.05); display: flex; align-items: center; gap: 12px; padding: 0 22px; border-bottom: 1px solid rgba(255,255,255,0.07); }
+      .ctopbar i { width: 16px; height: 16px; border-radius: 50%; }
+      .cbody { padding: 34px 40px; }
+      .cmh { width: 46%; height: 28px; border-radius: 8px; background: linear-gradient(90deg,#4f8cff,#7c5cff); }
+      .cmsub { width: 64%; height: 16px; border-radius: 6px; background: rgba(255,255,255,0.16); margin-top: 18px; }
+      .ccards { display: flex; gap: 22px; margin-top: 34px; }
+      .ccard { flex: 1; height: 200px; border-radius: 16px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); padding: 20px; }
+      .ccard .ci { width: 56px; height: 56px; border-radius: 14px; background: linear-gradient(135deg,#2563eb,#60a5fa); }
+      .ccard .cl { height: 14px; width: 70%; border-radius: 5px; background: rgba(255,255,255,0.2); margin-top: 22px; }
+      .ccard .cl2 { height: 11px; width: 90%; border-radius: 5px; background: rgba(255,255,255,0.12); margin-top: 12px; }
+      .cmeta { display: flex; align-items: center; gap: 26px; margin-top: 30px; }
+      .cmeta .cicon { width: 76px; height: 76px; border-radius: 20px; flex: none; display: flex; align-items: center; justify-content: center; }
+      .ctitle { font-size: 50px; font-weight: 700; color: #fff; letter-spacing: -0.5px; }
+      .csub { font-size: 28px; color: rgba(255,255,255,0.55); margin-top: 6px; }
+      .copen { margin-left: auto; height: 84px; padding: 0 44px; border-radius: 20px; background: linear-gradient(135deg,#2563eb,#4f8cff); color: #fff; font-size: 32px; font-weight: 700; display: flex; align-items: center; gap: 16px; box-shadow: 0 18px 44px rgba(37,99,235,0.45); }
+
+      #ring { position: absolute; width: 90px; height: 90px; border-radius: 50%; border: 5px solid rgba(150,190,255,0.7); z-index: 88; opacity: 0; }
+      #glow { position: absolute; width: 190px; height: 190px; border-radius: 50%; z-index: 87; opacity: 0; background: radial-gradient(circle, rgba(150,190,255,0.55) 0%, rgba(150,190,255,0) 70%); }
+      #cursor { position: absolute; left: 0; top: 0; z-index: 90; filter: drop-shadow(0 6px 10px rgba(0,0,0,0.4)); }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="14" data-width="3840" data-height="2160">
+      <div class="stage" id="stage">
+        <div class="wall" id="wall"></div>
+        <div class="grain"></div>
+
+        <div class="bar glass" id="bar">
+          <svg class="mag" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2.2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="7"/><line x1="16" y1="16" x2="21" y2="21"/></svg>
+          <div class="qwrap"><span class="qph" id="qph">Spotlight Search</span><span class="qtext" id="qtext"></span><span id="qcaret"></span></div>
+          <div class="kbd"><span>⌘</span><span>Space</span></div>
+        </div>
+
+        <div class="panel glass" id="panel">
+          <div class="rsection">Top Hits</div>
+          <div class="rows" id="rows"></div>
+        </div>
+
+        <div class="card glass" id="card">
+          <div class="cthumb">
+            <div class="ctopbar"><i style="background:#f0685f"></i><i style="background:#f7c14b"></i><i style="background:#5fc466"></i></div>
+            <div class="cbody"><div class="cmh"></div><div class="cmsub"></div><div class="cmsub" style="width:40%"></div>
+              <div class="ccards">
+                <div class="ccard"><div class="ci"></div><div class="cl"></div><div class="cl2"></div></div>
+                <div class="ccard"><div class="ci" style="background:linear-gradient(135deg,#db2777,#f472b6)"></div><div class="cl"></div><div class="cl2"></div></div>
+                <div class="ccard"><div class="ci" style="background:linear-gradient(135deg,#0ea5e9,#22d3ee)"></div><div class="cl"></div><div class="cl2"></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="cmeta">
+            <div class="cicon" id="cicon"></div>
+            <div><div class="ctitle">Design Review — Q3</div><div class="csub">Figma · Edited 2 days ago · 4.2 MB</div></div>
+            <div class="copen">Open<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M17 7H8M17 7v9"/></svg></div>
+          </div>
+        </div>
+
+        <div id="ring" data-layout-allow-overflow></div>
+        <div id="glow" data-layout-allow-overflow></div>
+        <div id="cursor"><svg width="64" height="76" viewBox="0 0 24 28"><path d="M3,2 L3,22 L8.5,16.8 L12,24.5 L15.4,23 L11.9,15.3 L19,15.3 Z" fill="#ffffff" stroke="#1b1b22" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const $ = (s) => document.querySelector(s);
+
+      // ---------- result rows ----------
+      const figIc = '<svg width="44" height="44" viewBox="0 0 24 24"><circle cx="9" cy="5" r="4" fill="#f24e1e"/><circle cx="9" cy="12" r="4" fill="#a259ff"/><circle cx="9" cy="19" r="4" fill="#0acf83"/><circle cx="15" cy="12" r="4" fill="#1abcfe"/><path d="M11 5a4 4 0 0 1 4-4 4 4 0 0 1 0 8" fill="#ff7262"/></svg>';
+      const docIc = '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>';
+      const codeIc = '<svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><polyline points="8,7 3,12 8,17"/><polyline points="16,7 21,12 16,17"/></svg>';
+      const calIc = '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>';
+      const folIc = '<svg width="44" height="44" viewBox="0 0 24 24" fill="#fff"><path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
+      const RESULTS = [
+        [figIc, "linear-gradient(135deg,#2c2c2e,#1c1c1e)", "Design Review — Q3", "Figma file · figma.com", "Figma"],
+        [docIc, "linear-gradient(135deg,#2563eb,#3b82f6)", "Design System Guidelines", "Document · 24 pages", "Document"],
+        [codeIc, "linear-gradient(135deg,#0f172a,#334155)", "design-tokens.json", "Code · 18 KB", "Code"],
+        [calIc, "linear-gradient(135deg,#db2777,#f472b6)", "Design Sync", "Event · Today, 2:00 PM", "Calendar"],
+        [folIc, "linear-gradient(135deg,#0ea5e9,#38bdf8)", "Design Inspiration", "Folder · 142 items", "Folder"],
+      ];
+      const rowsBox = $("#rows"); const rowEls = [];
+      RESULTS.forEach((r) => {
+        const row = document.createElement("div"); row.className = "row";
+        row.innerHTML = '<div class="rhi"></div><div class="ricon" style="background:' + r[1] + '">' + r[0] + '</div>' +
+          '<div class="rmain"><div class="rtitle">' + r[2] + '</div><div class="rsub">' + r[3] + '</div></div>' +
+          '<div class="rkind">' + r[4] + '</div><div class="renter"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9,10 4,15 9,20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg></div>';
+        rowsBox.appendChild(row); rowEls.push(row);
+      });
+      $("#cicon").style.background = RESULTS[0][1];
+      $("#cicon").innerHTML = figIc;
+
+      // ---------- query ----------
+      const QUERY = "Design Review";
+      const qtext = $("#qtext"); const qchars = [];
+      for (const ch of QUERY) { const s = document.createElement("span"); s.className = "qchar"; s.textContent = ch; qtext.appendChild(s); qchars.push(s); }
+
+      // ---------- measure ----------
+      const rectC = (e) => { const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
+      const qx0 = qtext.getBoundingClientRect().left;
+      const qcOff = qchars.map((s) => s.getBoundingClientRect().right - qx0);
+      const ROWY = rowEls.map((r) => rectC(r));
+      const card = $("#card");
+      const cardRect = card.getBoundingClientRect();
+      const panel = $("#panel");
+      const panelTop = panel.getBoundingClientRect().top;
+      const rowsH = rowsBox.getBoundingClientRect().height;
+      const cardH = cardRect.height;
+
+      // ---------- initial states ----------
+      const cursor = $("#cursor"), ring = $("#ring"), glow = $("#glow"), qcaret = $("#qcaret");
+      const TIPX = 9, TIPY = 6;
+      const tl = gsap.timeline({ paused: true });
+      gsap.set("#wall", { autoAlpha: 0 });
+      gsap.set(".grain", { autoAlpha: 0 });
+      gsap.set("#bar", { autoAlpha: 0, y: -130, scale: 0.94, transformOrigin: "center center" });
+      gsap.set("#panel", { autoAlpha: 0, y: 24 });
+      gsap.set(rowEls, { autoAlpha: 0, y: 34 });
+      gsap.set("#card", { autoAlpha: 0 });
+      gsap.set([ring, glow], { autoAlpha: 0, scale: 0.3, left: -600, top: -600, transformOrigin: "center center" });
+      gsap.set(cursor, { x: 1900 - TIPX, y: 1500 - TIPY, autoAlpha: 0 });
+      gsap.set(qcaret, { autoAlpha: 0, left: 0 });
+      const barH = $("#bar").getBoundingClientRect().height;
+      gsap.set("#card", { height: cardH });
+
+      // ---------- helpers ----------
+      const move = (t, p, d = 0.5) => tl.to(cursor, { x: p.x - TIPX, y: p.y - TIPY, duration: d, ease: "power3.inOut" }, t);
+      const click = (t, p) => {
+        tl.to(cursor, { scale: 0.8, duration: 0.09, transformOrigin: "0 0" }, t);
+        tl.to(cursor, { scale: 1, duration: 0.16, ease: "back.out(2.6)" }, t + 0.09);
+        tl.set(glow, { left: p.x - 95, top: p.y - 95 }, t);
+        tl.fromTo(glow, { scale: 0.3, autoAlpha: 0.95 }, { scale: 1.7, autoAlpha: 0, duration: 0.55, ease: "power2.out" }, t);
+        tl.set(ring, { left: p.x - 45, top: p.y - 45 }, t);
+        tl.fromTo(ring, { scale: 0.35, autoAlpha: 0.85 }, { scale: 2, autoAlpha: 0, duration: 0.55, ease: "power2.out" }, t);
+      };
+      const blink = (s, dur) => { tl.set(qcaret, { autoAlpha: 1 }, s); for (let tt = 0.34; tt < dur; tt += 0.56) { tl.set(qcaret, { autoAlpha: 0 }, s + tt); tl.set(qcaret, { autoAlpha: 1 }, s + tt + 0.28); } };
+
+      // ===================== TIMELINE =====================
+      let t = 0;
+      tl.to("#wall", { autoAlpha: 1, duration: 0.5 }, 0);
+      tl.to(".grain", { autoAlpha: 1, duration: 0.6 }, 0.2);
+      t = 0.4;
+      // bar drops in from center with bounce settle
+      tl.to("#bar", { autoAlpha: 1, duration: 0.35 }, t);
+      tl.to("#bar", { y: 0, scale: 1, duration: 0.7, ease: "back.out(1.7)" }, t);
+      t += 0.85;
+      blink(t, 0.5); t += 0.55;
+      // type the query, caret following
+      gsap.set(qcaret, { height: 66 });
+      const per = 0.115;
+      qchars.forEach((c, i) => {
+        tl.set(c, { opacity: 1 }, t + i * per);
+        tl.set(qcaret, { left: qcOff[i] + 6 }, t + i * per);
+      });
+      tl.to("#qph", { autoAlpha: 0, duration: 0.15 }, t);
+      t += qchars.length * per + 0.2;
+      blink(t, 0.45); t += 0.45;
+      tl.to(qcaret, { autoAlpha: 0, duration: 0.2 }, t);
+
+      // results panel + rows slide in staggered
+      tl.to("#panel", { autoAlpha: 1, y: 0, duration: 0.4, ease: "power3.out" }, t);
+      rowEls.forEach((r, i) => tl.to(r, { autoAlpha: 1, y: 0, duration: 0.42, ease: "power3.out" }, t + 0.1 + i * 0.12));
+      t += 0.1 + rowEls.length * 0.12 + 0.45;
+
+      // cursor enters, hovers each row (glow highlight), top to bottom
+      tl.to(cursor, { autoAlpha: 1, duration: 0.3 }, t);
+      move(t, { x: 1500, y: ROWY[0].y }, 0.55); t += 0.55;
+      rowEls.forEach((r, i) => {
+        const hi = r.querySelector(".rhi");
+        tl.to(hi, { autoAlpha: 1, duration: 0.22, ease: "power2.out" }, t);
+        tl.set(r, { className: "row on" }, t);
+        if (i < rowEls.length - 1) {
+          tl.to(hi, { autoAlpha: 0, duration: 0.22 }, t + 0.42);
+          tl.set(r, { className: "row" }, t + 0.42);
+          move(t + 0.3, { x: 1500, y: ROWY[i + 1].y }, 0.4);
+          t += 0.52;
+        }
+      });
+      t += 0.5;
+      // sweep back up to the top result and click it
+      tl.to(rowEls[rowEls.length - 1].querySelector(".rhi"), { autoAlpha: 0, duration: 0.22 }, t);
+      tl.set(rowEls[rowEls.length - 1], { className: "row" }, t);
+      move(t, { x: 1500, y: ROWY[0].y }, 0.5); t += 0.5;
+      tl.to(rowEls[0].querySelector(".rhi"), { autoAlpha: 1, duration: 0.2 }, t);
+      t += 0.25;
+      click(t, { x: 1500, y: ROWY[0].y });
+
+      // the row expands into a full preview card with a bounce settle
+      tl.to(["#panel"], { autoAlpha: 0, duration: 0.28 }, t + 0.12);
+      tl.set("#card", { height: 132, transformOrigin: "top center" }, t + 0.1);
+      tl.to("#card", { autoAlpha: 1, duration: 0.2 }, t + 0.14);
+      tl.to("#card", { height: cardH, duration: 0.72, ease: "back.out(1.5)" }, t + 0.14);
+      // content fades in slightly after the frame starts growing
+      tl.fromTo(".cthumb, .cmeta", { autoAlpha: 0, y: 18 }, { autoAlpha: 1, y: 0, duration: 0.45, ease: "power2.out", stagger: 0.06 }, t + 0.34);
+      t += 1.1;
+      // settle; gentle float, cursor drifts to the Open button
+      move(t, { x: cardRect.left + cardRect.width - 220, y: cardRect.top + cardH - 110 }, 0.7);
+      tl.to("#card", { y: -14, duration: 1.6, ease: "sine.inOut", yoyo: true, repeat: 1 }, t + 0.2);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
