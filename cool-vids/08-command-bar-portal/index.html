@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=3840, height=2160" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 3840px; height: 2160px; overflow: hidden; font-family: -apple-system, "SF Pro Display", "Inter", system-ui, sans-serif; }
+      .stage { position: absolute; inset: 0; overflow: visible; background: #05060d; }
+      .world { position: absolute; inset: 0; perspective: 2600px; perspective-origin: 50% 44%; }
+
+      /* receding app background (a SaaS dashboard) */
+      .appbg { position: absolute; inset: 0; transform-style: preserve-3d; background: #0e1426; }
+      .ab-top { position: absolute; left: 0; top: 0; width: 100%; height: 110px; background: #131b33; border-bottom: 1px solid #1e2a4a; display: flex; align-items: center; padding: 0 40px; gap: 18px; }
+      .ab-mk { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg,#6366f1,#3b82f6); }
+      .ab-name { font-size: 28px; font-weight: 800; color: #e7ecf8; }
+      .ab-side { position: absolute; left: 0; top: 110px; width: 340px; bottom: 0; background: #101830; border-right: 1px solid #1e2a4a; padding: 28px 22px; }
+      .ab-nav { height: 64px; border-radius: 12px; margin-bottom: 12px; background: rgba(255,255,255,0.04); display: flex; align-items: center; gap: 16px; padding: 0 20px; }
+      .ab-nav .i { width: 28px; height: 28px; border-radius: 8px; background: #2b3a63; }
+      .ab-nav .l { height: 18px; width: 150px; border-radius: 5px; background: #2b3a63; }
+      .ab-main { position: absolute; left: 340px; top: 110px; right: 0; bottom: 0; padding: 44px 50px; }
+      .ab-h { height: 34px; width: 360px; border-radius: 8px; background: #223056; }
+      .ab-cards { display: flex; gap: 28px; margin-top: 40px; }
+      .ab-card { flex: 1; height: 200px; border-radius: 18px; background: #16203c; border: 1px solid #213056; }
+      .ab-chart { margin-top: 28px; height: 560px; border-radius: 18px; background: #16203c; border: 1px solid #213056; }
+      .dim { position: absolute; inset: -40%; background: #05060d; opacity: 0; }
+
+      /* command palette (glass, extrudes forward) */
+      .palette { position: absolute; left: 1120px; top: 470px; width: 1600px; transform-style: preserve-3d; border-radius: 34px; opacity: 0;
+        background: rgba(20,23,40,0.62); backdrop-filter: blur(48px) saturate(180%); -webkit-backdrop-filter: blur(48px) saturate(180%);
+        border: 1.5px solid rgba(255,255,255,0.16); box-shadow: 0 100px 220px rgba(0,0,0,0.7), inset 0 2px 0 rgba(255,255,255,0.18), 0 0 0 1px rgba(120,140,255,0.1); }
+      .pbar { height: 150px; display: flex; align-items: center; gap: 28px; padding: 0 40px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+      .pmag { width: 48px; height: 48px; flex: none; }
+      .pq { position: relative; flex: 1; height: 70px; display: flex; align-items: center; }
+      .pph { position: absolute; left: 0; font-size: 46px; color: rgba(255,255,255,0.38); }
+      .pqt { position: absolute; left: 0; font-size: 46px; color: #fff; font-weight: 500; white-space: nowrap; letter-spacing: -0.5px; }
+      .pqc { opacity: 0; }
+      #pcaret { position: absolute; width: 3px; height: 56px; background: #7aa2ff; border-radius: 2px; opacity: 0; box-shadow: 0 0 14px #7aa2ff; }
+      .pkbd { display: flex; gap: 10px; }
+      .pkbd span { height: 50px; min-width: 50px; padding: 0 16px; border-radius: 12px; background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.55); font-size: 26px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+      .presults { padding: 16px; transform-style: preserve-3d; }
+      .pcat { font-size: 22px; font-weight: 800; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1.4px; padding: 14px 22px 10px; }
+      .prow { position: relative; display: flex; align-items: center; gap: 26px; height: 124px; padding: 0 26px; border-radius: 18px; opacity: 0; }
+      .prhi { position: absolute; inset: 0; border-radius: 18px; background: linear-gradient(90deg, rgba(99,130,246,0.32), rgba(99,130,246,0.14)); box-shadow: inset 0 0 0 1.5px rgba(130,170,255,0.45); opacity: 0; }
+      .pic { width: 78px; height: 78px; border-radius: 18px; flex: none; display: flex; align-items: center; justify-content: center; position: relative; z-index: 2; box-shadow: 0 10px 24px rgba(0,0,0,0.35); }
+      .pmain { flex: 1; position: relative; z-index: 2; }
+      .ptitle { font-size: 36px; font-weight: 600; color: #fff; letter-spacing: -0.3px; }
+      .psub { font-size: 25px; color: rgba(255,255,255,0.5); margin-top: 5px; }
+      .pkind { position: relative; z-index: 2; font-size: 24px; color: rgba(255,255,255,0.42); font-weight: 600; }
+      .penter { position: relative; z-index: 2; margin-left: 22px; height: 50px; min-width: 50px; padding: 0 16px; border-radius: 11px; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); font-size: 26px; display: none; align-items: center; justify-content: center; }
+      .prow.on .penter { display: flex; }
+
+      /* destination page (expands to fill) */
+      .dest { position: absolute; left: 200px; top: 150px; width: 3440px; height: 1860px; border-radius: 36px; overflow: hidden; z-index: 30; opacity: 0; display: none;
+        background: linear-gradient(160deg,#0f1730,#0a1022); border: 1.5px solid rgba(255,255,255,0.12); box-shadow: 0 80px 200px rgba(0,0,0,0.6); }
+      .dhead { height: 130px; display: flex; align-items: center; padding: 0 56px; gap: 26px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+      .dicon { width: 70px; height: 70px; border-radius: 18px; background: linear-gradient(135deg,#22c55e,#16a34a); display: flex; align-items: center; justify-content: center; }
+      .dtitle { font-size: 50px; font-weight: 800; color: #fff; }
+      .drange { margin-left: auto; height: 64px; padding: 0 26px; border-radius: 14px; background: rgba(255,255,255,0.07); color: #c7d0e6; font-size: 28px; display: flex; align-items: center; gap: 14px; }
+      .dbody { padding: 50px 56px; }
+      .dkpis { display: flex; gap: 32px; }
+      .dk { flex: 1; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 22px; padding: 34px 36px; }
+      .dk .v { font-size: 64px; font-weight: 800; color: #fff; }
+      .dk .l { font-size: 28px; color: rgba(255,255,255,0.5); margin-top: 8px; }
+      .dk .d { font-size: 28px; font-weight: 700; color: #34d399; margin-top: 12px; }
+      .dchart2 { margin-top: 40px; height: 760px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 24px; padding: 40px 46px; }
+      .dchart2 .t { font-size: 32px; font-weight: 700; color: #cbd5ec; }
+
+      #flash { position: absolute; inset: 0; background: #fff; z-index: 50; opacity: 0; }
+      #cursor { position: absolute; left: 0; top: 0; z-index: 90; filter: drop-shadow(0 8px 12px rgba(0,0,0,0.5)); }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="13" data-width="3840" data-height="2160">
+      <div class="stage" id="stage" data-layout-allow-overflow>
+        <div class="world" data-layout-allow-overflow>
+          <div class="appbg" id="appbg">
+            <div class="ab-top"><div class="ab-mk"></div><div class="ab-name">Northwind</div></div>
+            <div class="ab-side"><div class="ab-nav"><div class="i"></div><div class="l"></div></div><div class="ab-nav"><div class="i"></div><div class="l"></div></div><div class="ab-nav"><div class="i"></div><div class="l"></div></div><div class="ab-nav"><div class="i"></div><div class="l"></div></div></div>
+            <div class="ab-main"><div class="ab-h"></div><div class="ab-cards"><div class="ab-card"></div><div class="ab-card"></div><div class="ab-card"></div><div class="ab-card"></div></div><div class="ab-chart"></div></div>
+            <div class="dim" id="dim"></div>
+          </div>
+
+          <div class="palette" id="palette" data-layout-allow-overflow>
+            <div class="pbar">
+              <svg class="pmag" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="2.2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="7"/><line x1="16" y1="16" x2="21" y2="21"/></svg>
+              <div class="pq"><span class="pph" id="pph">Type a command or search…</span><span class="pqt" id="pqt"></span><span id="pcaret"></span></div>
+              <div class="pkbd"><span>⌘</span><span>K</span></div>
+            </div>
+            <div class="presults"><div class="pcat">Results</div><div id="rows"></div></div>
+          </div>
+
+          <div class="dest" id="dest" data-layout-allow-overflow>
+            <div class="dhead"><div class="dicon"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg></div><div class="dtitle">Analytics</div><div class="drange">◷ Last 30 days</div></div>
+            <div class="dbody">
+              <div class="dkpis">
+                <div class="dk"><div class="v" id="dk1">0</div><div class="l">Total visits</div><div class="d">▲ 14.2%</div></div>
+                <div class="dk"><div class="v" id="dk2">0</div><div class="l">Conversions</div><div class="d">▲ 9.1%</div></div>
+                <div class="dk"><div class="v" id="dk3">0%</div><div class="l">Bounce rate</div><div class="d">▼ 3.4pt</div></div>
+                <div class="dk"><div class="v" id="dk4">$0</div><div class="l">Revenue</div><div class="d">▲ 18.0%</div></div>
+              </div>
+              <div class="dchart2"><div class="t">Traffic over time</div>
+                <svg width="100%" height="640" viewBox="0 0 3200 640" preserveAspectRatio="none" style="margin-top:18px">
+                  <line x1="0" y1="160" x2="3200" y2="160" stroke="rgba(255,255,255,0.06)"/><line x1="0" y1="320" x2="3200" y2="320" stroke="rgba(255,255,255,0.06)"/><line x1="0" y1="480" x2="3200" y2="480" stroke="rgba(255,255,255,0.06)"/>
+                  <path id="darea2" d="M20,560 L20,440 L500,470 L900,360 L1300,400 L1700,250 L2100,300 L2500,150 L3180,90 L3180,620 L20,620 Z" fill="url(#dgrad)" opacity="0"/>
+                  <path id="dline2" d="M20,440 L500,470 L900,360 L1300,400 L1700,250 L2100,300 L2500,150 L3180,90" fill="none" stroke="#34d399" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="1"/>
+                  <defs><linearGradient id="dgrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22c55e" stop-opacity="0.4"/><stop offset="1" stop-color="#22c55e" stop-opacity="0"/></linearGradient></defs>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="flash"></div>
+        <div id="cursor"><svg width="64" height="76" viewBox="0 0 24 28"><path d="M3,2 L3,22 L8.5,16.8 L12,24.5 L15.4,23 L11.9,15.3 L19,15.3 Z" fill="#ffffff" stroke="#1b1b22" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const $ = (s) => document.querySelector(s);
+
+      // ---------- results ----------
+      const RES = [
+        ["#22c55e", '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>', "Go to Analytics", "Page · Dashboard", "Jump to", true],
+        ["#3b82f6", '<svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.6-2-3.4-2.4 1a7 7 0 0 0-1.7-1l-.4-2.6h-4l-.4 2.6a7 7 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.6a7 7 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 1.7 1l.4 2.6h4l.4-2.6a7 7 0 0 0 1.7-1l2.4 1 2-3.4-2-1.6c.06-.3.1-.66.1-1z"/></svg>', "Analytics settings", "Settings · Workspace", "Open", false],
+        ["#a855f7", '<svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>', "Export analytics report", "Action · CSV, PDF", "Run", false],
+        ["#f59e0b", '<svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/></svg>', "Analytics: last 30 days", "Filter · Time range", "Apply", false],
+        ["#06b6d4", '<svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.4"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>', "Invite an analyst", "Action · Team", "Invite", false],
+      ];
+      const rowsBox = $("#rows"); const rowEls = [];
+      RES.forEach((r) => {
+        const d = document.createElement("div"); d.className = "prow" + (r[5] ? " on" : "");
+        d.innerHTML = '<div class="prhi"></div><div class="pic" style="background:linear-gradient(135deg,' + r[0] + ',' + r[0] + 'cc)">' + r[1] + '</div>' +
+          '<div class="pmain"><div class="ptitle">' + r[2] + '</div><div class="psub">' + r[3] + '</div></div>' +
+          '<div class="pkind">' + r[4] + '</div><div class="penter">↵</div>';
+        rowsBox.appendChild(d); rowEls.push(d);
+      });
+
+      // ---------- query ----------
+      const QUERY = "analytics";
+      const pqt = $("#pqt"); const qchars = [];
+      for (const ch of QUERY) { const s = document.createElement("span"); s.className = "pqc"; s.textContent = ch; pqt.appendChild(s); qchars.push(s); }
+      const qx0 = pqt.getBoundingClientRect().left;
+      const qcOff = qchars.map((s) => s.getBoundingClientRect().right - qx0);
+
+      // ---------- initial states ----------
+      const cursor = $("#cursor");
+      const tl = gsap.timeline({ paused: true });
+      gsap.set("#palette", { autoAlpha: 0, z: -160, transformOrigin: "50% 50%" });
+      gsap.set(rowEls, { autoAlpha: 0, z: -1200, transformOrigin: "50% 50%" });
+      gsap.set(".prow.on .prhi", { autoAlpha: 0 });
+      gsap.set("#dim", { autoAlpha: 0 });
+      gsap.set("#dest", { autoAlpha: 0, display: "none" });
+      gsap.set("#darea2", { autoAlpha: 0 });
+      gsap.set("#pcaret", { autoAlpha: 0 });
+      gsap.set("#flash", { autoAlpha: 0 });
+      gsap.set("#appbg", { transformOrigin: "50% 44%" });
+      gsap.set("#cursor", { autoAlpha: 0 });
+
+      // ===================== TIMELINE =====================
+      let t = 0.9;
+      // Cmd+K — the portal opens: background recedes in depth, palette extrudes forward (glass)
+      tl.to(".pkbd span", { backgroundColor: "rgba(122,162,255,0.5)", color: "#fff", duration: 0.12, yoyo: true, repeat: 1 }, t - 0.2);
+      tl.to("#appbg", { z: -620, filter: "blur(16px)", duration: 0.9, ease: "power3.inOut" }, t);
+      tl.to("#dim", { autoAlpha: 0.6, duration: 0.8 }, t);
+      tl.fromTo("#palette", { autoAlpha: 0, z: -160 }, { autoAlpha: 1, z: 150, duration: 0.85, ease: "back.out(1.4)" }, t + 0.1);
+      t += 1.0;
+      // query types in
+      gsap.set("#pcaret", { autoAlpha: 1 });
+      tl.to("#pph", { autoAlpha: 0, duration: 0.15 }, t);
+      const per = 0.085;
+      qchars.forEach((c, i) => { tl.set(c, { opacity: 1 }, t + i * per); tl.set("#pcaret", { left: qcOff[i] + 6 }, t + i * per); });
+      t += qchars.length * per + 0.2;
+      tl.to("#pcaret", { autoAlpha: 0, duration: 0.2 }, t);
+
+      // results fly in from the depth field on a z-axis track (staggered)
+      rowEls.forEach((r, i) => {
+        tl.fromTo(r, { autoAlpha: 0, z: -1200 }, { autoAlpha: 1, z: 0, duration: 0.6, ease: "power3.out" }, t + i * 0.12);
+      });
+      t += rowEls.length * 0.12 + 0.5;
+
+      // highlight the top result, then it is selected
+      tl.to(".prow.on .prhi", { autoAlpha: 1, duration: 0.3, ease: "power2.out" }, t);
+      t += 0.7;
+      // Enter pressed -> selected result rockets forward
+      const sel = rowEls[0];
+      tl.to(sel, { z: 1400, scale: 1.5, autoAlpha: 0, duration: 0.5, ease: "power2.in" }, t);
+      // the rest of the palette recedes + fades
+      tl.to([rowEls[1], rowEls[2], rowEls[3], rowEls[4]], { autoAlpha: 0, z: -300, duration: 0.4, ease: "power2.in" }, t);
+      tl.to("#palette", { autoAlpha: 0, z: 420, scale: 1.1, duration: 0.5, ease: "power2.in" }, t + 0.1);
+      // a soft white flash at the moment of warp
+      tl.fromTo("#flash", { autoAlpha: 0 }, { autoAlpha: 0.55, duration: 0.18, yoyo: true, repeat: 1, ease: "power2.inOut" }, t + 0.34);
+      t += 0.5;
+
+      // destination page expands to fill the screen
+      tl.set("#dest", { display: "block" }, t);
+      tl.fromTo("#dest", { autoAlpha: 0, scale: 0.28, z: -200, transformOrigin: "50% 46%" }, { autoAlpha: 1, scale: 1, z: 0, duration: 0.7, ease: "back.out(1.3)", immediateRender: false }, t);
+      tl.to("#appbg", { autoAlpha: 0, duration: 0.4 }, t);
+      t += 0.85;
+      // page comes alive: KPIs count, chart draws
+      [["#dk1", 184250, ""], ["#dk2", 6420, ""], ["#dk3", 32, "%"], ["#dk4", 248000, "$"]].forEach(([id, v, sfx]) => {
+        const o = { v: 0 }; const pre = sfx === "$" ? "$" : "", suf = sfx === "%" ? "%" : "";
+        tl.to(o, { v: v, duration: 1.2, ease: "power1.out", onUpdate: () => { $(id).childNodes[0].nodeValue = pre + Math.round(o.v).toLocaleString("en-US") + suf; } }, t);
+      });
+      tl.fromTo("#dline2", { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 1.6, ease: "power1.inOut" }, t + 0.2);
+      tl.to("#darea2", { autoAlpha: 1, duration: 1.1 }, t + 0.5);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
