@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #fff; font-family: "Inter", system-ui, sans-serif; }
+      .stage { position: absolute; inset: 0; overflow: hidden; background: #fff; }
+      #flash { position: absolute; inset: 0; background: #fff; z-index: 200; opacity: 0; }
+
+      /* browser frame */
+      .frame { position: absolute; inset: 0; background: #fff; }
+      .chrome { position: absolute; left: 0; top: 0; width: 100%; height: 46px; background: #eceef2; display: flex; align-items: center; padding: 0 16px; gap: 8px; z-index: 8; }
+      .dot { width: 12px; height: 12px; border-radius: 50%; }
+      .url { margin-left: 14px; height: 28px; flex: 1; max-width: 520px; background: #fff; border-radius: 8px; display: flex; align-items: center; padding: 0 13px; font-size: 12.5px; color: #7a8295; gap: 8px; }
+      .url .lk { width: 10px; height: 10px; border-radius: 3px; background: #c2c8d4; }
+
+      /* layout */
+      .left { position: absolute; left: 0; top: 46px; width: 680px; bottom: 0; background: #fbfbfd; border-right: 1px solid #e7e9ef; z-index: 6; }
+      .lvhead { height: 46px; display: flex; align-items: center; padding: 0 18px; gap: 9px; border-bottom: 1px solid #eef0f4; }
+      .lvlogo { width: 24px; height: 24px; border-radius: 7px; background: linear-gradient(135deg,#ff6ea9,#ff8d6b); display: flex; align-items: center; justify-content: center; }
+      .lvlogo svg { width: 14px; height: 14px; }
+      .lvname { font-size: 15px; font-weight: 800; color: #1d2230; }
+      .lvtag { margin-left: auto; font-size: 12px; color: #9aa2b5; font-weight: 600; }
+
+      /* chat */
+      .chat { position: absolute; left: 0; top: 47px; width: 100%; height: 300px; padding: 16px 18px; overflow: hidden; }
+      .msgs { position: absolute; left: 18px; right: 18px; top: 14px; }
+      .umsg { background: #eef2ff; border: 1px solid #dfe6ff; border-radius: 13px 13px 4px 13px; padding: 11px 14px; font-size: 13.5px; line-height: 1.5; color: #1f2740; margin-left: 70px; }
+      .arow { display: flex; gap: 10px; margin-top: 14px; }
+      .abadge { width: 26px; height: 26px; border-radius: 8px; background: linear-gradient(135deg,#ff6ea9,#ff8d6b); flex: none; }
+      .amsg { background: #fff; border: 1px solid #ebedf2; border-radius: 4px 13px 13px 13px; padding: 11px 14px; font-size: 13.5px; line-height: 1.55; color: #2a3146; flex: 1; }
+      .word { opacity: 0; }
+      .typing { display: inline-flex; gap: 5px; align-items: center; }
+      .typing i { width: 7px; height: 7px; border-radius: 50%; background: #c2c8d4; }
+
+      .inputbox { position: absolute; left: 18px; right: 18px; top: 232px; min-height: 58px; background: #fff; border: 1.5px solid #e3e6ee; border-radius: 13px; padding: 12px 14px; }
+      .inputbox.focus { border-color: #6d5cf0; box-shadow: 0 0 0 3px rgba(109,92,240,0.13); }
+      .ptext { font-size: 14px; line-height: 1.55; color: #1f2740; }
+      .pchar { opacity: 0; }
+      .pph { position: absolute; left: 14px; top: 12px; font-size: 14px; color: #aab2c4; }
+      #pcaret { position: absolute; width: 2px; background: #6d5cf0; opacity: 0; }
+      #sendBtn { position: absolute; right: 26px; bottom: 12px; width: 34px; height: 34px; border-radius: 9px; background: #6d5cf0; display: flex; align-items: center; justify-content: center; z-index: 3; }
+
+      /* workspace: file tree + code */
+      .workspace { position: absolute; left: 0; top: 360px; width: 100%; bottom: 0; display: flex; }
+      .ftree { width: 214px; background: #f6f7fa; border-right: 1px solid #e9ebf1; border-top: 1px solid #e9ebf1; padding: 12px 10px; overflow: hidden; }
+      .ftitle { font-size: 11px; font-weight: 800; color: #9aa2b5; text-transform: uppercase; letter-spacing: 0.5px; padding: 0 6px 8px; }
+      .frow { display: flex; align-items: center; gap: 7px; height: 26px; padding: 0 6px; border-radius: 6px; font-size: 13px; color: #44506a; opacity: 0; }
+      .fic { width: 15px; height: 15px; flex: none; }
+      .fdot { width: 7px; height: 7px; border-radius: 50%; background: #1fbf5b; margin-left: auto; opacity: 0; box-shadow: 0 0 0 0 rgba(31,191,91,0.5); }
+
+      .codepanel { flex: 1; background: #0d1426; border-top: 1px solid #0d1426; display: flex; flex-direction: column; position: relative; }
+      .ctabs { height: 38px; display: flex; align-items: stretch; background: #0a1020; border-bottom: 1px solid #1b2540; }
+      .ctab { display: flex; align-items: center; gap: 8px; padding: 0 16px; font-size: 12.5px; color: #6b7894; border-right: 1px solid #1b2540; }
+      .ctab.on { background: #0d1426; color: #cdd6e8; border-top: 2px solid #4f8cff; }
+      .ctab .ti { width: 11px; height: 11px; border-radius: 2px; background: #e6962b; }
+      .codebody { flex: 1; padding: 12px 0 0 0; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; line-height: 1.62; overflow: hidden; position: relative; }
+      .cblock { position: absolute; left: 0; top: 12px; right: 0; padding: 0 16px; }
+      .cline { white-space: pre; opacity: 0; }
+      .kw { color: #4fc1ff; } .str { color: #ce9178; } .tag { color: #569cd6; } .attr { color: #9cdcfe; }
+      .jsx { color: #dcb67a; } .fn { color: #dcdcaa; } .com { color: #6a9955; } .pun { color: #8a94a8; } .txt { color: #d4d4d4; } .num { color: #b5cea8; }
+
+      /* preview (right) */
+      .preview { position: absolute; left: 680px; top: 46px; right: 0; bottom: 0; background: #fff; overflow: hidden; }
+      .pvbar { position: absolute; top: 0; left: 0; width: 100%; height: 38px; background: #f6f7fa; border-bottom: 1px solid #eaecf1; display: flex; align-items: center; padding: 0 16px; gap: 10px; z-index: 5; }
+      .pvurl { font-size: 12px; color: #98a1b5; background: #fff; border: 1px solid #e7e9ef; border-radius: 7px; height: 24px; display: flex; align-items: center; padding: 0 12px; }
+      .pvgrid { position: absolute; top: 38px; left: 0; right: 0; bottom: 0; background:
+        linear-gradient(#eef0f4 1px, transparent 1px) 0 0 / 100% 34px,
+        linear-gradient(90deg, #eef0f4 1px, transparent 1px) 0 0 / 34px 100%, #fff; }
+      #pvscroll { position: absolute; top: 38px; left: 0; right: 0; width: 1240px; }
+      /* landing page */
+      .site { width: 1240px; background: #0a1430; }
+      .navbar { height: 70px; display: flex; align-items: center; padding: 0 40px; background: #0a1430; border-bottom: 1px solid #16224a; }
+      .nlogo { display: flex; align-items: center; gap: 9px; font-size: 18px; font-weight: 800; color: #fff; }
+      .nlogo .d { width: 22px; height: 22px; border-radius: 6px; background: linear-gradient(135deg,#3b82f6,#60a5fa); }
+      .nlinks { margin-left: auto; display: flex; gap: 28px; font-size: 14px; color: #9fb0d0; font-weight: 500; }
+      .ncta { margin-left: 30px; height: 38px; padding: 0 18px; border-radius: 9px; background: linear-gradient(135deg,#2563eb,#3b82f6); color: #fff; font-size: 14px; font-weight: 700; display: flex; align-items: center; }
+      .hero { padding: 70px 40px 64px; display: flex; gap: 40px; background: radial-gradient(900px 380px at 16% 0%, rgba(37,99,235,0.22), transparent), #0a1430; }
+      .heroL { flex: 1.15; }
+      .badge2 { display: inline-flex; align-items: center; gap: 7px; height: 28px; padding: 0 13px; border-radius: 14px; background: rgba(59,130,246,0.16); border: 1px solid rgba(59,130,246,0.35); color: #93b4f7; font-size: 12.5px; font-weight: 700; }
+      .h1 { font-size: 52px; line-height: 1.08; font-weight: 800; color: #fff; margin-top: 18px; letter-spacing: -1px; position: relative; display: inline-block; }
+      .h1 .nw { color: #fff; opacity: 0; position: absolute; left: 0; top: 0; white-space: nowrap; }
+      .sub { font-size: 18px; line-height: 1.6; color: #9fb0d0; margin-top: 18px; max-width: 540px; }
+      .hbtns { display: flex; gap: 14px; margin-top: 28px; }
+      .hbtn1 { height: 50px; padding: 0 26px; border-radius: 11px; background: linear-gradient(135deg,#2563eb,#3b82f6); color: #fff; font-size: 16px; font-weight: 700; display: flex; align-items: center; box-shadow: 0 12px 30px rgba(37,99,235,0.35); }
+      .hbtn2 { height: 50px; padding: 0 24px; border-radius: 11px; border: 1.5px solid #2c3a63; color: #c7d3ea; font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 9px; }
+      .heroR { flex: 1; }
+      .mock { background: #0e1b3d; border: 1px solid #21345f; border-radius: 14px; box-shadow: 0 30px 70px rgba(0,0,0,0.4); overflow: hidden; }
+      .mockbar { height: 36px; background: #0b1730; display: flex; align-items: center; gap: 6px; padding: 0 13px; border-bottom: 1px solid #1b2a4f; }
+      .mockbar i { width: 9px; height: 9px; border-radius: 50%; }
+      .mockbody { padding: 16px; }
+      .mkrow { height: 11px; border-radius: 5px; background: #1a2a4d; margin-bottom: 10px; }
+      .mkchart { height: 120px; border-radius: 9px; background: linear-gradient(180deg, rgba(59,130,246,0.25), rgba(59,130,246,0.02)); border: 1px solid #233a68; position: relative; margin: 6px 0 12px; overflow: hidden; }
+      .mkstats { display: flex; gap: 10px; }
+      .mkstat { flex: 1; height: 46px; border-radius: 8px; background: #14254a; }
+
+      .section { padding: 64px 40px; background: #0a1430; }
+      .stag { text-align: center; color: #6f86b5; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; }
+      .sh2 { text-align: center; font-size: 38px; font-weight: 800; color: #fff; margin-top: 10px; letter-spacing: -0.5px; }
+      .fgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 40px; }
+      .fcard { background: #0e1b3d; border: 1px solid #1d2e57; border-radius: 14px; padding: 24px; opacity: 0; }
+      .fcard .fi { width: 44px; height: 44px; border-radius: 11px; background: linear-gradient(135deg,#2563eb,#3b82f6); display: flex; align-items: center; justify-content: center; }
+      .fcard .ft { font-size: 18px; font-weight: 700; color: #fff; margin-top: 16px; }
+      .fcard .fd { font-size: 14px; line-height: 1.6; color: #93a4c6; margin-top: 8px; }
+
+      .pricewrap { display: flex; gap: 22px; justify-content: center; margin-top: 42px; align-items: stretch; }
+      .pcard { width: 320px; background: #0e1b3d; border: 1px solid #1d2e57; border-radius: 16px; padding: 30px 26px; opacity: 0; }
+      .pcard.pop { background: linear-gradient(180deg,#102451,#0d1b3d); border: 1.5px solid #3b82f6; box-shadow: 0 24px 60px rgba(37,99,235,0.3); transform: translateY(-18px); padding-bottom: 48px; }
+      .ppop { display: inline-flex; height: 26px; padding: 0 13px; border-radius: 13px; background: linear-gradient(135deg,#2563eb,#3b82f6); color: #fff; font-size: 12px; font-weight: 800; align-items: center; margin-bottom: 14px; }
+      .pname { font-size: 17px; font-weight: 700; color: #c7d3ea; }
+      .pprice { font-size: 46px; font-weight: 800; color: #fff; margin-top: 10px; }
+      .pprice span { font-size: 17px; font-weight: 600; color: #8294b8; }
+      .pfeat { display: flex; align-items: center; gap: 10px; font-size: 14px; color: #aebbd6; margin-top: 13px; }
+      .pfeat .pc { width: 18px; height: 18px; border-radius: 50%; background: rgba(59,130,246,0.2); display: flex; align-items: center; justify-content: center; flex: none; }
+      .pbtn { height: 46px; border-radius: 11px; margin-top: 24px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; }
+      .pbtn.fill { background: linear-gradient(135deg,#2563eb,#3b82f6); color: #fff; }
+      .pbtn.out { border: 1.5px solid #2c3a63; color: #c7d3ea; }
+
+      .footer { background: #081027; border-top: 1px solid #16224a; padding: 48px 40px 30px; opacity: 0; }
+      .fcols { display: flex; gap: 60px; }
+      .fcol { }
+      .fcol .fh { font-size: 14px; font-weight: 800; color: #fff; margin-bottom: 14px; }
+      .fcol a { display: block; font-size: 13.5px; color: #8294b8; margin-bottom: 10px; }
+      .fcopy { margin-top: 34px; padding-top: 22px; border-top: 1px solid #16224a; font-size: 13px; color: #6f81a6; }
+
+      /* inline edit handle */
+      #edit { position: absolute; border: 2px solid #2563eb; border-radius: 4px; z-index: 30; opacity: 0; pointer-events: none; }
+      #edit b { position: absolute; width: 10px; height: 10px; background: #fff; border: 2px solid #2563eb; border-radius: 2px; }
+      #edit b.tl { left: -6px; top: -6px; } #edit b.tr { right: -6px; top: -6px; }
+      #edit b.bl { left: -6px; bottom: -6px; } #edit b.br { right: -6px; bottom: -6px; }
+      #ecaret { position: absolute; width: 3px; background: #2563eb; z-index: 31; opacity: 0; }
+
+      #ring { position: absolute; width: 44px; height: 44px; border-radius: 50%; border: 2.5px solid rgba(109,92,240,0.6); z-index: 88; opacity: 0; }
+      #glow { position: absolute; width: 92px; height: 92px; border-radius: 50%; z-index: 87; opacity: 0; background: radial-gradient(circle, rgba(109,92,240,0.5) 0%, rgba(109,92,240,0) 70%); }
+      #cursor { position: absolute; left: 0; top: 0; z-index: 90; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="30" data-width="1920" data-height="1080">
+      <div class="stage" id="stage">
+        <div class="frame" id="frame">
+          <div class="chrome">
+            <div class="dot" style="background:#f0685f"></div><div class="dot" style="background:#f7c14b"></div><div class="dot" style="background:#5fc466"></div>
+            <div class="url"><div class="lk"></div>lovable.dev/projects/saas-landing</div>
+          </div>
+
+          <div class="left" id="left">
+            <div class="lvhead"><div class="lvlogo"><svg viewBox="0 0 24 24" fill="#fff"><path d="M12 21s-7-4.6-9.3-9.2C1 8.4 3 5 6.3 5c2 0 3.3 1.2 4.2 2.6h3C14.4 6.2 15.7 5 17.7 5 21 5 23 8.4 21.3 11.8 19 16.4 12 21 12 21z"/></svg></div><div class="lvname">Lovable</div><div class="lvtag">saas-landing</div></div>
+
+            <div class="chat" id="chat">
+              <div class="msgs" id="msgs" data-layout-allow-overflow></div>
+            </div>
+            <div class="inputbox" id="inputbox">
+              <span class="pph" id="pph">Ask Lovable to build something…</span>
+              <div class="ptext" id="ptext"></div>
+              <span id="pcaret"></span>
+              <div id="sendBtn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="5"/><polyline points="6,11 12,5 18,11"/></svg></div>
+            </div>
+
+            <div class="workspace" id="workspace">
+              <div class="ftree" id="ftree"><div class="ftitle">Explorer</div></div>
+              <div class="codepanel" id="codepanel">
+                <div class="ctabs" id="ctabs"></div>
+                <div class="codebody"><div class="cblock" id="cb_html"></div><div class="cblock" id="cb_app" style="opacity:0"></div><div class="cblock" id="cb_pricing" style="opacity:0"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="preview" id="preview">
+            <div class="pvbar"><div class="pvurl">localhost:5173</div></div>
+            <div class="pvgrid" id="pvgrid"></div>
+            <div id="pvscroll" data-layout-allow-overflow><div class="site" id="site" data-layout-allow-overflow></div></div>
+            <div id="edit"><b class="tl"></b><b class="tr"></b><b class="bl"></b><b class="br"></b></div>
+            <div id="ecaret"></div>
+          </div>
+        </div>
+
+        <div id="ring" data-layout-allow-overflow></div>
+        <div id="glow" data-layout-allow-overflow></div>
+        <div id="cursor"><svg width="34" height="40" viewBox="0 0 24 28"><path d="M3,2 L3,22 L8.5,16.8 L12,24.5 L15.4,23 L11.9,15.3 L19,15.3 Z" fill="#ffffff" stroke="#1b1b22" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+        <div id="flash"></div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const $ = (s) => document.querySelector(s);
+      const elc = (cls, html) => { const d = document.createElement("div"); d.className = cls; if (html != null) d.innerHTML = html; return d; };
+
+      // ================= build landing page =================
+      const site = $("#site");
+      const ficon = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h7l-1 8 10-12h-7z"/></svg>';
+      const FEATS = [
+        ["Lightning fast", "Sub-second page loads on a global edge network, every time."],
+        ["Secure by default", "SOC 2 compliant with encryption at rest and in transit."],
+        ["Realtime sync", "Changes propagate to every client instantly, no refresh."],
+        ["Analytics built-in", "Understand usage with dashboards that ship out of the box."],
+        ["Team collaboration", "Roles, comments, and shared workspaces for the whole team."],
+        ["Deploy anywhere", "One command to ship to any cloud, or to the edge."],
+      ];
+      const check = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>';
+      const TIERS = [
+        ["Starter", "$0", ["Up to 3 projects", "Community support", "1GB storage", "Basic analytics"], "out", false],
+        ["Pro", "$29", ["Unlimited projects", "Priority support", "100GB storage", "Advanced analytics"], "fill", true],
+        ["Enterprise", "$99", ["Everything in Pro", "Dedicated support", "Unlimited storage", "SSO & audit logs"], "out", false],
+      ];
+      let featCards = "";
+      FEATS.forEach((f) => { featCards += '<div class="fcard"><div class="fi">' + ficon + '</div><div class="ft">' + f[0] + '</div><div class="fd">' + f[1] + '</div></div>'; });
+      let priceCards = "";
+      TIERS.forEach((t) => {
+        let feats = ""; t[2].forEach((x) => { feats += '<div class="pfeat"><span class="pc">' + check + '</span>' + x + '</div>'; });
+        priceCards += '<div class="pcard' + (t[4] ? ' pop' : '') + '">' + (t[4] ? '<div class="ppop">Most Popular</div>' : '') +
+          '<div class="pname">' + t[0] + '</div><div class="pprice">' + t[1] + '<span>/mo</span></div>' + feats +
+          '<div class="pbtn ' + t[3] + '">Get started</div></div>';
+      });
+      site.innerHTML =
+        '<div class="navbar" id="s_nav"><div class="nlogo"><div class="d"></div>Nexus</div><div class="nlinks"><span>Features</span><span>Pricing</span><span>Docs</span><span>Blog</span></div><div class="ncta">Get Started</div></div>' +
+        '<div class="hero" id="s_hero"><div class="heroL"><div class="badge2">◆ New · v2.0 is here</div>' +
+          '<div class="h1" id="heroH1"><span class="ow">Build without limits</span><span class="nw" id="heroNew"></span></div>' +
+          '<div class="sub">The modern platform for teams who ship fast. Launch your product in days, not months — with a stack that scales from zero to millions.</div>' +
+          '<div class="hbtns"><div class="hbtn1">Start free</div><div class="hbtn2"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c7d3ea" stroke-width="2"><polygon points="6,4 20,12 6,20" fill="#c7d3ea"/></svg>Watch demo</div></div></div>' +
+          '<div class="heroR"><div class="mock"><div class="mockbar"><i style="background:#f0685f"></i><i style="background:#f7c14b"></i><i style="background:#5fc466"></i></div><div class="mockbody"><div class="mkrow" style="width:50%"></div><div class="mkchart"><svg width="100%" height="100%" viewBox="0 0 380 120" preserveAspectRatio="none"><polyline points="6,96 60,78 120,86 180,52 240,60 300,28 374,16" fill="none" stroke="#3b82f6" stroke-width="3"/><polyline points="6,96 60,78 120,86 180,52 240,60 300,28 374,16 374,118 6,118" fill="rgba(59,130,246,0.15)" stroke="none"/></svg></div><div class="mkstats"><div class="mkstat"></div><div class="mkstat"></div><div class="mkstat"></div></div></div></div></div></div>' +
+        '<div class="section" id="s_feat"><div class="stag">Features</div><div class="sh2">Everything you need to ship</div><div class="fgrid" id="fgrid">' + featCards + '</div></div>' +
+        '<div class="section" id="s_price" style="background:#081027"><div class="stag">Pricing</div><div class="sh2">Simple, transparent pricing</div><div class="pricewrap" id="pricewrap">' + priceCards + '</div></div>' +
+        '<div class="footer" id="s_foot"><div class="fcols">' +
+          '<div class="fcol"><div class="fh">Product</div><a>Features</a><a>Pricing</a><a>Changelog</a><a>Docs</a></div>' +
+          '<div class="fcol"><div class="fh">Company</div><a>About</a><a>Careers</a><a>Blog</a><a>Contact</a></div>' +
+          '<div class="fcol"><div class="fh">Resources</div><a>Guides</a><a>Support</a><a>API</a><a>Status</a></div>' +
+          '<div class="fcol"><div class="fh">Legal</div><a>Privacy</a><a>Terms</a><a>Security</a><a>Cookies</a></div>' +
+        '</div><div class="fcopy">© 2026 Nexus, Inc. All rights reserved.</div></div>';
+      const featCardEls = [...site.querySelectorAll(".fcard")];
+      const priceCardEls = [...site.querySelectorAll(".pcard")];
+
+      // ================= file tree =================
+      const TREE = [
+        [0, "f", "src"], [1, "d", "index.html"], [1, "d", "App.tsx"], [1, "d", "main.tsx"],
+        [1, "f", "components"], [2, "d", "Hero.tsx"], [2, "d", "Features.tsx"], [2, "d", "Pricing.tsx"], [2, "d", "Footer.tsx"],
+        [1, "f", "lib"], [2, "d", "pricing.ts"], [2, "d", "utils.ts"], [1, "d", "tailwind.config.ts"],
+      ];
+      const folderIc = '<svg class="fic" viewBox="0 0 24 24" fill="#e6962b"><path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
+      const fileIc = '<svg class="fic" viewBox="0 0 24 24" fill="none" stroke="#7d8aa6" stroke-width="1.8"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>';
+      const ftree = $("#ftree"); const treeRows = [];
+      TREE.forEach((r) => {
+        const row = elc("frow", (r[1] === "f" ? folderIc : fileIc) + '<span>' + r[2] + '</span><span class="fdot"></span>');
+        row.style.paddingLeft = (6 + r[0] * 16) + "px";
+        ftree.appendChild(row); treeRows.push(row);
+      });
+
+      // ================= code blocks =================
+      const L = (html) => '<div class="cline">' + html + '</div>';
+      $("#cb_html").innerHTML = [
+        '<span class="pun">&lt;!DOCTYPE html&gt;</span>',
+        '<span class="tag">&lt;html</span> <span class="attr">lang</span>=<span class="str">"en"</span><span class="tag">&gt;</span>',
+        '  <span class="tag">&lt;head&gt;</span>',
+        '    <span class="tag">&lt;meta</span> <span class="attr">charset</span>=<span class="str">"UTF-8"</span> <span class="tag">/&gt;</span>',
+        '    <span class="tag">&lt;meta</span> <span class="attr">name</span>=<span class="str">"viewport"</span> <span class="attr">content</span>=<span class="str">"width=device-width"</span> <span class="tag">/&gt;</span>',
+        '    <span class="tag">&lt;title&gt;</span><span class="txt">Nexus — Ship faster</span><span class="tag">&lt;/title&gt;</span>',
+        '  <span class="tag">&lt;/head&gt;</span>',
+        '  <span class="tag">&lt;body&gt;</span>',
+        '    <span class="tag">&lt;div</span> <span class="attr">id</span>=<span class="str">"root"</span><span class="tag">&gt;&lt;/div&gt;</span>',
+        '    <span class="tag">&lt;script</span> <span class="attr">type</span>=<span class="str">"module"</span> <span class="attr">src</span>=<span class="str">"/src/main.tsx"</span><span class="tag">&gt;&lt;/script&gt;</span>',
+        '  <span class="tag">&lt;/body&gt;</span>',
+        '<span class="tag">&lt;/html&gt;</span>',
+      ].map(L).join("");
+      $("#cb_app").innerHTML = [
+        '<span class="kw">import</span> { <span class="txt">Hero</span> } <span class="kw">from</span> <span class="str">"./components/Hero"</span>',
+        '<span class="kw">import</span> { <span class="txt">Features</span> } <span class="kw">from</span> <span class="str">"./components/Features"</span>',
+        '<span class="kw">import</span> { <span class="txt">Pricing</span> } <span class="kw">from</span> <span class="str">"./components/Pricing"</span>',
+        '<span class="kw">import</span> { <span class="txt">Footer</span> } <span class="kw">from</span> <span class="str">"./components/Footer"</span>',
+        '',
+        '<span class="kw">export default function</span> <span class="fn">App</span>() {',
+        '  <span class="kw">return</span> (',
+        '    <span class="jsx">&lt;main</span> <span class="attr">className</span>=<span class="str">"bg-navy-950 text-white"</span><span class="jsx">&gt;</span>',
+        '      <span class="jsx">&lt;Hero /&gt;</span>',
+        '      <span class="jsx">&lt;Features /&gt;</span>',
+        '      <span class="jsx">&lt;Pricing /&gt;</span>',
+        '      <span class="jsx">&lt;Footer /&gt;</span>',
+        '    <span class="jsx">&lt;/main&gt;</span>',
+        '  )',
+        '}',
+      ].map(L).join("");
+      $("#cb_pricing").innerHTML = [
+        '<span class="kw">const</span> <span class="txt">tiers</span> = [',
+        '  { <span class="attr">name</span>: <span class="str">"Starter"</span>, <span class="attr">price</span>: <span class="num">0</span> },',
+        '  { <span class="attr">name</span>: <span class="str">"Pro"</span>, <span class="attr">price</span>: <span class="num">29</span>, <span class="attr">popular</span>: <span class="kw">true</span> },',
+        '  { <span class="attr">name</span>: <span class="str">"Enterprise"</span>, <span class="attr">price</span>: <span class="num">99</span> },',
+        ']',
+        '',
+        '<span class="kw">export function</span> <span class="fn">Pricing</span>() {',
+        '  <span class="kw">return</span> (',
+        '    <span class="jsx">&lt;section</span> <span class="attr">className</span>=<span class="str">"pricing"</span><span class="jsx">&gt;</span>',
+        '      {<span class="txt">tiers</span>.<span class="fn">map</span>((<span class="txt">t</span>) =&gt; (',
+        '        <span class="jsx">&lt;PlanCard</span> <span class="attr">key</span>={<span class="txt">t</span>.name} <span class="attr">tier</span>={<span class="txt">t</span>} <span class="jsx">/&gt;</span>',
+        '      ))}',
+        '    <span class="jsx">&lt;/section&gt;</span>',
+        '  )',
+        '}',
+      ].map(L).join("");
+      const htmlLines = [...$("#cb_html").children];
+      const appLines = [...$("#cb_app").children];
+      const pricingLines = [...$("#cb_pricing").children];
+      // tabs
+      $("#ctabs").innerHTML = '<div class="ctab on" id="tab1"><span class="ti" style="background:#e6962b"></span>index.html</div>' +
+        '<div class="ctab" id="tab2"><span class="ti" style="background:#4fc1ff"></span>App.tsx</div>' +
+        '<div class="ctab" id="tab3"><span class="ti" style="background:#4fc1ff"></span>Pricing.tsx</div>';
+
+      // ================= chat content =================
+      const msgs = $("#msgs");
+      const PROMPT = "Build me a SaaS landing page with a hero section, feature grid, pricing table with three tiers, and a footer. Use a dark navy and electric blue color scheme. Make it modern and clean.";
+      const ptext = $("#ptext");
+      const pchars = [];
+      PROMPT.split(" ").forEach((word, wi, arr) => {
+        const w = document.createElement("span"); w.style.whiteSpace = "nowrap";
+        for (const ch of word) { const s = document.createElement("span"); s.className = "pchar"; s.textContent = ch; w.appendChild(s); pchars.push(s); }
+        ptext.appendChild(w);
+        if (wi < arr.length - 1) { const sp = document.createElement("span"); sp.className = "pchar"; sp.textContent = " "; ptext.appendChild(sp); pchars.push(sp); }
+      });
+
+      // ================= measure =================
+      const rectC = (e) => { const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
+      const measure = (chars) => chars.map((c) => { const r = c.getBoundingClientRect(); return { l: r.left, x: r.right, y: r.top, h: r.height }; });
+      const mP = measure(pchars);
+      const T = { input: rectC($("#inputbox")), send: rectC($("#sendBtn")) };
+      const heroH1 = $("#heroH1");
+
+      // ================= initial states =================
+      const cursor = $("#cursor"), ring = $("#ring"), glow = $("#glow"), pcaret = $("#pcaret");
+      const TIPX = 4.5, TIPY = 3;
+      const tl = gsap.timeline({ paused: true });
+      gsap.set("#frame", { autoAlpha: 0 });
+      gsap.set([ring, glow], { autoAlpha: 0, scale: 0.3, left: -500, top: -500, transformOrigin: "center center" });
+      gsap.set(cursor, { x: 980 - TIPX, y: 640 - TIPY, autoAlpha: 0 });
+      gsap.set("#workspace", { autoAlpha: 0 });
+      gsap.set("#codepanel", { x: 466 });
+      gsap.set(pcaret, { autoAlpha: 0 });
+      gsap.set("#sendBtn", { scale: 0.9, autoAlpha: 0.6 });
+      // preview sections hidden
+      gsap.set(["#s_nav", "#s_hero", "#s_price", "#s_foot"], { autoAlpha: 0 });
+      gsap.set("#s_feat .stag, #s_feat .sh2", { autoAlpha: 0 });
+      gsap.set(featCardEls, { autoAlpha: 0, y: 16 });
+      gsap.set(["#edit", "#ecaret"], { autoAlpha: 0 });
+      gsap.set("#heroNew", { autoAlpha: 0 });
+      gsap.set("#flash", { autoAlpha: 0 });
+
+      // ================= helpers =================
+      const move = (t, p, d = 0.5) => tl.to(cursor, { x: p.x - TIPX, y: p.y - TIPY, duration: d, ease: "power3.inOut" }, t);
+      const click = (t, p) => {
+        tl.to(cursor, { scale: 0.82, duration: 0.08, transformOrigin: "0 0" }, t);
+        tl.to(cursor, { scale: 1, duration: 0.14, ease: "back.out(2.6)" }, t + 0.08);
+        tl.set(glow, { left: p.x - 46, top: p.y - 46 }, t);
+        tl.fromTo(glow, { scale: 0.3, autoAlpha: 0.95 }, { scale: 1.7, autoAlpha: 0, duration: 0.52, ease: "power2.out" }, t);
+        tl.set(ring, { left: p.x - 22, top: p.y - 22 }, t);
+        tl.fromTo(ring, { scale: 0.35, autoAlpha: 0.85 }, { scale: 1.95, autoAlpha: 0, duration: 0.52, ease: "power2.out" }, t);
+      };
+      const setPcaret = (t, i) => { const p = mP[i]; tl.set(pcaret, { left: p.x - $("#inputbox").getBoundingClientRect().left, top: p.y - $("#inputbox").getBoundingClientRect().top, height: p.h * 0.8 }, t); };
+      const ibox = $("#inputbox").getBoundingClientRect();
+
+      // ===================== TIMELINE =====================
+      let t = 0.0;
+      tl.to("#frame", { autoAlpha: 1, duration: 0.7, ease: "power2.out" }, 0.2);
+      t = 1.3;
+      // cursor appears, clicks input
+      tl.to(cursor, { autoAlpha: 1, duration: 0.3 }, t);
+      move(t, T.input, 0.5); t += 0.5;
+      click(t, T.input);
+      tl.set("#inputbox", { className: "inputbox focus" }, t + 0.04);
+      tl.to("#pph", { autoAlpha: 0, duration: 0.15 }, t + 0.04);
+      tl.set(pcaret, { autoAlpha: 1 }, t + 0.1);
+      t += 0.55;
+      // type the prompt
+      const per = 0.0185;
+      pchars.forEach((c, i) => {
+        tl.set(c, { opacity: 1 }, t + i * per);
+        tl.set(pcaret, { left: mP[i].x - ibox.left, top: mP[i].y - ibox.top, height: mP[i].h * 0.8 }, t + i * per);
+      });
+      t += pchars.length * per + 0.25;
+      tl.to("#sendBtn", { scale: 1, autoAlpha: 1, duration: 0.2 }, t - 0.4);
+      tl.to(pcaret, { autoAlpha: 0, duration: 0.2 }, t);
+
+      // click Send -> message bubble locks in
+      move(t, T.send, 0.4); t += 0.4;
+      tl.to("#sendBtn", { scale: 0.9, duration: 0.1 }, t);
+      tl.to("#sendBtn", { scale: 1, duration: 0.16, ease: "back.out(2.4)" }, t + 0.1);
+      click(t, T.send);
+      // clear input, drop user bubble
+      tl.to(["#ptext", "#pcaret"], { autoAlpha: 0, duration: 0.15 }, t + 0.1);
+      tl.set("#inputbox", { className: "inputbox" }, t + 0.15);
+      tl.set("#pph", { autoAlpha: 1 }, t + 0.16);
+      const ubub = elc("umsg", PROMPT); msgs.appendChild(ubub);
+      gsap.set(ubub, { autoAlpha: 0, y: 10 });
+      tl.fromTo(ubub, { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: 0.35, ease: "power3.out" }, t + 0.18);
+      t += 0.85;
+
+      // typing indicator (with a separate words container that crossfades in)
+      const arow1 = elc("arow", '<div class="abadge"></div><div class="amsg"><span class="typing"><i></i><i></i><i></i></span><span class="r1words"></span></div>');
+      msgs.appendChild(arow1);
+      const dots = arow1.querySelectorAll(".typing i");
+      gsap.set(arow1, { autoAlpha: 0, y: 8 });
+      tl.to(arow1, { autoAlpha: 1, y: 0, duration: 0.3 }, t);
+      dots.forEach((d, i) => tl.to(d, { y: -4, duration: 0.22, yoyo: true, repeat: 3, ease: "sine.inOut" }, t + 0.1 + i * 0.12));
+      t += 1.1;
+      // response 1 word by word (typing dots fade, words reveal)
+      const R1 = "Got it. Building your SaaS landing page now. Starting with the project structure...";
+      const r1box = arow1.querySelector(".r1words");
+      const r1words = R1.split(" ").map((w) => { const s = document.createElement("span"); s.className = "word"; s.textContent = w + " "; r1box.appendChild(s); return s; });
+      tl.set(arow1.querySelector(".typing"), { display: "none" }, t);
+      r1words.forEach((w, i) => tl.set(w, { opacity: 1 }, t + i * 0.05));
+      t += r1words.length * 0.05 + 0.3;
+
+      // workspace appears + file tree builds
+      tl.fromTo("#workspace", { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.4, ease: "power3.out" }, t);
+      t += 0.3;
+      treeRows.forEach((row, i) => {
+        tl.fromTo(row, { autoAlpha: 0, x: -8 }, { autoAlpha: 1, x: 0, duration: 0.18, ease: "power2.out" }, t + i * 0.085);
+        const dot = row.querySelector(".fdot");
+        tl.fromTo(dot, { autoAlpha: 0, scale: 0.4 }, { autoAlpha: 1, scale: 1, duration: 0.22, ease: "back.out(3)" }, t + i * 0.085 + 0.12);
+      });
+      const treeEnd = t + treeRows.length * 0.085 + 0.2;
+
+      // code panel slides open + streams index.html
+      tl.to("#codepanel", { x: 0, duration: 0.5, ease: "power3.out" }, t + 0.4);
+      let ct = t + 0.7;
+      htmlLines.forEach((ln, i) => tl.set(ln, { opacity: 1 }, ct + i * 0.07));
+      ct += htmlLines.length * 0.07 + 0.25;
+      // switch to App.tsx
+      tl.set("#tab1", { className: "ctab" }, ct); tl.set("#tab2", { className: "ctab on" }, ct);
+      tl.set("#cb_html", { autoAlpha: 0 }, ct); tl.set("#cb_app", { autoAlpha: 1 }, ct);
+      appLines.forEach((ln, i) => tl.set(ln, { opacity: 1 }, ct + 0.05 + i * 0.06));
+      ct += appLines.length * 0.06 + 0.25;
+      // switch to Pricing.tsx
+      tl.set("#tab2", { className: "ctab" }, ct); tl.set("#tab3", { className: "ctab on" }, ct);
+      tl.set("#cb_app", { autoAlpha: 0 }, ct); tl.set("#cb_pricing", { autoAlpha: 1 }, ct);
+      pricingLines.forEach((ln, i) => tl.set(ln, { opacity: 1 }, ct + 0.05 + i * 0.06));
+      ct += pricingLines.length * 0.06 + 0.3;
+
+      // ===== preview renders, section by section (overlaps code streaming) =====
+      let pt = treeEnd + 0.5;
+      tl.to("#pvgrid", { autoAlpha: 0.4, duration: 0.4 }, pt);
+      tl.fromTo("#s_nav", { autoAlpha: 0, y: -24 }, { autoAlpha: 1, y: 0, duration: 0.45, ease: "power3.out" }, pt);
+      pt += 0.7;
+      tl.fromTo("#s_hero", { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.55, ease: "power3.out" }, pt);
+      pt += 0.95;
+      // features section title + cascade cards
+      tl.to("#s_feat .stag, #s_feat .sh2", { autoAlpha: 1, duration: 0.4 }, pt);
+      featCardEls.forEach((c, i) => tl.to(c, { autoAlpha: 1, y: 0, duration: 0.32, ease: "power2.out" }, pt + 0.25 + i * 0.12));
+      pt += 0.25 + featCardEls.length * 0.12 + 0.3;
+      // pricing — all three together
+      tl.fromTo("#s_price", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.4 }, pt);
+      priceCardEls.forEach((c) => tl.fromTo(c, { autoAlpha: 0, y: 22 }, { autoAlpha: 1, y: 0, duration: 0.5, ease: "power3.out" }, pt + 0.18));
+      pt += 0.85;
+      // footer from bottom
+      tl.fromTo("#s_foot", { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.45, ease: "power3.out" }, pt);
+      pt += 0.7;
+
+      // auto-scroll the preview top -> bottom (reveal full page)
+      const scrollT = Math.max(ct, pt) + 0.2;
+      const siteH = site.getBoundingClientRect().height;
+      const maxScroll = Math.max(0, siteH - (1080 - 46 - 38));
+      tl.to("#pvscroll", { y: -maxScroll, duration: 2.4, ease: "power1.inOut" }, scrollT);
+      let t2 = scrollT + 2.6;
+
+      // final Lovable message
+      const arow2 = elc("arow", '<div class="abadge"></div><div class="amsg" id="amsg2"></div>');
+      msgs.appendChild(arow2);
+      // scroll chat so the new message is visible
+      tl.to("#msgs", { y: -arow1.offsetHeight - ubub.offsetHeight + 6, duration: 0.4, ease: "power2.inOut" }, t2 - 0.2);
+      gsap.set(arow2, { autoAlpha: 0, y: 8 });
+      tl.to(arow2, { autoAlpha: 1, y: 0, duration: 0.3 }, t2);
+      const R2 = "Your landing page is ready. All sections built — hero, features, pricing, and footer. Click any section in the preview to edit.";
+      const amsg2 = $("#amsg2");
+      const r2words = R2.split(" ").map((w) => { const s = document.createElement("span"); s.className = "word"; s.textContent = w + " "; amsg2.appendChild(s); return s; });
+      r2words.forEach((w, i) => tl.set(w, { opacity: 1 }, t2 + 0.1 + i * 0.035));
+      t2 += r2words.length * 0.035 + 0.35;
+
+      // scroll preview back to top so the hero is in view, then edit the headline
+      tl.to("#pvscroll", { y: 0, duration: 0.9, ease: "power2.inOut" }, t2);
+      t2 += 1.0;
+      const hr = heroH1.getBoundingClientRect();
+      const heroPt = { x: hr.left + 130, y: hr.top + hr.height / 2 };
+      move(t2, heroPt, 0.6); t2 += 0.6;
+      click(t2, heroPt);
+      // edit handle appears around the headline
+      const pvb = $("#preview").getBoundingClientRect();
+      gsap.set("#edit", { left: hr.left - pvb.left - 8, top: hr.top - pvb.top - 6, width: hr.width + 16, height: hr.height + 12 });
+      tl.fromTo("#edit", { autoAlpha: 0, scale: 0.97, transformOrigin: "center center" }, { autoAlpha: 1, scale: 1, duration: 0.3, ease: "back.out(1.8)" }, t2 + 0.12);
+      t2 += 0.7;
+      // double-click -> editable, old text out, caret in
+      click(t2, heroPt); click(t2 + 0.16, heroPt);
+      tl.to(".h1 .ow", { autoAlpha: 0, duration: 0.18 }, t2 + 0.3);
+      tl.set("#heroNew", { autoAlpha: 1 }, t2 + 0.32);
+      // build the new two-word headline char by char (nw is absolute at h1 origin)
+      const NEW = "Ship Beautifully";
+      const heroNew = $("#heroNew");
+      const nchars = [];
+      for (const ch of NEW) { const s = document.createElement("span"); s.textContent = ch; s.style.opacity = "0"; heroNew.appendChild(s); nchars.push(s); }
+      const nrect = nchars.map((c) => { const r = c.getBoundingClientRect(); return { x: r.right - pvb.left, y: r.top - pvb.top, h: r.height }; });
+      const eb = $("#ecaret"); gsap.set(eb, { height: hr.height * 0.78 });
+      tl.set(eb, { autoAlpha: 1, left: hr.left - pvb.left, top: hr.top - pvb.top + hr.height * 0.12 }, t2 + 0.36);
+      t2 += 0.5;
+      nchars.forEach((c, i) => {
+        tl.set(c, { opacity: 1 }, t2 + i * 0.085);
+        tl.set(eb, { left: nrect[i].x, top: nrect[i].y + nrect[i].h * 0.12 }, t2 + i * 0.085);
+      });
+      t2 += nchars.length * 0.085 + 0.3;
+      tl.to(eb, { autoAlpha: 0, duration: 0.2 }, t2);
+
+      // click outside -> deselect, page holds
+      const outPt = { x: pvb.left + 1050, y: pvb.top + 250 };
+      move(t2, outPt, 0.5); t2 += 0.5;
+      click(t2, outPt);
+      tl.to("#edit", { autoAlpha: 0, duration: 0.25 }, t2 + 0.1);
+      t2 += 0.6;
+      // settle; cut to white
+      tl.to(cursor, { x: 1500, y: 820, duration: 0.6, ease: "power2.inOut" }, t2);
+      tl.to("#flash", { autoAlpha: 1, duration: 0.5, ease: "power2.in" }, 29.4);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
