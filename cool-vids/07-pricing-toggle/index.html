@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=3840, height=2160" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 3840px; height: 2160px; overflow: hidden; background: #060814;
+        font-family: "Inter", Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; color: #fff; }
+      .stage { position: absolute; inset: 0; overflow: hidden; background: radial-gradient(1700px 1300px at 50% 36%, #15193a 0%, #0a0c1e 58%, #05060f 100%); }
+      .bgblob { position: absolute; border-radius: 50%; filter: blur(190px); opacity: .5; }
+      .bb1 { width: 1300px; height: 1300px; left: 200px; top: 120px; background: #5b46e5; }
+      .bb2 { width: 1200px; height: 1200px; right: 160px; top: 260px; background: #1499d6; }
+      .bb3 { width: 1100px; height: 1100px; left: 1320px; bottom: -240px; background: #c648b0; }
+
+      .hdr { position: absolute; left: 0; right: 0; top: 120px; text-align: center; font-size: 64px; font-weight: 820; letter-spacing: -1.5px; }
+      .hdr span { display: block; font-size: 30px; font-weight: 540; color: rgba(255,255,255,.5); margin-top: 10px; letter-spacing: 0; }
+
+      /* rocker toggle */
+      .togwrap { position: absolute; left: 50%; top: 300px; transform: translateX(-50%); }
+      #toggle { position: relative; width: 760px; height: 132px; border-radius: 66px;
+        background: linear-gradient(160deg, rgba(255,255,255,.12), rgba(255,255,255,.04)); border: 1.5px solid rgba(255,255,255,.22);
+        box-shadow: 0 30px 60px -28px rgba(0,0,0,.7), inset 0 2px 2px rgba(255,255,255,.35), inset 0 -10px 26px -12px rgba(0,0,0,.4); }
+      #knob { position: absolute; left: 8px; top: 8px; width: 372px; height: 116px; border-radius: 58px;
+        background: linear-gradient(160deg,#6d5cff,#4f46e5); box-shadow: 0 14px 30px -10px rgba(91,81,232,.7), inset 0 2px 2px rgba(255,255,255,.4); }
+      .tlbl { position: absolute; top: 0; height: 132px; width: 380px; display: flex; align-items: center; justify-content: center; font-size: 40px; font-weight: 720; z-index: 2; }
+      #lblM { left: 0; } #lblA { right: 0; }
+      #save20 { position: absolute; left: 778px; top: 30px; background: #34d399; color: #04220f; font-size: 28px; font-weight: 820; padding: 12px 22px; border-radius: 16px; box-shadow: 0 14px 30px -10px rgba(52,211,153,.6); white-space: nowrap; opacity: 0; }
+      #save20::before { content: ""; position: absolute; left: -12px; top: 50%; transform: translateY(-50%); border: 10px solid transparent; border-right-color: #34d399; }
+
+      /* cards */
+      #cardrow { position: absolute; inset: 0; }
+      .card { position: absolute; width: 860px; border-radius: 40px; padding: 56px 54px;
+        background: linear-gradient(160deg, rgba(255,255,255,.15) 0%, rgba(255,255,255,.06) 50%, rgba(255,255,255,.03) 100%);
+        border: 1.5px solid rgba(255,255,255,.2);
+        box-shadow: 0 60px 110px -46px rgba(0,0,0,.75), inset 0 2px 2px rgba(255,255,255,.42), inset 0 -14px 40px -16px rgba(0,0,0,.4); }
+      .card.pop { border-color: rgba(141,140,255,.55); box-shadow: 0 70px 130px -46px rgba(0,0,0,.8), 0 0 0 2px rgba(141,140,255,.4), inset 0 2px 2px rgba(255,255,255,.5), inset 0 -14px 40px -16px rgba(0,0,0,.4); }
+      .edge { position: absolute; inset: 0; border-radius: 40px; pointer-events: none; opacity: .35;
+        box-shadow: inset 0 2px 0 rgba(255,255,255,.7), inset 0 0 0 1.5px rgba(255,255,255,.35), 0 0 50px 2px rgba(255,255,255,.25); }
+      .pname { font-size: 40px; font-weight: 740; letter-spacing: -0.5px; }
+      .psub { font-size: 26px; font-weight: 520; color: rgba(255,255,255,.5); margin-top: 6px; }
+      .pricearea { position: relative; height: 200px; margin-top: 30px; }
+      .pb { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; }
+      .pb .row { display: flex; align-items: baseline; gap: 14px; }
+      .pb .amt { font-size: 130px; font-weight: 840; letter-spacing: -4px; line-height: 1; }
+      .pb .per { font-size: 34px; font-weight: 560; color: rgba(255,255,255,.55); }
+      .pb .note { font-size: 26px; font-weight: 560; color: #6ee7a8; margin-top: 14px; height: 30px; }
+      .feat { margin-top: 40px; }
+      .feat .f { display: flex; align-items: center; gap: 18px; font-size: 30px; font-weight: 540; color: rgba(255,255,255,.82); margin-bottom: 22px; }
+      .feat .f .ck { width: 34px; height: 34px; border-radius: 50%; background: rgba(141,140,255,.22); position: relative; flex-shrink: 0; }
+      .feat .f .ck::after { content: ""; position: absolute; left: 12px; top: 7px; width: 9px; height: 17px; border: solid #b9b6ff; border-width: 0 4px 4px 0; transform: rotate(42deg); }
+      .cta { margin-top: 18px; height: 92px; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: 720;
+        background: rgba(255,255,255,.1); border: 1.5px solid rgba(255,255,255,.25); }
+      .cta.fill { background: linear-gradient(160deg,#6d5cff,#4f46e5); border-color: transparent; box-shadow: 0 18px 36px -14px rgba(91,81,232,.7); }
+      .badge { position: absolute; left: 50%; transform: translateX(-50%); top: 552px; background: linear-gradient(160deg,#8b8cff,#6d5cff); color: #fff; font-size: 28px; font-weight: 820; letter-spacing: 1px; padding: 14px 28px; border-radius: 16px; box-shadow: 0 18px 40px -14px rgba(109,92,255,.7); white-space: nowrap; z-index: 5; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="16" data-width="3840" data-height="2160">
+      <div class="stage">
+        <div class="bgblob bb1"></div><div class="bgblob bb2"></div><div class="bgblob bb3" data-layout-allow-overflow></div>
+
+        <div class="hdr" id="hdr">Simple, transparent pricing<span>Switch billing period anytime</span></div>
+
+        <div class="togwrap" id="togwrap" data-layout-allow-overflow>
+          <div id="toggle">
+            <div id="knob"></div>
+            <div class="tlbl" id="lblM">Monthly</div>
+            <div class="tlbl" id="lblA">Annual</div>
+          </div>
+          <div id="save20">SAVE 20%</div>
+        </div>
+
+        <div id="cardrow" data-layout-allow-overflow>
+          <!-- cards filled by script -->
+          <div class="badge" id="popbadge" style="left:1920px">MOST POPULAR</div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const $ = (id) => document.getElementById(id);
+      const tl = gsap.timeline({ paused: true });
+      const row = $("cardrow");
+
+      // card data: [name, sub, monthly, annual, annualNote, features[], cta, fill, pop]
+      const DATA = [
+        ["Starter", "For individuals", ["$12", "/month", ""], ["$115", "/year", "Save $29 a year"], ["5 projects", "2 team seats", "Basic analytics", "Email support"], "Choose Starter", false, false, 540, 660, 1180],
+        ["Pro", "For growing teams", ["$39", "/month", ""], ["$374", "/year", "Save $94 a year"], ["Unlimited projects", "10 team seats", "Advanced analytics", "Priority support"], "Choose Pro", true, true, 1490, 620, 1260],
+        ["Enterprise", "For organizations", ["$99", "/month", ""], ["$950", "/year", "Save $238 a year"], ["Everything in Pro", "SSO & SAML", "Dedicated manager", "24/7 support"], "Contact sales", false, false, 2440, 660, 1180],
+      ];
+      const cards = [];
+      DATA.forEach((d, i) => {
+        const c = document.createElement("div");
+        c.className = "card" + (d[7] ? " pop" : "");
+        c.id = "c" + i; c.style.left = d[8] + "px"; c.style.top = d[9] + "px"; c.style.height = d[10] + "px";
+        c.setAttribute("data-layout-allow-overflow", "");
+        const feats = d[4].map((f) => '<div class="f"><div class="ck"></div>' + f + '</div>').join("");
+        c.innerHTML =
+          '<div class="edge" id="c' + i + 'e"></div>' +
+          '<div class="pname">' + d[0] + '</div><div class="psub">' + d[1] + '</div>' +
+          '<div class="pricearea">' +
+            '<div class="pb" id="c' + i + 'm"><div class="row"><div class="amt">' + d[2][0] + '</div><div class="per">' + d[2][1] + '</div></div><div class="note"></div></div>' +
+            '<div class="pb" id="c' + i + 'a" style="opacity:0"><div class="row"><div class="amt">' + d[3][0] + '</div><div class="per">' + d[3][1] + '</div></div><div class="note">' + d[3][2] + '</div></div>' +
+          '</div>' +
+          '<div class="feat">' + feats + '</div>' +
+          '<div class="cta' + (d[6] ? ' fill' : '') + '">' + d[5] + '</div>';
+        row.insertBefore(c, $("popbadge"));
+        cards.push({ id: "#c" + i, edge: "#c" + i + "e", m: "#c" + i + "m", a: "#c" + i + "a" });
+      });
+
+      // initial
+      cards.forEach((c) => gsap.set(c.id, { transformPerspective: 2400, transformOrigin: "50% 50%", rotationY: 0, autoAlpha: 0, y: 90 }));
+      gsap.set("#knob", { x: 0 });
+      gsap.set("#lblA", { color: "rgba(255,255,255,.5)" });
+      gsap.set("#save20", { autoAlpha: 0, scale: 0.7, transformOrigin: "0% 50%" });
+      gsap.set("#popbadge", { autoAlpha: 0, y: 20 });
+      gsap.set(["#hdr", "#togwrap"], { autoAlpha: 0, y: 30 });
+
+      // ===== intro =====
+      tl.to("#hdr", { autoAlpha: 1, y: 0, duration: 0.7, ease: "power3.out" }, 0.2);
+      tl.to("#togwrap", { autoAlpha: 1, y: 0, duration: 0.7, ease: "back.out(1.5)" }, 0.45);
+      cards.forEach((c, i) => tl.to(c.id, { autoAlpha: 1, y: 0, duration: 0.8, ease: "back.out(1.5)" }, 0.7 + i * 0.13));
+      tl.to("#popbadge", { autoAlpha: 1, y: 0, duration: 0.6, ease: "back.out(2)" }, 1.4);
+      // floating badge bob + card row float
+      tl.to("#popbadge", { y: -16, duration: 1.8, ease: "sine.inOut", repeat: 6, yoyo: true }, 2.0);
+      tl.to("#cardrow", { y: -14, duration: 2.6, ease: "sine.inOut", repeat: 5, yoyo: true }, 2.2);
+
+      // ===== flip helper =====
+      function flip(toMonthly, at) {
+        cards.forEach((c, i) => {
+          const t = at + i * 0.12;
+          tl.to(c.id, { rotationY: 90, duration: 0.24, ease: "power1.in", overwrite: "auto" }, t);
+          tl.to(c.edge, { opacity: 1, duration: 0.26, ease: "power2.out", overwrite: "auto" }, t);
+          tl.set(c.m, { opacity: toMonthly ? 1 : 0 }, t + 0.24);
+          tl.set(c.a, { opacity: toMonthly ? 0 : 1 }, t + 0.24);
+          tl.to(c.id, { rotationY: 0, duration: 0.54, ease: "back.out(2.3)", overwrite: "auto" }, t + 0.24);
+          tl.to(c.edge, { opacity: 0.35, duration: 0.5, ease: "power2.inOut", overwrite: "auto" }, t + 0.34);
+        });
+      }
+      function toggleTo(annual, at) {
+        tl.to("#knob", { x: annual ? 372 : 0, duration: 0.55, ease: "back.out(2)", overwrite: "auto" }, at);
+        tl.to("#lblM", { color: annual ? "rgba(255,255,255,.5)" : "#fff", duration: 0.3, overwrite: "auto" }, at);
+        tl.to("#lblA", { color: annual ? "#fff" : "rgba(255,255,255,.5)", duration: 0.3, overwrite: "auto" }, at);
+        // physical rocker tilt
+        tl.to("#toggle", { keyframes: [
+          { rotationX: annual ? -8 : 8, duration: 0.13, ease: "power2.out" },
+          { rotationX: 0, duration: 0.5, ease: "elastic.out(1, 0.55)" },
+        ], transformPerspective: 1400, transformOrigin: "50% 50%", overwrite: "auto" }, at);
+        if (annual) tl.to("#save20", { autoAlpha: 1, scale: 1, duration: 0.4, ease: "back.out(2.4)", overwrite: "auto" }, at + 0.25);
+        else tl.to("#save20", { autoAlpha: 0, scale: 0.7, duration: 0.25, ease: "power2.in", overwrite: "auto" }, at);
+        flip(!annual, at + 0.12);
+      }
+
+      // ===== toggle sequence =====
+      toggleTo(true, 2.4);    // → Annual
+      toggleTo(false, 7.6);   // → Monthly
+      toggleTo(true, 12.0);   // → Annual
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
