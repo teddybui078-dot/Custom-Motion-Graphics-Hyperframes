@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=3840, height=2160" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 3840px; height: 2160px; overflow: hidden; font-family: -apple-system, "SF Pro Display", "Inter", system-ui, sans-serif; }
+      .stage { position: absolute; inset: 0; overflow: visible; }
+      .bg { position: absolute; inset: 0;
+        background:
+          radial-gradient(50% 55% at 50% 36%, rgba(40,46,92,0.9), transparent 70%),
+          radial-gradient(40% 50% at 18% 78%, rgba(76,40,120,0.6), transparent 70%),
+          radial-gradient(44% 52% at 84% 80%, rgba(20,80,110,0.55), transparent 70%),
+          radial-gradient(80% 80% at 50% 50%, #0b1024 0%, #070a17 60%, #04060e 100%); }
+      .bgdots { position: absolute; inset: 0; opacity: 0.5;
+        background-image: radial-gradient(rgba(255,255,255,0.5) 2px, transparent 2px); background-size: 90px 90px; }
+
+      /* orbs */
+      .orbwrap { position: absolute; z-index: 10; }
+      .orb { position: absolute; left: 0; top: 0; width: 340px; height: 340px; border-radius: 50%; transform-origin: center center;
+        backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+      .orb .spec { position: absolute; left: 24%; top: 18%; width: 96px; height: 64px; border-radius: 50%; background: rgba(255,255,255,0.92); filter: blur(14px); transform: rotate(-24deg); }
+      .orb .spec2 { position: absolute; right: 26%; bottom: 24%; width: 50px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.35); filter: blur(10px); }
+      .oglow { position: absolute; left: -90px; top: -90px; width: 520px; height: 520px; border-radius: 50%; z-index: -1; opacity: 0; }
+      .olabel { position: absolute; left: 50%; width: 540px; transform: translateX(-50%); top: 380px; border-radius: 26px; padding: 26px 30px; opacity: 0;
+        background: rgba(24,26,40,0.55); backdrop-filter: blur(34px) saturate(160%); -webkit-backdrop-filter: blur(34px) saturate(160%);
+        border: 1.5px solid rgba(255,255,255,0.14); box-shadow: 0 40px 90px rgba(0,0,0,0.45), inset 0 2px 0 rgba(255,255,255,0.14); }
+      .olabel .lhd { display: flex; align-items: center; gap: 18px; }
+      .olabel .lic { width: 64px; height: 64px; border-radius: 18px; flex: none; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 24px rgba(0,0,0,0.3); }
+      .olabel .lname { font-size: 40px; font-weight: 800; color: #fff; letter-spacing: -0.5px; }
+      .olabel .ldesc { font-size: 28px; color: rgba(255,255,255,0.6); margin-top: 14px; line-height: 1.4; }
+
+      /* particles */
+      .particle { position: absolute; border-radius: 8px; z-index: 14; opacity: 0; box-shadow: 0 6px 16px rgba(0,0,0,0.3); }
+
+      /* demo screen */
+      .demo { position: absolute; left: 990px; top: 600px; width: 1860px; height: 1040px; border-radius: 30px; overflow: hidden; z-index: 12; opacity: 0; display: none;
+        background: rgba(20,23,38,0.62); backdrop-filter: blur(40px) saturate(170%); -webkit-backdrop-filter: blur(40px) saturate(170%);
+        border: 1.5px solid rgba(255,255,255,0.16); box-shadow: 0 90px 200px rgba(0,0,0,0.6), inset 0 2px 0 rgba(255,255,255,0.16); }
+      .dtitle { height: 92px; display: flex; align-items: center; padding: 0 34px; gap: 22px; background: rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.08); }
+      .dlights { display: flex; gap: 16px; }
+      .dlights i { width: 24px; height: 24px; border-radius: 50%; }
+      .dname { font-size: 34px; font-weight: 800; color: #fff; margin-left: 12px; }
+      .dlive { display: flex; align-items: center; gap: 11px; font-size: 24px; font-weight: 700; color: #34d399; }
+      .dlive .dot { width: 16px; height: 16px; border-radius: 50%; background: #34d399; box-shadow: 0 0 16px #34d399; }
+      .davatars { margin-left: auto; display: flex; }
+      .davatars i { width: 54px; height: 54px; border-radius: 50%; border: 3px solid #1b2036; margin-left: -16px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 22px; }
+      .dbody { display: flex; height: calc(100% - 92px); }
+      .dside { width: 300px; border-right: 1px solid rgba(255,255,255,0.06); padding: 24px 16px; }
+      .dnav { height: 56px; display: flex; align-items: center; gap: 14px; padding: 0 16px; border-radius: 12px; font-size: 25px; color: #c7cee0; font-weight: 600; }
+      .dnav.on { background: rgba(99,130,246,0.22); color: #fff; }
+      .dnav .ni { width: 26px; height: 26px; border-radius: 7px; background: #4f7fe0; flex: none; }
+      .dmain { flex: 1; padding: 34px 40px; position: relative; }
+      .dkpis { display: flex; gap: 22px; }
+      .dkpi { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.07); border-radius: 16px; padding: 22px 24px; }
+      .dkpi .kv { font-size: 46px; font-weight: 800; color: #fff; }
+      .dkpi .kl { font-size: 22px; color: rgba(255,255,255,0.5); margin-top: 6px; }
+      .dkpi .kd { font-size: 22px; font-weight: 700; color: #34d399; margin-top: 8px; }
+      .dchart { margin-top: 26px; height: 420px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 18px; padding: 26px 30px; position: relative; }
+      .dchart .ct { font-size: 26px; font-weight: 700; color: #cbd3e6; }
+      .dcursor { position: absolute; z-index: 6; opacity: 0; display: flex; flex-direction: column; align-items: flex-start; }
+      .dcursor svg { filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4)); }
+      .dcursor .tag { margin: 4px 0 0 22px; height: 36px; padding: 0 14px; border-radius: 9px; display: flex; align-items: center; font-size: 22px; font-weight: 700; color: #fff; white-space: nowrap; }
+
+      #ring { position: absolute; width: 120px; height: 120px; border-radius: 50%; border: 6px solid rgba(180,200,255,0.7); z-index: 40; opacity: 0; }
+      #cursor { position: absolute; left: 0; top: 0; z-index: 90; filter: drop-shadow(0 6px 10px rgba(0,0,0,0.45)); }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="15" data-width="3840" data-height="2160">
+      <div class="stage" id="stage" data-layout-allow-overflow>
+        <div class="bg"></div>
+        <div class="bgdots"></div>
+
+        <div id="orbs"></div>
+        <div id="particles" data-layout-allow-overflow></div>
+
+        <div class="demo" id="demo" data-layout-allow-overflow>
+          <div class="dtitle">
+            <div class="dlights"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></div>
+            <div class="dname">Realtime Sync</div>
+            <div class="dlive"><span class="dot"></span>Live</div>
+            <div class="davatars"><i style="background:#3b82f6">SC</i><i style="background:#8b5cf6">ML</i><i style="background:#14b8a6">AR</i><i style="background:#f59e0b">+4</i></div>
+          </div>
+          <div class="dbody">
+            <div class="dside" id="dside"></div>
+            <div class="dmain">
+              <div class="dkpis">
+                <div class="dkpi"><div class="kv" id="k1">0</div><div class="kl">Active now</div><div class="kd">▲ live</div></div>
+                <div class="dkpi"><div class="kv" id="k2">0</div><div class="kl">Edits / min</div><div class="kd">▲ 18%</div></div>
+                <div class="dkpi"><div class="kv" id="k3">0<span style="font-size:28px">ms</span></div><div class="kl">Sync latency</div><div class="kd">▲ fast</div></div>
+              </div>
+              <div class="dchart">
+                <div class="ct">Sync activity · last 60s</div>
+                <svg width="100%" height="340" viewBox="0 0 1380 340" preserveAspectRatio="none" style="margin-top:10px">
+                  <line x1="0" y1="85" x2="1380" y2="85" stroke="rgba(255,255,255,0.06)"/><line x1="0" y1="170" x2="1380" y2="170" stroke="rgba(255,255,255,0.06)"/><line x1="0" y1="255" x2="1380" y2="255" stroke="rgba(255,255,255,0.06)"/>
+                  <path id="darea" d="M10,300 L10,250 L200,210 L400,235 L600,150 L800,180 L1000,90 L1200,120 L1370,50 L1370,330 L10,330 Z" fill="url(#dg)" opacity="0"/>
+                  <path id="dline" d="M10,250 L200,210 L400,235 L600,150 L800,180 L1000,90 L1200,120 L1370,50" fill="none" stroke="#60a5fa" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="1"/>
+                  <defs><linearGradient id="dg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b82f6" stop-opacity="0.4"/><stop offset="1" stop-color="#3b82f6" stop-opacity="0"/></linearGradient></defs>
+                </svg>
+              </div>
+              <div class="dcursor" id="dcur1"><svg width="40" height="46" viewBox="0 0 24 28"><path d="M3,2 L3,22 L8.5,16.8 L12,24.5 L15.4,23 L11.9,15.3 L19,15.3 Z" fill="#8b5cf6" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg><div class="tag" style="background:#8b5cf6">Maya</div></div>
+              <div class="dcursor" id="dcur2"><svg width="40" height="46" viewBox="0 0 24 28"><path d="M3,2 L3,22 L8.5,16.8 L12,24.5 L15.4,23 L11.9,15.3 L19,15.3 Z" fill="#14b8a6" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg><div class="tag" style="background:#14b8a6">Arun</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="ring"></div>
+        <div id="cursor"><svg width="64" height="76" viewBox="0 0 24 28"><path d="M3,2 L3,22 L8.5,16.8 L12,24.5 L15.4,23 L11.9,15.3 L19,15.3 Z" fill="#ffffff" stroke="#1b1b22" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const $ = (s) => document.querySelector(s);
+
+      // ---------- orbs ----------
+      const ORBS = [
+        { cx: 1920, cy: 660, c: "#3b82f6", g: "59,130,246", name: "Realtime Sync", desc: "Every change, everywhere — the instant it happens.", hero: true },
+        { cx: 740, cy: 1400, c: "#8b5cf6", g: "139,92,246", name: "Smart Search", desc: "Find anything across your workspace in milliseconds." },
+        { cx: 3100, cy: 1400, c: "#14b8a6", g: "20,184,166", name: "Team Spaces", desc: "Shared, secure workspaces for every team." },
+      ];
+      const orbBox = $("#orbs"); const wraps = [], orbEls = [], glowEls = [], labelEls = [];
+      const ic = '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7M21 4v5h-5"/></svg>';
+      ORBS.forEach((o, i) => {
+        const w = document.createElement("div"); w.className = "orbwrap";
+        w.style.left = (o.cx - 170) + "px"; w.style.top = (o.cy - 170) + "px"; w.style.width = "340px"; w.style.height = "340px";
+        const glassBg = 'radial-gradient(circle at 36% 30%, rgba(255,255,255,0.9), rgba(255,255,255,0) 28%),' +
+          'radial-gradient(circle at 72% 80%, rgba(' + o.g + ',0.9), transparent 64%),' +
+          'radial-gradient(circle at 50% 48%, rgba(' + o.g + ',0.42), rgba(' + o.g + ',0.12) 72%, rgba(' + o.g + ',0.04))';
+        const glassShadow = 'inset 0 0 50px rgba(255,255,255,0.22), inset -20px -28px 75px rgba(' + o.g + ',0.6), inset 16px 20px 55px rgba(255,255,255,0.16), 0 50px 110px rgba(' + o.g + ',0.45)';
+        w.innerHTML =
+          '<div class="oglow" style="background:radial-gradient(circle, rgba(' + o.g + ',0.55) 0%, rgba(' + o.g + ',0) 66%)"></div>' +
+          '<div class="orb" style="background:' + glassBg + ';box-shadow:' + glassShadow + '"><div class="spec"></div><div class="spec2"></div></div>' +
+          '<div class="olabel"><div class="lhd"><div class="lic" style="background:linear-gradient(135deg,rgba(' + o.g + ',1),rgba(' + o.g + ',0.6))">' + ic + '</div><div class="lname">' + o.name + '</div></div><div class="ldesc">' + o.desc + '</div></div>';
+        orbBox.appendChild(w);
+        wraps.push(w); orbEls.push(w.querySelector(".orb")); glowEls.push(w.querySelector(".oglow")); labelEls.push(w.querySelector(".olabel"));
+      });
+
+      // ---------- particles (from hero orb) ----------
+      const hero = ORBS[0];
+      const pbox = $("#particles"); const parts = [];
+      const NP = 40;
+      for (let i = 0; i < NP; i++) {
+        const p = document.createElement("div"); p.className = "particle";
+        const sz = 26 + (i % 5) * 12;
+        p.style.width = sz + "px"; p.style.height = sz + "px";
+        p.style.background = 'radial-gradient(circle at 35% 30%, rgba(255,255,255,0.85), rgba(' + hero.g + ',0.85) 55%, rgba(' + hero.g + ',0.5))';
+        pbox.appendChild(p); parts.push(p);
+      }
+      // deterministic explode targets (golden-angle spray)
+      const GA = 2.399963;
+      const ptarget = parts.map((p, i) => {
+        const ang = i * GA, dist = 360 + (i % 7) * 90;
+        return { x: hero.cx + Math.cos(ang) * dist, y: hero.cy + Math.sin(ang) * dist * 0.8, rot: (i * 53) % 360 };
+      });
+
+      // ---------- demo sidebar ----------
+      const dside = $("#dside");
+      ["Overview", "Documents", "Activity", "Members", "Settings"].forEach((n, i) => {
+        const d = document.createElement("div"); d.className = "dnav" + (i === 0 ? " on" : ""); d.innerHTML = '<div class="ni" style="background:' + (i === 0 ? "#4f7fe0" : "#39406a") + '"></div>' + n; dside.appendChild(d);
+      });
+
+      // ---------- measure ----------
+      const rectC = (e) => { const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
+      const ORBC = ORBS.map((o) => ({ x: o.cx, y: o.cy }));
+      const demoCx = 990 + 1860 / 2, demoCy = 600 + 1040 / 2;
+
+      // ---------- initial states ----------
+      const cursor = $("#cursor"), ring = $("#ring");
+      const TIPX = 9, TIPY = 6;
+      const tl = gsap.timeline({ paused: true });
+      gsap.set(".bg, .bgdots", { autoAlpha: 0 });
+      wraps.forEach((w) => gsap.set(w, { autoAlpha: 0, scale: 0.2, transformOrigin: "center center" }));
+      gsap.set(parts, { autoAlpha: 0 });
+      gsap.set("#demo", { autoAlpha: 0, display: "none" });
+      gsap.set("#darea", { autoAlpha: 0 });
+      gsap.set(["#dcur1", "#dcur2"], { autoAlpha: 0 });
+      gsap.set(ring, { autoAlpha: 0, scale: 0.3, left: -800, top: -800, transformOrigin: "center center" });
+      gsap.set(cursor, { x: 2200 - TIPX, y: 1700 - TIPY, autoAlpha: 0 });
+
+      const move = (t, p, d = 0.55) => tl.to(cursor, { x: p.x - TIPX, y: p.y - TIPY, duration: d, ease: "power3.inOut" }, t);
+      const clickFx = (t, p) => {
+        tl.to(cursor, { scale: 0.8, duration: 0.09, transformOrigin: "0 0" }, t);
+        tl.to(cursor, { scale: 1, duration: 0.16, ease: "back.out(2.6)" }, t + 0.09);
+        tl.set(ring, { left: p.x - 60, top: p.y - 60 }, t);
+        tl.fromTo(ring, { scale: 0.3, autoAlpha: 0.85 }, { scale: 3, autoAlpha: 0, duration: 0.6, ease: "power2.out" }, t);
+      };
+      // hover an orb: pulse + glow + label rise
+      const hoverOrb = (t, i) => {
+        tl.to(orbEls[i], { scale: 1.14, duration: 0.34, ease: "back.out(2)" }, t);
+        tl.to(orbEls[i], { scale: 1.06, duration: 0.5, ease: "power1.inOut" }, t + 0.34);
+        tl.fromTo(glowEls[i], { autoAlpha: 0, scale: 0.7 }, { autoAlpha: 1, scale: 1.1, duration: 0.5, ease: "power2.out" }, t);
+        tl.fromTo(labelEls[i], { autoAlpha: 0, y: 40 }, { autoAlpha: 1, y: 0, duration: 0.45, ease: "power3.out" }, t + 0.1);
+      };
+      const unhoverOrb = (t, i) => {
+        tl.to(orbEls[i], { scale: 1, duration: 0.4, ease: "power2.out" }, t);
+        tl.to(glowEls[i], { autoAlpha: 0, duration: 0.35 }, t);
+        tl.to(labelEls[i], { autoAlpha: 0, y: 30, duration: 0.3, ease: "power2.in" }, t);
+      };
+
+      // ===================== TIMELINE =====================
+      let t = 0;
+      tl.to(".bg", { autoAlpha: 1, duration: 0.6 }, 0);
+      tl.to(".bgdots", { autoAlpha: 1, duration: 0.8 }, 0.2);
+      // orbs scale/float in (stagger)
+      wraps.forEach((w, i) => tl.fromTo(w, { autoAlpha: 0, scale: 0.2 }, { autoAlpha: 1, scale: 1, duration: 0.8, ease: "back.out(1.5)" }, 0.4 + i * 0.18));
+      // continuous gentle float
+      wraps.forEach((w, i) => tl.to(w, { y: (i === 0 ? -26 : -20), duration: 2.0 + i * 0.3, ease: "sine.inOut", yoyo: true, repeat: 8 }, 1.0 + i * 0.2));
+      t = 1.9;
+      tl.to(cursor, { autoAlpha: 1, duration: 0.3 }, t);
+
+      // hover orb B (bottom-left)
+      move(t, ORBC[1], 0.6); t += 0.6;
+      hoverOrb(t, 1); t += 1.2;
+      unhoverOrb(t, 1);
+      // hover orb C (bottom-right)
+      move(t, ORBC[2], 0.7); t += 0.7;
+      hoverOrb(t, 2); t += 1.2;
+      unhoverOrb(t, 2);
+      // hover orb A (hero, apex)
+      move(t, ORBC[0], 0.7); t += 0.7;
+      hoverOrb(t, 0); t += 1.25;
+
+      // click the hero orb -> shatter
+      clickFx(t, ORBC[0]);
+      tl.to(labelEls[0], { autoAlpha: 0, y: 20, duration: 0.25 }, t);
+      // hide orb, burst particles from its center
+      tl.to(orbEls[0], { scale: 1.25, duration: 0.12, ease: "power2.out" }, t);
+      tl.to([orbEls[0], glowEls[0]], { autoAlpha: 0, duration: 0.16 }, t + 0.1);
+      parts.forEach((p, i) => {
+        gsap.set(p, { left: hero.cx - parseFloat(p.style.width) / 2, top: hero.cy - parseFloat(p.style.height) / 2 });
+        tl.set(p, { autoAlpha: 1 }, t + 0.08);
+        tl.to(p, { left: ptarget[i].x, top: ptarget[i].y, rotation: ptarget[i].rot, duration: 0.55, ease: "power2.out" }, t + 0.08);
+      });
+      t += 0.7;
+      // particles converge to the demo center, then dissolve as the screen springs in
+      parts.forEach((p, i) => {
+        tl.to(p, { left: demoCx, top: demoCy, scale: 0.2, autoAlpha: 0, duration: 0.5, ease: "power2.in" }, t + (i % 6) * 0.02);
+      });
+      t += 0.42;
+      tl.set("#demo", { display: "block" }, t);
+      tl.fromTo("#demo", { autoAlpha: 0, scale: 0.55, transformOrigin: "50% 50%" }, { autoAlpha: 1, scale: 1, duration: 0.7, ease: "back.out(1.45)", immediateRender: false }, t);
+      // dim the remaining orbs so focus moves to the demo
+      tl.to([wraps[1], wraps[2]], { autoAlpha: 0.4, duration: 0.6 }, t);
+      t += 0.85;
+
+      // ----- demo "comes alive" -----
+      // count KPIs
+      [["#k1", 248], ["#k2", 1320], ["#k3", 24]].forEach(([id, v]) => { const o = { v: 0 }; tl.to(o, { v: v, duration: 1.1, ease: "power1.out", onUpdate: () => { $(id).childNodes[0].nodeValue = Math.round(o.v).toLocaleString("en-US"); } }, t); });
+      // chart draws
+      tl.fromTo("#dline", { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 1.3, ease: "power1.inOut" }, t + 0.1);
+      tl.to("#darea", { autoAlpha: 1, duration: 1.0 }, t + 0.4);
+      t += 1.4;
+      // live collaborator cursors move around (realtime feel)
+      const dRect = $("#demo").getBoundingClientRect();
+      gsap.set("#dcur1", { left: 1300, top: 360 });
+      gsap.set("#dcur2", { left: 760, top: 620 });
+      tl.to("#dcur1", { autoAlpha: 1, duration: 0.3 }, t);
+      tl.to("#dcur2", { autoAlpha: 1, duration: 0.3 }, t + 0.3);
+      tl.to("#dcur1", { left: 980, top: 540, duration: 1.3, ease: "power1.inOut" }, t + 0.3);
+      tl.to("#dcur1", { left: 1180, top: 470, duration: 1.2, ease: "power1.inOut" }, t + 1.7);
+      tl.to("#dcur2", { left: 1120, top: 700, duration: 1.5, ease: "power1.inOut" }, t + 0.5);
+      tl.to("#dcur2", { left: 640, top: 470, duration: 1.3, ease: "power1.inOut" }, t + 2.1);
+      // live dot pulse
+      tl.to(".dlive .dot", { scale: 1.5, duration: 0.6, ease: "sine.inOut", yoyo: true, repeat: 10 }, t);
+      // cursor drifts to the demo
+      move(t + 0.2, { x: demoCx + 300, y: demoCy + 200 }, 1.0);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
