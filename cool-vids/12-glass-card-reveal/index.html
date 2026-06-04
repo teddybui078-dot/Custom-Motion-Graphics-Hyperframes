@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=3840, height=2160" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 3840px; height: 2160px; overflow: hidden; font-family: -apple-system, "SF Pro Display", "Inter", system-ui, sans-serif; }
+      .stage { position: absolute; inset: 0; overflow: visible; }
+
+      /* deep purple-navy canvas */
+      .canvas { position: absolute; inset: 0; background: linear-gradient(150deg, #241a4a 0%, #161433 44%, #0c0a1f 100%); }
+      /* two enormous soft color blobs that drift behind the glass */
+      .blob { position: absolute; width: 2700px; height: 2700px; border-radius: 50%; filter: blur(40px); will-change: transform; }
+      #coral { background: radial-gradient(circle, rgba(255,128,96,0.95) 0%, rgba(255,110,150,0.5) 38%, rgba(255,110,150,0) 66%); }
+      #teal { background: radial-gradient(circle, rgba(70,210,205,0.9) 0%, rgba(80,150,255,0.45) 40%, rgba(80,150,255,0) 66%); }
+      .grain { position: absolute; inset: 0; opacity: 0.04; background-image: radial-gradient(rgba(255,255,255,0.7) 2px, transparent 2px); background-size: 7px 7px; }
+
+      /* glass cards */
+      .card { position: absolute; border-radius: 48px; overflow: hidden; opacity: 0;
+        background: rgba(255,255,255,0.10);
+        backdrop-filter: blur(32px) saturate(150%); -webkit-backdrop-filter: blur(32px) saturate(150%);
+        border: 2px solid rgba(255,255,255,0.18);
+        box-shadow: inset 3px 3px 0 rgba(255,255,255,0.32), inset -2px -2px 0 rgba(255,255,255,0.04), inset 0 0 60px rgba(255,255,255,0.05), 0 60px 120px rgba(8,6,24,0.5); }
+      .tint { position: absolute; inset: 0; opacity: 0.5; mix-blend-mode: soft-light; }
+      .sheen { position: absolute; left: -30%; top: -60%; width: 80%; height: 120%; background: linear-gradient(120deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 60%); transform: rotate(8deg); }
+      .inner { position: absolute; inset: 0; padding: 64px 60px; display: flex; flex-direction: column; }
+      .cicon { width: 134px; height: 134px; border-radius: 34px; display: flex; align-items: center; justify-content: center; opacity: 0;
+        box-shadow: 0 18px 40px rgba(0,0,0,0.3), inset 0 2px 0 rgba(255,255,255,0.5); }
+      .chead { margin-top: auto; font-size: 64px; font-weight: 800; color: #fff; letter-spacing: -1.2px; line-height: 1.06; }
+      .chead .w { display: inline-block; opacity: 0; }
+      .cdesc { font-size: 31px; line-height: 1.45; color: rgba(255,255,255,0.72); margin-top: 24px; font-weight: 500; opacity: 0; }
+
+      #cursor { display: none; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="15" data-width="3840" data-height="2160">
+      <div class="stage" id="stage" data-layout-allow-overflow>
+        <div class="canvas"></div>
+        <div class="blob" id="coral" data-layout-allow-overflow></div>
+        <div class="blob" id="teal" data-layout-allow-overflow></div>
+        <div class="grain"></div>
+
+        <div class="card" id="cardL" style="left:690px; top:620px; width:760px; height:920px;">
+          <div class="tint" style="background:radial-gradient(120% 120% at 30% 20%, rgba(255,150,110,0.55), transparent 70%)"></div>
+          <div class="sheen"></div>
+          <div class="inner">
+            <div class="cicon" style="background:linear-gradient(135deg,#ff8a5c,#ff5f8d)"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
+            <div class="chead" id="headL"></div>
+            <div class="cdesc" id="descL">Record anything the moment it strikes — one tap, instantly saved.</div>
+          </div>
+        </div>
+
+        <div class="card" id="cardC" style="left:1520px; top:532px; width:800px; height:1040px;">
+          <div class="tint" style="background:radial-gradient(120% 120% at 50% 18%, rgba(255,255,255,0.4), transparent 72%)"></div>
+          <div class="sheen"></div>
+          <div class="inner">
+            <div class="cicon" style="background:linear-gradient(135deg,#a78bfa,#7c5cff)"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z"/><circle cx="19" cy="5" r="1.4" fill="#fff"/><circle cx="5" cy="18" r="1.1" fill="#fff"/></svg></div>
+            <div class="chead" id="headC"></div>
+            <div class="cdesc" id="descC">Turn rough sketches into polished, finished work without friction.</div>
+          </div>
+        </div>
+
+        <div class="card" id="cardR" style="left:2390px; top:620px; width:760px; height:920px;">
+          <div class="tint" style="background:radial-gradient(120% 120% at 70% 20%, rgba(96,200,255,0.55), transparent 70%)"></div>
+          <div class="sheen"></div>
+          <div class="inner">
+            <div class="cicon" style="background:linear-gradient(135deg,#46d2cd,#3b82f6)"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg></div>
+            <div class="chead" id="headR"></div>
+            <div class="cdesc" id="descR">Share, review, and launch together — your whole team, in sync.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const $ = (s) => document.querySelector(s);
+
+      // build word-by-word headlines
+      const HEADS = { headL: "Capture ideas", headC: "Create freely", headR: "Ship together" };
+      const wordEls = {};
+      Object.entries(HEADS).forEach(([id, text]) => {
+        const el = $("#" + id); const ws = [];
+        text.split(" ").forEach((w, i, arr) => { const s = document.createElement("span"); s.className = "w"; s.textContent = w; el.appendChild(s); ws.push(s); if (i < arr.length - 1) el.appendChild(document.createTextNode(" ")); });
+        wordEls[id] = ws;
+      });
+
+      // blob centers -> position by center
+      const coral = $("#coral"), teal = $("#teal");
+      const place = (el, cx, cy) => { el.style.left = (cx - 1350) + "px"; el.style.top = (cy - 1350) + "px"; };
+      place(coral, 1380, 700);   // warm bloom biased to the left / upper
+      place(teal, 2520, 1560);   // cool bloom biased to the right / lower
+
+      // ---------- initial states ----------
+      const tl = gsap.timeline({ paused: true });
+      gsap.set(".canvas, .grain", { autoAlpha: 0 });
+      gsap.set([coral, teal], { autoAlpha: 0, transformOrigin: "center center" });
+      ["cardL", "cardC", "cardR"].forEach((id) => gsap.set("#" + id, { autoAlpha: 0, y: 40 }));
+
+      // ---------- reveal one card: rise (spring), icon, headline words, descriptor ----------
+      function revealCard(t, id, headId, descId) {
+        tl.to("#" + id, { autoAlpha: 1, y: 0, duration: 0.72, ease: "back.out(1.7)" }, t);
+        tl.fromTo("#" + id + " .cicon", { autoAlpha: 0, scale: 0.5, y: 14 }, { autoAlpha: 1, scale: 1, y: 0, duration: 0.42, ease: "back.out(2.2)" }, t + 0.34);
+        wordEls[headId].forEach((w, i) => tl.fromTo(w, { autoAlpha: 0, y: 18 }, { autoAlpha: 1, y: 0, duration: 0.34, ease: "power2.out" }, t + 0.62 + i * 0.13));
+        tl.fromTo("#" + descId, { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.4, ease: "power2.out" }, t + 0.62 + wordEls[headId].length * 0.13 + 0.06);
+        return t + 1.5;
+      }
+
+      // ===================== TIMELINE =====================
+      tl.to(".canvas", { autoAlpha: 1, duration: 0.6 }, 0);
+      tl.to([coral, teal], { autoAlpha: 1, duration: 1.0 }, 0.2);
+      tl.to(".grain", { autoAlpha: 1, duration: 0.8 }, 0.4);
+
+      // blobs drift slowly (phase 1), then accelerate after the cards are revealed (phase 2)
+      tl.to(coral, { x: 240, y: 150, duration: 4.5, ease: "sine.inOut" }, 0.4);
+      tl.to(coral, { x: -120, y: -90, duration: 4.6, ease: "sine.inOut" }, 4.9);
+      tl.to(teal, { x: -220, y: -130, duration: 4.6, ease: "sine.inOut" }, 0.4);
+      tl.to(teal, { x: 160, y: 120, duration: 4.5, ease: "sine.inOut" }, 5.0);
+      // phase 2 — accelerated drift (faster, wider), colours shifting beneath the glass
+      tl.to(coral, { x: 520, y: -260, duration: 1.7, ease: "sine.inOut" }, 9.6);
+      tl.to(coral, { x: -320, y: 300, duration: 1.6, ease: "sine.inOut" }, 11.3);
+      tl.to(coral, { x: 180, y: -160, duration: 1.7, ease: "sine.inOut" }, 12.9);
+      tl.to(teal, { x: 460, y: 320, duration: 1.6, ease: "sine.inOut" }, 9.6);
+      tl.to(teal, { x: -360, y: -280, duration: 1.7, ease: "sine.inOut" }, 11.2);
+      tl.to(teal, { x: 240, y: 180, duration: 1.6, ease: "sine.inOut" }, 12.9);
+      // a gentle scale pulse on the blobs during the acceleration (the landscape breathing)
+      tl.to([coral, teal], { scale: 1.12, duration: 2.6, ease: "sine.inOut", yoyo: true, repeat: 1 }, 9.8);
+
+      // cards rise one at a time, left -> center -> right
+      let t = 1.4;
+      t = revealCard(t, "cardL", "headL", "descL");
+      t = revealCard(t - 0.45, "cardC", "headC", "descC");
+      t = revealCard(t - 0.45, "cardR", "headR", "descR");
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
