@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en" data-resolution="portrait">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=2160, height=3840" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 2160px; height: 3840px; overflow: hidden;
+        font-family: -apple-system, "SF Pro Display", "Inter", system-ui, sans-serif; }
+
+      .screen { position: absolute; inset: 0; overflow: hidden;
+        background: #0a0a14; }
+
+      /* colorful wallpaper so the frosting clearly has something to blur */
+      .wall { position: absolute; inset: 0; }
+      .wb { position: absolute; border-radius: 50%; filter: blur(150px); }
+      .wb.a { left: -10%; top: -6%;  width: 1400px; height: 1400px; background: #6d28d9; opacity: 0.9; }
+      .wb.b { right: -14%; top: 8%;  width: 1500px; height: 1500px; background: #db2777; opacity: 0.8; }
+      .wb.c { left: -8%; bottom: 6%; width: 1500px; height: 1500px; background: #0891b2; opacity: 0.85; }
+      .wb.d { right: -10%; bottom: -8%; width: 1400px; height: 1400px; background: #ea580c; opacity: 0.7; }
+      .wb.e { left: 30%; top: 40%; width: 1100px; height: 1100px; background: #2563eb; opacity: 0.55; }
+
+      /* status bar */
+      .status { position: absolute; left: 0; top: 70px; width: 100%; height: 90px;
+        display: flex; align-items: center; justify-content: space-between; padding: 0 110px; z-index: 5; }
+      .st-time { font-size: 52px; font-weight: 600; color: #fff; letter-spacing: 1px; }
+      .st-ind { display: flex; align-items: center; gap: 18px; }
+      .st-ind .bar { width: 10px; border-radius: 4px; background: #fff; }
+      .st-batt { width: 78px; height: 38px; border: 4px solid rgba(255,255,255,0.85); border-radius: 10px; position: relative; }
+      .st-batt::after { content: ""; position: absolute; inset: 5px; width: 70%; background: #fff; border-radius: 4px; }
+
+      /* home-screen app grid (sharp + vivid; the glass frosts it) */
+      .home { position: absolute; left: 0; top: 300px; width: 100%;
+        display: grid; grid-template-columns: repeat(4, 1fr); gap: 90px 110px; padding: 60px 200px; z-index: 1; }
+      .app { aspect-ratio: 1; border-radius: 90px; display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 24px 48px rgba(0,0,0,0.35), inset 0 3px 0 rgba(255,255,255,0.25); }
+      .app svg { width: 52%; height: 52%; stroke: rgba(255,255,255,0.92); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+      .app .fill { fill: rgba(255,255,255,0.92); stroke: none; }
+
+      /* notification cards */
+      .ncard { position: absolute; left: 40px; width: 2080px; height: 160px; top: 560px; will-change: transform;
+        border-radius: 40px; overflow: hidden;
+        background: rgba(255,255,255,0.14);
+        backdrop-filter: blur(34px) saturate(160%) brightness(1.06); -webkit-backdrop-filter: blur(34px) saturate(160%) brightness(1.06);
+        border: 1px solid rgba(255,255,255,0.16);
+        box-shadow: 0 40px 80px rgba(0,0,0,0.4), inset 0 3px 0 rgba(255,255,255,0.45), inset 3px 0 0 rgba(255,255,255,0.3); }
+      .ncard-inner { position: absolute; inset: 0; display: flex; align-items: center; gap: 34px; padding: 0 40px; }
+      .n-icon { width: 108px; height: 108px; flex: none; border-radius: 28px; display: flex; align-items: center; justify-content: center;
+        box-shadow: inset 0 2px 0 rgba(255,255,255,0.5), 0 10px 22px rgba(0,0,0,0.3); }
+      .n-icon svg { width: 56px; height: 56px; stroke: #fff; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+      .n-body { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 8px; min-width: 0; }
+      .n-top { display: flex; align-items: baseline; justify-content: space-between; }
+      .n-app { font-size: 32px; font-weight: 700; letter-spacing: 2px; color: rgba(255,255,255,0.66); text-transform: uppercase; }
+      .n-time { font-size: 30px; font-weight: 500; color: rgba(255,255,255,0.5); }
+      .n-head { position: relative; font-size: 48px; font-weight: 500; color: #fff; white-space: nowrap; overflow: hidden; }
+      .n-head .ch { opacity: 0; }
+      .n-caret { position: absolute; left: 0; top: 50%; width: 4px; height: 52px; background: rgba(255,255,255,0.85);
+        border-radius: 2px; transform: translateY(-50%); opacity: 0; box-shadow: 0 0 12px rgba(255,255,255,0.5); }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="12" data-width="2160" data-height="3840">
+      <div class="screen" data-layout-allow-overflow>
+        <div class="wall" id="wall" data-layout-allow-overflow>
+          <div class="wb a"></div><div class="wb b"></div><div class="wb c"></div><div class="wb d"></div><div class="wb e"></div>
+        </div>
+
+        <div class="status">
+          <div class="st-time">9:41</div>
+          <div class="st-ind">
+            <div class="bar" style="height:22px"></div><div class="bar" style="height:30px"></div>
+            <div class="bar" style="height:38px"></div><div class="bar" style="height:46px"></div>
+            <div class="st-batt"></div>
+          </div>
+        </div>
+
+        <div class="home" id="home"></div>
+
+        <div class="ncard" id="card2" style="z-index:11"><div class="ncard-inner" id="inner2"></div></div>
+        <div class="ncard" id="card1" style="z-index:10"><div class="ncard-inner" id="inner1"></div></div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const FPS = 30;
+      const f = (n) => n / FPS;
+
+      // ---------- home-screen icons ----------
+      const APPS = [
+        ["#34d399","#10b981",'<path class="fill" d="M4 5h16v11H9l-4 4z"/>'],
+        ["#60a5fa","#2563eb",'<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 9h16M8 3v4M16 3v4"/>'],
+        ["#f472b6","#db2777",'<path class="fill" d="M12 20S4 14.5 4 9.2A4.2 4.2 0 0 1 12 7a4.2 4.2 0 0 1 8 2.2C20 14.5 12 20 12 20z"/>'],
+        ["#fbbf24","#f59e0b",'<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6L17 7M7 17l-1.4 1.4"/>'],
+        ["#a78bfa","#7c3aed",'<rect x="3" y="7" width="18" height="13" rx="3"/><circle cx="12" cy="13.5" r="3.6"/><path d="M8 7l1.6-3h4.8L16 7"/>'],
+        ["#22d3ee","#0891b2",'<circle cx="7" cy="18" r="2.6"/><circle cx="18" cy="16" r="2.6"/><path d="M9.6 18V5l11-2v11"/>'],
+        ["#fb7185","#e11d48",'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>'],
+        ["#4ade80","#16a34a",'<path d="M5 12l4 4 10-10"/>'],
+        ["#818cf8","#4f46e5",'<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 12h6M12 9v6"/>'],
+        ["#f0abfc","#c026d3",'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>'],
+        ["#fdba74","#ea580c",'<path d="M3 17l6-6 4 4 7-7"/><path d="M14 7h4v4"/>'],
+        ["#5eead4","#0d9488",'<rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 9h18M7 5v14"/>'],
+        ["#93c5fd","#3b82f6",'<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>'],
+        ["#c4b5fd","#8b5cf6",'<circle cx="12" cy="9" r="4"/><path d="M5 20a7 7 0 0 1 14 0"/>'],
+        ["#86efac","#22c55e",'<path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 5l-9 9-3-3"/>'],
+        ["#fca5a5","#ef4444",'<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8 12h8"/>'],
+        ["#67e8f9","#06b6d4",'<path d="M3 12h4l3 8 4-16 3 8h4"/>'],
+        ["#d8b4fe","#a855f7",'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a8 8 0 0 0 .1-6l-2 1a6 6 0 0 0-1.5-1.5l.3-2.2-3-1.7-1.6 1.5a6 6 0 0 0-2 0L8 5 5 6.7l.3 2.2A6 6 0 0 0 3.8 10l-2-1a8 8 0 0 0 0 6l2-1a6 6 0 0 0 1.5 1.5L5 17.7l3 1.7 1.6-1.5a6 6 0 0 0 2 0l1.6 1.5 3-1.7-.3-2.2a6 6 0 0 0 1.5-1.5z"/>'],
+        ["#fde68a","#eab308",'<path class="fill" d="M12 3l2.6 6.3 6.8.5-5.2 4.4 1.7 6.6L12 17l-5.9 3.8 1.7-6.6L2.6 9.8l6.8-.5z"/>'],
+        ["#7dd3fc","#0ea5e9",'<path d="M4 15a7 7 0 0 1 13-3 5 5 0 0 1-1 9H7a4 4 0 0 1-3-6z"/>'],
+      ];
+      const home = document.getElementById("home");
+      APPS.forEach(([c1, c2, glyph]) => {
+        const a = document.createElement("div");
+        a.className = "app";
+        a.style.background = `linear-gradient(150deg, ${c1}, ${c2})`;
+        a.innerHTML = `<svg viewBox="0 0 24 24">${glyph}</svg>`;
+        home.appendChild(a);
+      });
+
+      // ---------- notification content ----------
+      const MSG = '<path d="M4 5h16v11H9l-4 4z"/>';
+      const CAL = '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 9h16M8 3v4M16 3v4"/>';
+      const CARDS = [
+        { inner: "inner1", icA: "#34d399", icB: "#10b981", glyph: MSG, app: "Messages", time: "now", head: "Hey — are we still on for 7?" },
+        { inner: "inner2", icA: "#fb7185", icB: "#e11d48", glyph: CAL, app: "Calendar", time: "now", head: "Design review starts in 15 min" },
+      ];
+      const heads = {};
+      CARDS.forEach((c) => {
+        const inner = document.getElementById(c.inner);
+        const charSpans = [...c.head].map((ch) =>
+          `<span class="ch">${ch === " " ? "&nbsp;" : ch}</span>`).join("");
+        inner.innerHTML =
+          `<div class="n-icon" style="background:linear-gradient(150deg,${c.icA},${c.icB})"><svg viewBox="0 0 24 24">${c.glyph}</svg></div>` +
+          `<div class="n-body">` +
+            `<div class="n-top"><div class="n-app">${c.app}</div><div class="n-time">${c.time}</div></div>` +
+            `<div class="n-head"><span class="htext">${charSpans}</span><span class="n-caret"></span></div>` +
+          `</div>`;
+        const chars = inner.querySelectorAll(".ch");
+        const htext = inner.querySelector(".htext");
+        const baseLeft = htext.getBoundingClientRect().left;
+        const offsets = [...chars].map((c) => c.getBoundingClientRect().right - baseLeft);
+        heads[c.inner] = {
+          chars,
+          offsets,
+          caret: inner.querySelector(".n-caret"),
+          icon: inner.querySelector(".n-icon"),
+          app: inner.querySelector(".n-app"),
+          time: inner.querySelector(".n-time"),
+        };
+      });
+
+      // ---------- initial states ----------
+      gsap.set("#card1", { y: -760 });
+      gsap.set("#card2", { y: -900, autoAlpha: 0 });
+      [heads.inner1, heads.inner2].forEach((h) => {
+        gsap.set(h.icon, { scale: 0, autoAlpha: 0, transformOrigin: "50% 50%" });
+        gsap.set([h.app, h.time], { autoAlpha: 0 });
+        gsap.set(h.caret, { autoAlpha: 0 });
+      });
+
+      // ---------- helpers ----------
+      const typeIn = (tl, h, startT) => {
+        const per = f(1.8); // ~natural reading pace (~17 chars/sec)
+        tl.to(h.caret, { autoAlpha: 1, duration: 0.1 }, startT);
+        h.chars.forEach((ch, i) => {
+          tl.set(ch, { opacity: 1 }, startT + i * per);
+          tl.set(h.caret, { left: h.offsets[i] }, startT + i * per);
+        });
+        const end = startT + h.chars.length * per;
+        tl.to(h.caret, { autoAlpha: 0, duration: 0.25 }, end + 0.15);
+        return end;
+      };
+
+      // ===================== TIMELINE =====================
+      const tl = gsap.timeline({ paused: true });
+
+      // wallpaper drifts imperceptibly
+      tl.fromTo("#wall", { x: -18, y: -14 }, { x: 18, y: 14, duration: 12, ease: "sine.inOut" }, 0);
+
+      // --- card 1 slides down from the top, overshoot 16px, settle ---
+      let t = 0.3;
+      tl.to("#card1", { y: 16, duration: 0.6, ease: "power3.out" }, t);   // slide + overshoot 16px past rest
+      tl.to("#card1", { y: 0, duration: 0.28, ease: "sine.inOut" }, t + 0.6);
+      t += 0.95;
+
+      // --- card 1 contents materialize ---
+      tl.to(heads.inner1.icon, { autoAlpha: 1, scale: 1, duration: 0.4, ease: "back.out(1.8)" }, t);
+      tl.fromTo(heads.inner1.app, { autoAlpha: 0, x: -14 }, { autoAlpha: 1, x: 0, duration: 0.4, ease: "power2.out" }, t + 0.12);
+      tl.fromTo(heads.inner1.time, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.4, ease: "power2.out" }, t + 0.22);
+      const c1end = typeIn(tl, heads.inner1, t + 0.35);
+
+      // --- hold 3 seconds ---
+      const card2In = c1end + 3.0;
+
+      // --- card 2 enters from the top, pushing card 1 down; stack with 24px gap, slight compress ---
+      tl.set("#card2", { autoAlpha: 1 }, card2In - 0.01);
+      tl.to("#card2", { y: 16, duration: 0.6, ease: "power3.out" }, card2In);     // card2 to top slot + overshoot
+      tl.to("#card2", { y: 0, duration: 0.28, ease: "sine.inOut" }, card2In + 0.6);
+      // card 1 is pushed down to 560 + 160 + 24 = 744 (delta +184) and compresses slightly
+      tl.to("#card1", { y: 184, scale: 0.985, transformOrigin: "50% 50%", duration: 0.7, ease: "power3.out" }, card2In);
+      let t2 = card2In + 0.95;
+
+      // --- card 2 contents materialize + type ---
+      tl.to(heads.inner2.icon, { autoAlpha: 1, scale: 1, duration: 0.4, ease: "back.out(1.8)" }, t2);
+      tl.fromTo(heads.inner2.app, { autoAlpha: 0, x: -14 }, { autoAlpha: 1, x: 0, duration: 0.4, ease: "power2.out" }, t2 + 0.12);
+      tl.fromTo(heads.inner2.time, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.4, ease: "power2.out" }, t2 + 0.22);
+      typeIn(tl, heads.inner2, t2 + 0.35);
+
+      // both cards hold through the end (12s); background stays visible through both
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
