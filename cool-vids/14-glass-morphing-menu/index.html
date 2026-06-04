@@ -4,12 +4,285 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=3840, height=2160" />
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 3840px; height: 2160px; overflow: hidden;
+        font-family: "Inter", system-ui, sans-serif; }
+
+      .stage { position: absolute; inset: 0; overflow: hidden; background: #070310; }
+
+      /* ---------- vivid, busy background — maximum contrast for the glass ---------- */
+      .bg { position: absolute; inset: -8%; }
+      .blob { position: absolute; border-radius: 50%; filter: blur(130px); will-change: transform; }
+      .blob.b1 { left: -6%;  top: -12%;  width: 1600px; height: 1600px; background: #ff2e88; opacity: 0.88; }
+      .blob.b2 { right: -8%; top: -6%;   width: 1700px; height: 1700px; background: #18c8ff; opacity: 0.85; }
+      .blob.b3 { left: 20%;  bottom: -18%;width: 1800px; height: 1800px; background: #7c3aed; opacity: 0.85; }
+      .blob.b4 { right: 12%; bottom: -8%; width: 1400px; height: 1400px; background: #ffb000; opacity: 0.78; }
+      .blob.b5 { left: 42%;  top: 12%;    width: 1200px; height: 1200px; background: #00e08a; opacity: 0.6; }
+      .blob.b6 { left: 6%;   top: 40%;    width: 1100px; height: 1100px; background: #ff5e3a; opacity: 0.62; }
+      .blob.b7 { right: 30%; top: 30%;    width: 980px;  height: 980px;  background: #ff2ec4; opacity: 0.55; }
+
+      .shape { position: absolute; will-change: transform; opacity: 0.5; }
+      .ring { border-radius: 50%; border: 64px solid rgba(255,255,255,0.10); }
+      .r1 { left: 12%; top: 48%; width: 760px; height: 760px; }
+      .r2 { right: 9%; top: 12%; width: 560px; height: 560px; border-color: rgba(255,225,120,0.18); }
+      .pill-s { border-radius: 220px; }
+      .p1 { right: 24%; bottom: 16%; width: 960px; height: 320px; background: linear-gradient(90deg,#ff2e88,#ffb000); transform: rotate(-24deg); opacity: 0.42; filter: blur(10px); }
+      .p2 { left: 4%; bottom: 24%; width: 800px; height: 260px; background: linear-gradient(90deg,#18c8ff,#7c3aed); transform: rotate(18deg); opacity: 0.42; filter: blur(10px); }
+      .dot { border-radius: 50%; background: rgba(255,255,255,0.5); filter: blur(2px); }
+      .grain { position: absolute; inset: 0; pointer-events: none; opacity: 0.06; mix-blend-mode: overlay;
+        background-image: radial-gradient(rgba(255,255,255,0.8) 1px, transparent 1px); background-size: 4px 4px; }
+
+      /* ---------- glass element (morphs pill <-> card) ---------- */
+      .glass-anchor { position: absolute; left: 0; right: 0; bottom: 220px;
+        display: flex; justify-content: center; align-items: flex-end; pointer-events: none; }
+
+      .glass { position: relative; width: 820px; height: 156px; border-radius: 78px; overflow: hidden;
+        background: rgba(255,255,255,0.12);
+        backdrop-filter: blur(46px) saturate(165%) brightness(1.06);
+        -webkit-backdrop-filter: blur(46px) saturate(165%) brightness(1.06);
+        border: 1px solid rgba(255,255,255,0.20);
+        box-shadow: 0 40px 90px rgba(0,0,0,0.42), 0 8px 24px rgba(0,0,0,0.30); }
+
+      /* inset highlight stroke (top + left brighter) */
+      .g-rim { position: absolute; inset: 0; border-radius: 78px; pointer-events: none; opacity: 0.6;
+        box-shadow: inset 0 3px 0 rgba(255,255,255,0.9), inset 3px 0 0 rgba(255,255,255,0.7),
+                    inset 0 0 26px rgba(255,255,255,0.22), inset 0 -3px 12px rgba(0,0,0,0.20); }
+      /* light catch during the morph */
+      .g-flash { position: absolute; inset: 0; border-radius: 78px; pointer-events: none; opacity: 0; mix-blend-mode: screen;
+        background: radial-gradient(120% 120% at 32% 18%, rgba(255,255,255,0.75), rgba(255,255,255,0.12) 52%, transparent 74%); }
+
+      /* nav icon row — lives in the bottom pill strip */
+      .nav-icons { position: absolute; left: 0; right: 0; bottom: 0; height: 156px; z-index: 3;
+        display: flex; align-items: center; justify-content: center; gap: 64px; }
+      .nicon { width: 86px; height: 86px; border-radius: 26px; display: flex; align-items: center; justify-content: center;
+        background: rgba(255,255,255,0.10); border: 1px solid rgba(255,255,255,0.16); }
+      .nicon svg { width: 44px; height: 44px; }
+      .nicon.center { background: rgba(255,255,255,0.22); border-color: rgba(255,255,255,0.32); }
+
+      /* expanded card content */
+      .card-content { position: absolute; left: 0; right: 0; bottom: 0; height: 980px; z-index: 2;
+        display: flex; flex-direction: column; align-items: stretch; padding: 64px 60px 40px;
+        gap: 12px; }
+      .grabber { width: 132px; height: 11px; border-radius: 8px; background: rgba(255,255,255,0.42);
+        margin: 0 auto 28px; }
+      .menu-row { position: relative; display: flex; align-items: center; gap: 36px; height: 168px;
+        padding: 0 30px; border-radius: 34px; }
+      .row-hl { position: absolute; inset: 0; border-radius: 34px; background: rgba(255,255,255,0.18);
+        opacity: 0; pointer-events: none; }
+      .mtile { width: 96px; height: 96px; border-radius: 26px; flex: none; display: flex; align-items: center; justify-content: center;
+        background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.20); }
+      .mtile svg { width: 50px; height: 50px; }
+      .mtile.danger { background: rgba(255,90,90,0.20); border-color: rgba(255,120,120,0.34); }
+      .mlabel { color: rgba(255,255,255,0.96); font-size: 56px; font-weight: 500; letter-spacing: 0.3px;
+        text-shadow: 0 2px 14px rgba(0,0,0,0.45); }
+      .mlabel.danger { color: #ffd0d0; }
+
+      #cursor { position: absolute; left: 0; top: 0; z-index: 90; opacity: 0;
+        filter: drop-shadow(0 10px 14px rgba(0,0,0,0.5)); }
+    </style>
   </head>
   <body>
-    <div id="root" data-composition-id="main" data-start="0" data-duration="14" data-width="3840" data-height="2160"></div>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="14" data-width="3840" data-height="2160">
+      <div class="stage" data-layout-allow-overflow>
+        <div class="bg" id="bg" data-layout-allow-overflow>
+          <div class="blob b1" id="s1"></div>
+          <div class="blob b2" id="s2"></div>
+          <div class="blob b3" id="s3"></div>
+          <div class="blob b4" id="s4"></div>
+          <div class="blob b5" id="s5"></div>
+          <div class="blob b6" id="s6"></div>
+          <div class="blob b7" id="s7"></div>
+          <div class="shape ring r1" id="s8"></div>
+          <div class="shape ring r2" id="s9"></div>
+          <div class="shape pill-s p1" id="s10"></div>
+          <div class="shape pill-s p2" id="s11"></div>
+          <div class="shape dot" id="s12" style="left:60%; top:28%; width:130px; height:130px;"></div>
+          <div class="shape dot" id="s13" style="left:28%; top:68%; width:96px; height:96px;"></div>
+        </div>
+
+        <div class="glass-anchor" id="anchor" data-layout-allow-overflow>
+          <div class="glass" id="glass">
+            <div class="g-rim" id="grim"></div>
+            <div class="g-flash" id="gflash"></div>
+
+            <!-- expanded card menu -->
+            <div class="card-content" id="card">
+              <div class="grabber" id="grabber"></div>
+
+              <div class="menu-row" id="row0">
+                <div class="row-hl" id="hl0"></div>
+                <div class="mtile">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/>
+                    <path d="M8.3 10.8 L15.7 6.6 M8.3 13.2 L15.7 17.4"/>
+                  </svg>
+                </div>
+                <div class="mlabel">Share</div>
+              </div>
+
+              <div class="menu-row" id="row1">
+                <div class="row-hl" id="hl1"></div>
+                <div class="mtile">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15 V6 A2 2 0 0 1 7 4 H15"/>
+                  </svg>
+                </div>
+                <div class="mlabel">Duplicate</div>
+              </div>
+
+              <div class="menu-row" id="row2">
+                <div class="row-hl" id="hl2"></div>
+                <div class="mtile">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 20 L4 16 L15 5 L19 9 L8 20 Z"/><path d="M13.5 6.5 L17.5 10.5"/>
+                  </svg>
+                </div>
+                <div class="mlabel">Rename</div>
+              </div>
+
+              <div class="menu-row" id="row3">
+                <div class="row-hl" id="hl3"></div>
+                <div class="mtile danger">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#ffb4b4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 6 H20 M9 6 V4 H15 V6 M6 6 L7 20 H17 L18 6"/>
+                  </svg>
+                </div>
+                <div class="mlabel danger">Delete</div>
+              </div>
+            </div>
+
+            <!-- bottom nav icons -->
+            <div class="nav-icons" id="nav">
+              <div class="nicon" id="n0">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 11 L12 4 L20 11 M6 9.5 V20 H18 V9.5"/>
+                </svg>
+              </div>
+              <div class="nicon" id="n1">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="6"/><path d="M16 16 L20 20"/>
+                </svg>
+              </div>
+              <div class="nicon center" id="n2">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 5 V19 M5 12 H19"/>
+                </svg>
+              </div>
+              <div class="nicon" id="n3">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="8.5" r="3.6"/><path d="M5.5 19 A6.5 6.5 0 0 1 18.5 19"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="cursor">
+          <svg width="78" height="92" viewBox="0 0 24 28">
+            <path d="M3,2 L3,22 L8.5,16.8 L12,24.5 L15.4,23 L11.9,15.3 L19,15.3 Z"
+                  fill="#ffffff" stroke="#1b1b22" stroke-width="1.4" stroke-linejoin="round"/>
+          </svg>
+        </div>
+
+        <div class="grain"></div>
+      </div>
+    </div>
+
     <script>
       window.__timelines = window.__timelines || {};
-      window.__timelines["main"] = gsap.timeline({ paused: true });
+      const FPS = 30;
+      const f = (n) => n / FPS; // frames -> seconds
+
+      // geometry (4K canvas)
+      const PILL = { w: 820, h: 156 };
+      const CARD = { w: 880, h: 980 };
+
+      // ---------- initial states ----------
+      gsap.set("#glass", { width: PILL.w, height: PILL.h, autoAlpha: 0, y: 54, scale: 0.9, transformOrigin: "50% 100%" });
+      gsap.set("#nav .nicon", { autoAlpha: 0, scale: 0.6, transformOrigin: "50% 50%" });
+      gsap.set("#card", { autoAlpha: 1 });
+      gsap.set("#grabber", { autoAlpha: 0, y: -10 });
+      gsap.set(".menu-row", { autoAlpha: 0, y: 26 });
+      gsap.set(".row-hl", { autoAlpha: 0 });
+      gsap.set("#gflash", { autoAlpha: 0 });
+      gsap.set("#cursor", { autoAlpha: 0, x: 2620, y: 1560 });
+
+      // ===================== TIMELINE =====================
+      const tl = gsap.timeline({ paused: true });
+
+      // --- busy background drifts the whole 14s (single slow pass each) ---
+      const drift = [
+        ["#s1", 60, 40], ["#s2", -70, 30], ["#s3", 44, -52], ["#s4", -54, -42],
+        ["#s5", 34, 50], ["#s6", 52, -32], ["#s7", -40, 36], ["#s8", -42, 26],
+        ["#s9", 38, 42], ["#s10", -30, -22], ["#s11", 30, 28], ["#s12", -26, 32], ["#s13", 32, -24],
+      ];
+      drift.forEach(([sel, dx, dy]) => {
+        tl.fromTo(sel, { x: -dx * 0.5, y: -dy * 0.5 }, { x: dx * 0.5, y: dy * 0.5, duration: 14, ease: "sine.inOut" }, 0);
+      });
+
+      // --- pill entrance: spring up from the bottom ---
+      let t = 0.3;
+      tl.to("#glass", { autoAlpha: 1, duration: f(4) }, t);
+      tl.to("#glass", { y: 0, scale: 1, duration: f(14), ease: "back.out(1.7)" }, t);
+      tl.to("#nav .nicon", { autoAlpha: 1, scale: 1, duration: f(8), ease: "back.out(2)", stagger: f(2) }, t + f(5));
+
+      // --- cursor enters and settles over the centre (+) icon ---
+      const cursorIn = 1.7;
+      tl.to("#cursor", { autoAlpha: 1, duration: 0.3 }, cursorIn);
+      tl.to("#cursor", { x: 1902, y: 1812, duration: 0.8, ease: "power2.inOut" }, cursorIn);
+
+      // --- the tap on the centre icon ---
+      const tap = 2.7;
+      tl.to("#cursor", { y: 1830, duration: f(2), ease: "power2.in" }, tap - f(2));
+      tl.to("#cursor", { y: 1812, duration: f(3), ease: "power2.out" }, tap + f(1));
+      tl.to("#n2", { scale: 0.84, duration: f(2), ease: "power2.in" }, tap);
+      tl.to("#n2", { scale: 1, duration: f(5), ease: "back.out(2.2)" }, tap + f(2));
+
+      // --- THE MORPH: one continuous spring, pill expands up & out into a card ---
+      const morph = 3.0;
+      tl.to("#glass", { width: CARD.w, height: CARD.h, duration: f(20), ease: "back.out(1.25)" }, morph);
+      tl.to("#nav .nicon", { autoAlpha: 0, scale: 0.7, duration: f(6), ease: "power2.in" }, morph);
+      // glass catches the light as it expands over the larger surface
+      tl.to("#gflash", { autoAlpha: 0.55, duration: f(8), ease: "power2.out" }, morph);
+      tl.to("#gflash", { autoAlpha: 0, duration: f(12), ease: "power2.in" }, morph + f(8));
+      // grabber handle appears near the top
+      tl.to("#grabber", { autoAlpha: 1, y: 0, duration: f(8), ease: "power2.out" }, morph + f(10));
+
+      // --- menu items fade in top -> bottom, 6-frame stagger ---
+      const rowsStart = morph + f(13);
+      tl.to(".menu-row", { autoAlpha: 1, y: 0, duration: f(9), ease: "power3.out", stagger: f(6) }, rowsStart);
+
+      // --- cursor drifts up to the second item and clicks ---
+      const cursorMove = 7.5;
+      tl.to("#cursor", { x: 1886, y: 1338, duration: 0.85, ease: "power2.inOut" }, cursorMove);
+
+      const click = 8.6;
+      tl.to("#cursor", { y: 1356, duration: f(2), ease: "power2.in" }, click - f(2));
+      tl.to("#cursor", { y: 1338, duration: f(3), ease: "power2.out" }, click + f(1));
+      // selected row (Duplicate) lights up
+      tl.to("#hl1", { autoAlpha: 1, duration: f(2), ease: "power2.out" }, click);
+      tl.to("#hl1", { autoAlpha: 0, duration: f(10), ease: "power2.in" }, click + f(3));
+      tl.to("#row1", { scale: 1.025, duration: f(3), ease: "power2.out", transformOrigin: "50% 50%" }, click);
+      tl.to("#row1", { scale: 1, duration: f(5), ease: "power2.inOut" }, click + f(3));
+
+      // --- THE MORPH BACK: card contracts to the pill, spring pulling inward ---
+      const back = 9.2;
+      tl.to(".menu-row", { autoAlpha: 0, y: 18, duration: f(7), ease: "power2.in", stagger: f(3) }, back - f(2));
+      tl.to("#grabber", { autoAlpha: 0, duration: f(5), ease: "power2.in" }, back - f(2));
+      tl.to("#glass", { width: PILL.w, height: PILL.h, duration: f(16), ease: "back.out(1.15)" }, back);
+      // a quieter light catch on the way in
+      tl.to("#gflash", { autoAlpha: 0.32, duration: f(6), ease: "power2.out" }, back);
+      tl.to("#gflash", { autoAlpha: 0, duration: f(10), ease: "power2.in" }, back + f(6));
+      // nav icons return in the resettled pill
+      tl.to("#nav .nicon", { autoAlpha: 1, scale: 1, duration: f(9), ease: "back.out(1.8)", stagger: f(2) }, back + f(12));
+
+      // --- cursor leaves; pill holds at the bottom, background visible through it ---
+      const leave = 10.6;
+      tl.to("#cursor", { x: 2700, y: 1620, autoAlpha: 0, duration: 0.95, ease: "power2.in" }, leave);
+      tl.to("#glass", { scale: 1, duration: 0.4, ease: "power2.out" }, leave);
+
+      window.__timelines["main"] = tl;
     </script>
   </body>
 </html>
