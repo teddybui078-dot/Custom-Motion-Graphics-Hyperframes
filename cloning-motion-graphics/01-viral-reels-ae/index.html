@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en" data-resolution="portrait">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=2160, height=3840" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 2160px; height: 3840px; overflow: hidden;
+        font-family: "EB Garamond", serif; }
+
+      .stage { position: absolute; inset: 0; overflow: visible; background: #060606; }
+
+      /* ---- background layers ---- */
+      .bg { position: absolute; inset: 0; }
+      .paper { background:
+        radial-gradient(120% 100% at 50% 42%, #d7d3ca 0%, #bdb9b0 46%, #8f8c85 78%, #6a6862 100%); opacity: 0; }
+      .dark { background:
+        radial-gradient(120% 110% at 50% 40%, #1c1c1f 0%, #131315 45%, #0a0a0b 78%, #040405 100%); opacity: 0; }
+      .vig { position: absolute; inset: 0; pointer-events: none;
+        background: radial-gradient(110% 90% at 50% 46%, transparent 40%, rgba(0,0,0,0.55) 100%); }
+      .grain { position: absolute; inset: 0; pointer-events: none; opacity: 0.16; mix-blend-mode: overlay; background-repeat: repeat; }
+      .grain2 { position: absolute; inset: 0; pointer-events: none; opacity: 0.10; mix-blend-mode: overlay; background-repeat: repeat; }
+
+      /* ---- octagon portrait frame ---- */
+      .oct { position: absolute; left: 50%; top: 50%; width: 720px; height: 940px;
+        transform: translate(-50%, -50%); opacity: 0;
+        clip-path: polygon(16% 0, 84% 0, 100% 11%, 100% 89%, 84% 100%, 16% 100%, 0 89%, 0 11%); }
+      .oct .frame { position: absolute; inset: 0; background: #0c0c0d;
+        clip-path: polygon(16% 0, 84% 0, 100% 11%, 100% 89%, 84% 100%, 16% 100%, 0 89%, 0 11%); }
+      .oct .inner { position: absolute; inset: 16px; overflow: hidden;
+        clip-path: polygon(16% 0, 84% 0, 100% 11%, 100% 89%, 84% 100%, 16% 100%, 0 89%, 0 11%);
+        box-shadow: inset 0 0 90px rgba(0,0,0,0.85); }
+      .bust { position: absolute; inset: 0; background: radial-gradient(80% 70% at 50% 36%, #b9b6af 0%, #6f6d68 45%, #2a2a2b 82%, #161617 100%); }
+      .bust svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+      /* ---- center pieces ---- */
+      .piece { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); opacity: 0; }
+      .brainC { width: 620px; height: 500px; }
+      .eyeC { width: 660px; height: 660px; }
+      .brainC svg, .eyeC svg { width: 100%; height: 100%; overflow: visible; }
+
+      /* ---- football pitch (top-down) ---- */
+      .pitch { position: absolute; inset: 0; opacity: 0; }
+      .pitch svg { width: 100%; height: 100%; }
+
+      /* ---- network nodes + lines ---- */
+      .net { position: absolute; inset: 0; }
+      .netlines { position: absolute; inset: 0; opacity: 0; }
+      .netlines svg { width: 100%; height: 100%; }
+      .node { position: absolute; border-radius: 50%; transform: translate(-50%, -50%) scale(0); opacity: 0;
+        background: radial-gradient(60% 60% at 50% 40%, #e9e7e2, #cdcbc4 60%, #a7a5a0 100%);
+        box-shadow: 0 30px 70px rgba(0,0,0,0.6), inset 0 4px 10px rgba(255,255,255,0.5), inset 0 -10px 24px rgba(0,0,0,0.25); }
+      .node .ic { position: absolute; inset: 14%; display: flex; align-items: center; justify-content: center; }
+      .node .ic svg { width: 100%; height: 100%; overflow: visible; }
+
+      /* ---- spotlight beams ---- */
+      .beam { position: absolute; top: 0; pointer-events: none; opacity: 0; mix-blend-mode: screen;
+        width: 360px; height: 1480px; transform-origin: 50% 0;
+        background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.10) 40%, rgba(255,255,255,0.38) 88%, rgba(255,255,255,0.55) 100%);
+        clip-path: polygon(40% 0, 60% 0, 78% 100%, 22% 100%); filter: blur(7px); }
+
+      /* ---- kinetic text ---- */
+      .lead { position: absolute; left: 0; top: 980px; width: 100%; text-align: center; opacity: 0; z-index: 20;
+        font-size: 58px; font-weight: 400; letter-spacing: 1px; color: #2b2a28; font-style: italic; }
+      .hero { position: absolute; left: 0; top: 1080px; width: 100%; text-align: center; opacity: 0; z-index: 20;
+        font-family: "Playfair Display", serif; font-size: 240px; font-weight: 800; letter-spacing: -4px; color: #1a1a1b; }
+      .caption { position: absolute; left: 0; bottom: 360px; width: 100%; text-align: center; opacity: 0; z-index: 20;
+        font-size: 50px; font-weight: 500; letter-spacing: 8px; text-transform: uppercase; color: rgba(230,228,222,0.72); }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="14" data-width="2160" data-height="3840">
+      <div class="stage" data-layout-allow-overflow>
+        <div class="bg paper" id="paper"></div>
+        <div class="bg dark" id="dark"></div>
+
+        <!-- football pitch markings -->
+        <div class="pitch" id="pitch">
+          <svg viewBox="0 0 2160 3840" fill="none" stroke="rgba(255,255,255,0.14)" stroke-width="3">
+            <rect x="150" y="300" width="1860" height="3240"/>
+            <line x1="150" y1="1920" x2="2010" y2="1920"/>
+            <circle cx="1080" cy="1920" r="300"/>
+            <circle cx="1080" cy="1920" r="9" fill="rgba(255,255,255,0.14)" stroke="none"/>
+            <rect x="640" y="300" width="880" height="430"/>
+            <rect x="850" y="300" width="460" height="190"/>
+            <rect x="640" y="3110" width="880" height="430"/>
+            <rect x="850" y="3350" width="460" height="190"/>
+            <path d="M820 730 A300 300 0 0 0 1340 730"/>
+            <path d="M820 3110 A300 300 0 0 1 1340 3110"/>
+          </svg>
+        </div>
+
+        <!-- spotlight beams (positioned/animated from JS) -->
+        <div class="beam" id="beamMain"></div>
+
+        <!-- network lines + nodes injected by JS -->
+        <div class="net" id="net">
+          <div class="netlines" id="netlines">
+            <svg viewBox="0 0 2160 3840" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="2.5" id="linesSvg"></svg>
+          </div>
+        </div>
+
+        <!-- portrait octagon -->
+        <div class="oct" id="octL"><div class="frame"></div><div class="inner"><div class="bust" id="bustL"></div></div></div>
+        <div class="oct" id="octR"><div class="frame"></div><div class="inner"><div class="bust" id="bustR"></div></div></div>
+
+        <!-- center brain + eye -->
+        <div class="piece brainC" id="brain"></div>
+        <div class="piece eyeC" id="eye"></div>
+
+        <!-- text -->
+        <div class="lead" id="lead">the real game is in the</div>
+        <div class="hero" id="hero">mind</div>
+        <div class="caption" id="caption">it starts in the mind</div>
+
+        <div class="vig"></div>
+        <div class="grain" id="grain"></div>
+        <div class="grain2" id="grain2"></div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const $ = (s) => document.querySelector(s);
+      const NS = "http://www.w3.org/2000/svg";
+
+      // ---------- SVG asset builders (all self-made stand-ins) ----------
+      const BRAIN_SVG = `
+        <svg viewBox="0 0 200 160">
+          <defs>
+            <radialGradient id="bg1" cx="42%" cy="32%" r="75%">
+              <stop offset="0" stop-color="#e7e5df"/><stop offset="0.5" stop-color="#bdbbb4"/>
+              <stop offset="0.85" stop-color="#7d7b75"/><stop offset="1" stop-color="#4f4e49"/>
+            </radialGradient>
+          </defs>
+          <path fill="url(#bg1)" stroke="#3a3a37" stroke-width="1.4"
+            d="M44,118 C24,112 18,86 30,72 C20,54 38,34 60,40 C66,24 96,22 104,38 C118,26 146,32 148,52 C172,52 182,78 166,94 C176,112 156,134 134,128 C126,142 96,144 88,130 C70,138 50,132 44,118 Z"/>
+          <g fill="none" stroke="#55534e" stroke-width="1.5" stroke-linecap="round" opacity="0.85">
+            <path d="M52,108 C46,96 58,92 54,82 C50,74 62,70 58,62"/>
+            <path d="M78,120 C72,106 86,104 80,92 C76,82 88,80 84,68 C82,58 92,56 90,46"/>
+            <path d="M108,124 C104,108 118,108 114,94 C110,84 122,82 118,70 C116,60 126,58 124,48"/>
+            <path d="M140,116 C136,104 148,102 144,90 C140,80 150,78 148,68"/>
+            <path d="M100,40 C100,60 100,96 100,128"/>
+          </g>
+          <path fill="#6d6b65" stroke="#3a3a37" stroke-width="1.2" d="M92,128 C92,140 108,140 108,128 C108,150 92,150 92,128 Z"/>
+        </svg>`;
+
+      const buildEye = (el) => {
+        const lines = Array.from({ length: 64 }, (_, i) => {
+          const a = (i / 64) * Math.PI * 2;
+          const x1 = 100 + Math.cos(a) * 19, y1 = 100 + Math.sin(a) * 19;
+          const x2 = 100 + Math.cos(a) * 39, y2 = 100 + Math.sin(a) * 39;
+          return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="rgba(60,60,62,0.55)" stroke-width="0.8"/>`;
+        }).join("");
+        el.innerHTML = `
+          <svg viewBox="0 0 200 200">
+            <defs>
+              <radialGradient id="ball" cx="42%" cy="34%" r="72%">
+                <stop offset="0" stop-color="#fbfbfa"/><stop offset="0.55" stop-color="#e2e0da"/>
+                <stop offset="0.82" stop-color="#a9a7a1"/><stop offset="1" stop-color="#6c6a65"/>
+              </radialGradient>
+              <radialGradient id="iris" cx="50%" cy="50%" r="55%">
+                <stop offset="0" stop-color="#8d8b87"/><stop offset="0.6" stop-color="#5a5955"/><stop offset="1" stop-color="#34332f"/>
+              </radialGradient>
+            </defs>
+            <ellipse cx="104" cy="150" rx="70" ry="16" fill="rgba(0,0,0,0.30)"/>
+            <circle cx="100" cy="100" r="86" fill="url(#ball)"/>
+            <circle cx="100" cy="100" r="39" fill="url(#iris)" stroke="#2c2b28" stroke-width="1.4"/>
+            ${lines}
+            <circle cx="100" cy="100" r="15" fill="#111"/>
+            <circle cx="90" cy="89" r="6" fill="rgba(255,255,255,0.9)"/>
+            <circle cx="106" cy="106" r="2.6" fill="rgba(255,255,255,0.4)"/>
+          </svg>`;
+      };
+
+      const bustSvg = `
+        <svg viewBox="0 0 200 240" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <linearGradient id="sk" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#cdcac3"/><stop offset="0.55" stop-color="#86847e"/><stop offset="1" stop-color="#34343500"/>
+            </linearGradient>
+          </defs>
+          <path fill="url(#sk)" d="M100,40 C124,40 140,60 140,86 C140,104 132,118 120,126 C150,132 170,156 176,196 C182,232 150,250 100,250 C50,250 18,232 24,196 C30,156 50,132 80,126 C68,118 60,104 60,86 C60,60 76,40 100,40 Z"/>
+          <path fill="rgba(255,255,255,0.10)" d="M100,40 C112,40 122,48 130,62 C118,52 104,50 96,54 C84,60 78,74 80,90 C72,104 70,80 74,66 C80,50 90,40 100,40 Z"/>
+        </svg>`;
+
+      $("#bustL").innerHTML = bustSvg;
+      $("#bustR").innerHTML = bustSvg;
+      $("#brain").innerHTML = BRAIN_SVG;
+      buildEye($("#eye"));
+
+      // ---------- procedural film grain (deterministic) ----------
+      const grainSvg = (seed, freq) =>
+        `url("data:image/svg+xml,${encodeURIComponent(
+          `<svg xmlns='http://www.w3.org/2000/svg' width='600' height='600'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='${freq}' numOctaves='2' seed='${seed}' stitchTiles='stitch'/><feColorMatrix type='matrix' values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>`
+        )}")`;
+      $("#grain").style.backgroundImage = grainSvg(7, 0.85);
+      $("#grain").style.backgroundSize = "700px 700px";
+      $("#grain2").style.backgroundImage = grainSvg(19, 0.55);
+      $("#grain2").style.backgroundSize = "1100px 1100px";
+
+      // ---------- network nodes (finale constellation) ----------
+      // positions on the 2160x3840 field; the centre node holds the brain
+      const NODES = [
+        { id: "nC", x: 1080, y: 1920, d: 380, ic: "brain" },
+        { id: "n1", x: 560,  y: 1180, d: 230, ic: "eye" },
+        { id: "n2", x: 1640, y: 1280, d: 250, ic: "brain" },
+        { id: "n3", x: 470,  y: 2640, d: 240, ic: "bust" },
+        { id: "n4", x: 1690, y: 2680, d: 220, ic: "eye" },
+      ];
+      const EDGES = [["nC","n1"],["nC","n2"],["nC","n3"],["nC","n4"],["n1","n2"],["n3","n4"]];
+      const nodeEls = {};
+      const net = $("#net");
+      const icSvg = (kind) => kind === "brain" ? BRAIN_SVG
+        : kind === "eye" ? `<svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="86" fill="#e2e0da"/><circle cx="100" cy="100" r="34" fill="#4a4945"/><circle cx="100" cy="100" r="13" fill="#111"/><circle cx="90" cy="90" r="5" fill="#fff"/></svg>`
+        : bustSvg;
+      NODES.forEach((n) => {
+        const el = document.createElement("div");
+        el.className = "node"; el.id = n.id;
+        el.style.cssText = `left:${n.x}px; top:${n.y}px; width:${n.d}px; height:${n.d}px;`;
+        el.innerHTML = `<div class="ic">${icSvg(n.ic)}</div>`;
+        net.appendChild(el); nodeEls[n.id] = el;
+      });
+      const linesSvg = $("#linesSvg");
+      const edgeEls = EDGES.map(([a, b]) => {
+        const A = NODES.find((n) => n.id === a), B = NODES.find((n) => n.id === b);
+        const ln = document.createElementNS(NS, "line");
+        ln.setAttribute("x1", A.x); ln.setAttribute("y1", A.y);
+        ln.setAttribute("x2", B.x); ln.setAttribute("y2", B.y);
+        const len = Math.hypot(B.x - A.x, B.y - A.y);
+        ln.setAttribute("stroke-dasharray", len); ln.setAttribute("stroke-dashoffset", len);
+        linesSvg.appendChild(ln);
+        return ln;
+      });
+
+      // ---------- initial states ----------
+      gsap.set("#beamMain", { left: 1080 - 180, rotate: 0, transformOrigin: "50% 0%" });
+      gsap.set(["#octL", "#octR"], { xPercent: 0, transformOrigin: "50% 50%" });
+
+      // ===================== TIMELINE =====================
+      const tl = gsap.timeline({ paused: true });
+
+      // grain shimmer (deterministic, finite)
+      tl.to("#grain", { backgroundPosition: "240px 360px", duration: 14, ease: "none" }, 0);
+      tl.to("#grain2", { backgroundPosition: "-300px 200px", duration: 14, ease: "none" }, 0);
+
+      // ---- PHASE A: light paper + portrait ----
+      tl.to("#paper", { opacity: 1, duration: 1.0, ease: "power2.out" }, 0);
+      tl.fromTo("#octL", { opacity: 0, scale: 1.12 }, { opacity: 1, scale: 1.0, duration: 1.3, ease: "power3.out" }, 0.3);
+      tl.fromTo("#lead", { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.8, ease: "power2.out" }, 1.5);
+
+      // ---- PHASE B: split, brain rises, "mind" ----
+      // duplicate portrait splits to both edges, mirrored
+      tl.set("#octR", { opacity: 1 }, 3.0);
+      tl.to("#octL", { x: -560, scale: 0.82, filter: "brightness(0.7)", duration: 0.9, ease: "power3.inOut" }, 3.0);
+      tl.fromTo("#octR", { x: 0, scale: 1.0, scaleX: -1 }, { x: 560, scaleX: -1, scale: 0.82, filter: "brightness(0.7)", duration: 0.9, ease: "power3.inOut" }, 3.0);
+      tl.to("#lead", { opacity: 0, duration: 0.4 }, 3.0);
+      // brain rises
+      tl.fromTo("#brain", { opacity: 0, scale: 0.5, y: 60 }, { opacity: 1, scale: 1.0, y: 0, duration: 0.9, ease: "back.out(1.5)" }, 3.5);
+      // X connector lines (drawn with two temporary svg strokes)
+      // hero word lands
+      tl.fromTo("#hero", { opacity: 0, scale: 1.18, y: 30 }, { opacity: 1, scale: 1.0, y: 0, duration: 0.8, ease: "power3.out" }, 4.1);
+
+      // ---- PHASE C: dissolve to dark + eye ----
+      tl.to(["#octL", "#octR", "#brain", "#hero"], { opacity: 0, duration: 0.7, ease: "power2.inOut" }, 5.1);
+      tl.to("#paper", { opacity: 0, duration: 0.8, ease: "power2.inOut" }, 5.1);
+      tl.to("#dark", { opacity: 1, duration: 0.8, ease: "power2.inOut" }, 5.1);
+      tl.fromTo("#eye", { opacity: 0, scale: 0.86 }, { opacity: 1, scale: 1.0, duration: 0.7, ease: "power2.out" }, 5.5);
+      tl.to("#eye", { scale: 1.12, duration: 1.0, ease: "power1.inOut" }, 6.2);
+
+      // ---- PHASE D: pull back -> pitch + centre node + spotlight ----
+      tl.to("#eye", { opacity: 0, scale: 0.5, duration: 0.7, ease: "power2.in" }, 7.2);
+      tl.to("#pitch", { opacity: 1, duration: 1.2, ease: "power2.out" }, 7.0);
+      tl.fromTo("#nC", { opacity: 0, scale: 0 }, { opacity: 1, scale: 1, duration: 0.7, ease: "back.out(1.6)" }, 7.4);
+      tl.fromTo("#beamMain", { opacity: 0 }, { opacity: 0.9, duration: 0.8, ease: "power2.out" }, 7.6);
+
+      // ---- PHASE E: constellation builds ----
+      const others = ["n1", "n2", "n3", "n4"];
+      others.forEach((id, i) => {
+        tl.fromTo("#" + id, { opacity: 0, scale: 0 }, { opacity: 1, scale: 1, duration: 0.6, ease: "back.out(1.7)" }, 8.6 + i * 0.5);
+      });
+      tl.to("#netlines", { opacity: 1, duration: 0.4 }, 8.8);
+      edgeEls.forEach((ln, i) => {
+        tl.to(ln, { strokeDashoffset: 0, duration: 0.8, ease: "power2.inOut" }, 8.9 + i * 0.35);
+      });
+      // the spotlight rakes across the field (sequential keyframes — no overlap)
+      tl.to("#beamMain", { rotate: 5, duration: 1.7, ease: "sine.inOut" }, 9.0);
+      tl.to("#beamMain", { rotate: -4, duration: 1.7, ease: "sine.inOut" }, 10.7);
+
+      // ---- PHASE F: settle on centre, caption ----
+      tl.to("#beamMain", { rotate: 0, duration: 1.2, ease: "power2.inOut" }, 12.4);
+      tl.to(others.map((i) => "#" + i), { opacity: 0.35, duration: 1.0, ease: "power2.inOut" }, 12.2);
+      tl.to("#netlines", { opacity: 0.4, duration: 1.0 }, 12.2);
+      tl.fromTo("#caption", { opacity: 0, y: 18, letterSpacing: "20px" }, { opacity: 1, y: 0, letterSpacing: "8px", duration: 1.2, ease: "power3.out" }, 12.5);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
