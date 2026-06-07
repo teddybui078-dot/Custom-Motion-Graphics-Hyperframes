@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=3840, height=2160" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 3840px; height: 2160px; overflow: hidden;
+        font-family: -apple-system, "SF Pro Display", "Inter", system-ui, sans-serif; }
+
+      .stage { position: absolute; inset: 0; overflow: hidden;
+        background: radial-gradient(120% 120% at 60% 40%, #14161f 0%, #0e0f16 55%, #090a0f 100%); }
+      /* cool ambient blooms */
+      .blob { position: absolute; border-radius: 50%; filter: blur(230px); will-change: transform; }
+      .blob.blue { left: 8%;  top: -14%; width: 1900px; height: 1900px; background: #2563eb; opacity: 0.42; }
+      .blob.teal { left: 30%; bottom: -22%; width: 1800px; height: 1800px; background: #0d9488; opacity: 0.40; }
+      .grain { position: absolute; inset: 0; pointer-events: none; opacity: 0.05; mix-blend-mode: overlay;
+        background-image: radial-gradient(rgba(255,255,255,0.6) 1px, transparent 1px); background-size: 4px 4px; }
+
+      /* tall side panel (right third) */
+      .panel { position: absolute; top: 144px; left: 2716px; width: 980px; height: 1872px;
+        border-radius: 60px; overflow: hidden; will-change: transform;
+        background: rgba(255,255,255,0.08);
+        backdrop-filter: blur(60px) saturate(130%) brightness(0.92); -webkit-backdrop-filter: blur(60px) saturate(130%) brightness(0.92);
+        border: 1px solid rgba(255,255,255,0.10);
+        box-shadow: -50px 40px 130px rgba(0,0,0,0.55), inset 0 2px 0 rgba(255,255,255,0.22); }
+      .pcontent { position: absolute; inset: 0; padding: 64px 56px; }
+      .ptitle { font-size: 52px; font-weight: 500; color: #fff; letter-spacing: 0.3px; opacity: 0; margin-bottom: 14px; }
+      .psub { font-size: 30px; font-weight: 400; color: rgba(255,255,255,0.42); opacity: 0; margin-bottom: 40px; }
+
+      /* setting rows — glass inset strips */
+      .row { position: relative; height: 188px; border-radius: 34px; margin-bottom: 30px; opacity: 0;
+        display: flex; align-items: center; justify-content: space-between; padding: 0 48px;
+        background: rgba(255,255,255,0.045); border: 1px solid rgba(255,255,255,0.07);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), inset 0 -20px 40px rgba(0,0,0,0.18); }
+      .rl { display: flex; flex-direction: column; gap: 10px; }
+      .rl .lab { font-size: 40px; font-weight: 500; color: rgba(255,255,255,0.92); }
+      .rl .hint { font-size: 26px; font-weight: 400; color: rgba(255,255,255,0.40); }
+
+      /* toggle switch */
+      .tog { position: relative; width: 168px; height: 92px; border-radius: 46px; flex: none;
+        background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.12);
+        box-shadow: inset 0 2px 6px rgba(0,0,0,0.3); }
+      .tog .tk { position: absolute; inset: 0; border-radius: 46px; opacity: 0;
+        background: linear-gradient(180deg, #3b82f6, #2563eb); box-shadow: inset 0 2px 0 rgba(255,255,255,0.3); }
+      .tog .thumb { position: absolute; top: 9px; left: 9px; width: 74px; height: 74px; border-radius: 50%;
+        background: #fff; box-shadow: 0 6px 16px rgba(0,0,0,0.4); }
+
+      /* dropdown pill */
+      .dd { position: relative; flex: none; }
+      .dd .pill { height: 92px; min-width: 300px; padding: 0 34px; border-radius: 26px; display: flex; align-items: center; gap: 24px;
+        background: rgba(255,255,255,0.10); border: 1px solid rgba(255,255,255,0.14);
+        font-size: 36px; font-weight: 500; color: #fff; box-shadow: inset 0 1px 0 rgba(255,255,255,0.18); }
+      .dd .pill .cv { width: 24px; height: 24px; border-right: 4px solid rgba(255,255,255,0.7); border-bottom: 4px solid rgba(255,255,255,0.7);
+        transform: rotate(45deg) translateY(-6px); }
+      .dd .menu { position: absolute; top: 108px; right: 0; width: 380px; border-radius: 26px; overflow: hidden; opacity: 0; transform-origin: 50% 0;
+        background: rgba(28,30,40,0.72); backdrop-filter: blur(40px) saturate(140%); -webkit-backdrop-filter: blur(40px) saturate(140%);
+        border: 1px solid rgba(255,255,255,0.14); box-shadow: 0 40px 90px rgba(0,0,0,0.6); z-index: 30; }
+      .dd .opt { position: relative; height: 96px; display: flex; align-items: center; padding: 0 32px; font-size: 34px; color: rgba(255,255,255,0.85); }
+      .dd .opt .hi { position: absolute; inset: 8px; border-radius: 16px; background: linear-gradient(90deg, rgba(59,130,246,0.4), rgba(59,130,246,0.18)); opacity: 0; }
+      .dd .opt .tx { position: relative; z-index: 2; }
+      .dd .opt .ck { position: relative; z-index: 2; margin-left: auto; opacity: 0; font-size: 38px; color: #7aa2ff; }
+
+      /* slider */
+      .sld { position: relative; width: 420px; height: 26px; border-radius: 13px; flex: none;
+        background: rgba(255,255,255,0.12); box-shadow: inset 0 2px 5px rgba(0,0,0,0.3); }
+      .sld .fill { position: absolute; left: 0; top: 0; bottom: 0; width: 30%; border-radius: 13px;
+        background: linear-gradient(90deg, #2dd4bf, #3b82f6); }
+      .sld .knob { position: absolute; top: 50%; left: 30%; width: 66px; height: 66px; border-radius: 50%; transform: translate(-50%, -50%);
+        background: #fff; box-shadow: 0 8px 18px rgba(0,0,0,0.45); }
+
+      /* segmented control */
+      .seg { position: relative; display: flex; height: 96px; border-radius: 24px; flex: none; padding: 8px;
+        background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.10); }
+      .seg .sel { position: absolute; top: 8px; left: 8px; width: 132px; height: 80px; border-radius: 18px;
+        background: rgba(255,255,255,0.16); box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), 0 6px 14px rgba(0,0,0,0.3); }
+      .seg .so { position: relative; z-index: 2; width: 132px; display: flex; align-items: center; justify-content: center;
+        font-size: 34px; font-weight: 600; color: rgba(255,255,255,0.5); }
+
+      #cursor { position: absolute; left: 0; top: 0; z-index: 90; opacity: 0;
+        filter: drop-shadow(0 10px 16px rgba(0,0,0,0.55)); }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="16" data-width="3840" data-height="2160">
+      <div class="stage" data-layout-allow-overflow>
+        <div class="blob blue" id="bBlue"></div>
+        <div class="blob teal" id="bTeal"></div>
+
+        <div class="panel" id="panel" data-layout-allow-overflow>
+          <div class="pcontent">
+            <div class="ptitle" id="ptitle">Display &amp; Appearance</div>
+            <div class="psub" id="psub">System Preferences</div>
+
+            <!-- Row 1: toggle -->
+            <div class="row" id="row0">
+              <div class="rl"><div class="lab">Dark Mode</div><div class="hint">Always on</div></div>
+              <div class="tog" id="tog0"><div class="tk"></div><div class="thumb"></div></div>
+            </div>
+
+            <!-- Row 2: dropdown -->
+            <div class="row" id="row1">
+              <div class="rl"><div class="lab">Accent Color</div><div class="hint">Theme tint</div></div>
+              <div class="dd" id="dd1">
+                <div class="pill"><span id="ddVal">Blue</span><span class="cv"></span></div>
+                <div class="menu" id="ddMenu">
+                  <div class="opt"><span class="hi"></span><span class="tx">Blue</span><span class="ck">&#10003;</span></div>
+                  <div class="opt"><span class="hi"></span><span class="tx">Teal</span><span class="ck">&#10003;</span></div>
+                  <div class="opt"><span class="hi"></span><span class="tx">Graphite</span><span class="ck">&#10003;</span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 3: slider -->
+            <div class="row" id="row2">
+              <div class="rl"><div class="lab">Brightness</div><div class="hint">Auto-adjust</div></div>
+              <div class="sld" id="sld2"><div class="fill" id="sldFill"></div><div class="knob" id="sldKnob"></div></div>
+            </div>
+
+            <!-- Row 4: toggle -->
+            <div class="row" id="row3">
+              <div class="rl"><div class="lab">True Tone</div><div class="hint">Adapt to light</div></div>
+              <div class="tog" id="tog3"><div class="tk"></div><div class="thumb"></div></div>
+            </div>
+
+            <!-- Row 5: segmented -->
+            <div class="row" id="row4">
+              <div class="rl"><div class="lab">Text Size</div><div class="hint">Three steps</div></div>
+              <div class="seg" id="seg4">
+                <div class="sel" id="segSel"></div>
+                <div class="so" data-i="0">S</div><div class="so" data-i="1">M</div><div class="so" data-i="2">L</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="cursor">
+          <svg width="84" height="100" viewBox="0 0 24 28">
+            <path d="M3,2 L3,22 L8.5,16.8 L12,24.5 L15.4,23 L11.9,15.3 L19,15.3 Z"
+                  fill="#ffffff" stroke="#1b1b22" stroke-width="1.4" stroke-linejoin="round"/>
+          </svg>
+        </div>
+
+        <div class="grain"></div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const $ = (s) => document.querySelector(s);
+
+      // panel rests at left:2716; helper to convert an in-panel element to canvas-space centre
+      const PANEL_X = 2716, PANEL_Y = 144;
+      const centerOf = (el) => {
+        const r = el.getBoundingClientRect();
+        return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      };
+
+      // measure control anchor points (panel is at its CSS rest position at load)
+      const segOffs = [...document.querySelectorAll("#seg4 .so")].map((s) => s.offsetLeft);
+
+      // ---------- initial states ----------
+      gsap.set("#panel", { x: 1180 });                 // start off the right edge
+      gsap.set(["#tog0 .tk", "#tog3 .tk"], { autoAlpha: 0 });
+      gsap.set("#cursor", { autoAlpha: 0, x: 3500, y: 1700 });
+      const rows = ["#row0", "#row1", "#row2", "#row3", "#row4"];
+
+      // ===================== TIMELINE =====================
+      const tl = gsap.timeline({ paused: true });
+
+      // ambient blooms drift
+      tl.fromTo("#bBlue", { x: -40, y: 30 }, { x: 50, y: -40, duration: 16, ease: "sine.inOut" }, 0);
+      tl.fromTo("#bTeal", { x: 40, y: -30 }, { x: -50, y: 40, duration: 16, ease: "sine.inOut" }, 0);
+
+      // panel slides in — smooth ease-out, NO spring
+      tl.to("#panel", { x: 0, duration: 1.0, ease: "power3.out" }, 0.3);
+
+      // title + rows
+      tl.to("#ptitle", { autoAlpha: 1, duration: 0.5, ease: "power2.out" }, 1.0);
+      tl.to("#psub", { autoAlpha: 1, duration: 0.5, ease: "power2.out" }, 1.15);
+      rows.forEach((r, i) => {
+        tl.fromTo(r, { autoAlpha: 0, y: 26 }, { autoAlpha: 1, y: 0, duration: 0.5, ease: "power3.out" }, 1.4 + i * 0.16);
+      });
+
+      // cursor appears
+      tl.to("#cursor", { autoAlpha: 1, duration: 0.3 }, 3.0);
+
+      // function-based so the centre is evaluated at render time (panel at rest), not at build time (panel off-screen)
+      const moveTo = (sel, t, dx = 16, dy = 14) => {
+        tl.to("#cursor", { x: () => centerOf($(sel)).x + dx, y: () => centerOf($(sel)).y + dy, duration: 0.55, ease: "power2.inOut" }, t);
+      };
+      const tap = (t) => tl.to("#cursor", { scale: 0.86, duration: 0.09, yoyo: true, repeat: 1, ease: "power2.inOut", transformOrigin: "0% 0%" }, t);
+
+      // ---- 1) toggle ON: thumb springs right, track colour fades in ----
+      moveTo("#tog0", 3.3);
+      tap(3.95);
+      tl.to("#tog0 .tk", { autoAlpha: 1, duration: 0.3, ease: "power2.out" }, 4.0);
+      tl.to("#tog0 .thumb", { left: 85, duration: 0.5, ease: "back.out(2.4)" }, 4.0);
+
+      // ---- 2) dropdown opens, selects Teal, closes ----
+      moveTo("#dd1 .pill", 4.7);
+      tap(5.3);
+      tl.fromTo("#ddMenu", { autoAlpha: 0, scaleY: 0.7, y: -10 }, { autoAlpha: 1, scaleY: 1, y: 0, duration: 0.35, ease: "back.out(1.4)" }, 5.35);
+      // move cursor down to the "Teal" option and highlight it
+      const optTeal = document.querySelectorAll("#ddMenu .opt")[1];
+      tl.to("#cursor", { x: () => centerOf(optTeal).x + 16, y: () => centerOf(optTeal).y + 14, duration: 0.4, ease: "power2.inOut" }, 5.8);
+      tl.to(optTeal.querySelector(".hi"), { autoAlpha: 1, duration: 0.2 }, 6.1);
+      tap(6.25);
+      tl.to(optTeal.querySelector(".ck"), { autoAlpha: 1, duration: 0.2 }, 6.3);
+      tl.to({}, { duration: 0.05, onUpdate: () => { $("#ddVal").textContent = "Teal"; } }, 6.45);
+      // recolour the accent toggle track + slider fill to teal to reflect the choice
+      tl.to("#tog0 .tk", { background: "linear-gradient(180deg,#2dd4bf,#0d9488)", duration: 0.3 }, 6.45);
+      tl.to("#ddMenu", { autoAlpha: 0, scaleY: 0.7, duration: 0.3, ease: "power2.in" }, 6.7);
+
+      // ---- 3) slider drags, filled track grows ----
+      moveTo("#sldKnob", 7.2);
+      const sld = $("#sld2"), knob = $("#sldKnob"), fill = $("#sldFill");
+      tl.to("#cursor", { x: () => sld.getBoundingClientRect().left + sld.offsetWidth * 0.82 + 16,
+                          y: () => centerOf(knob).y + 14, duration: 0.9, ease: "power2.inOut" }, 7.8);
+      tl.to("#sldFill", { width: "82%", duration: 0.9, ease: "power2.inOut" }, 7.8);
+      tl.to("#sldKnob", { left: "82%", duration: 0.9, ease: "power2.inOut" }, 7.8);
+
+      // ---- 4) second toggle flips ON ----
+      moveTo("#tog3", 8.9);
+      tap(9.5);
+      tl.to("#tog3 .tk", { autoAlpha: 1, background: "linear-gradient(180deg,#2dd4bf,#0d9488)", duration: 0.3, ease: "power2.out" }, 9.55);
+      tl.to("#tog3 .thumb", { left: 85, duration: 0.5, ease: "back.out(2.4)" }, 9.55);
+
+      // ---- 5) segmented control: tap "L", selector slides, segment brightens ----
+      moveTo("#seg4", 10.4);
+      const sos = document.querySelectorAll("#seg4 .so");
+      tl.to("#cursor", { x: () => centerOf(sos[2]).x + 16, y: () => centerOf(sos[2]).y + 14, duration: 0.5, ease: "power2.inOut" }, 11.0);
+      tap(11.5);
+      tl.to("#segSel", { left: segOffs[2], duration: 0.45, ease: "back.out(1.8)" }, 11.55);
+      tl.to(sos[2], { color: "#fff", duration: 0.3 }, 11.6);
+      tl.to([sos[0], sos[1]], { color: "rgba(255,255,255,0.4)", duration: 0.3 }, 11.6);
+
+      // cursor drifts away; panel holds with all new states
+      tl.to("#cursor", { autoAlpha: 0, duration: 0.4 }, 12.4);
+
+      // set the default selected segment ("M") at the very start
+      gsap.set("#segSel", { left: () => segOffs[1] });
+      gsap.set(document.querySelectorAll("#seg4 .so")[1], { color: "#fff" });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
