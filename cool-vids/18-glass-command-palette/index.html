@@ -4,12 +4,264 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=3840, height=2160" />
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 3840px; height: 2160px; overflow: hidden;
+        font-family: "Inter", system-ui, sans-serif; }
+
+      .stage { position: absolute; inset: 0; overflow: hidden; background: #07060d; }
+
+      /* ---------- dark productive canvas: blurred editor + drifting blobs ---------- */
+      .bg { position: absolute; inset: -8%; }
+      .blob { position: absolute; border-radius: 50%; filter: blur(150px); will-change: transform; }
+      .blob.purple { left: 8%;  top: 8%;   width: 1500px; height: 1500px; background: #6d3aed; opacity: 0.55; }
+      .blob.teal   { right: 6%; bottom: 4%; width: 1600px; height: 1600px; background: #15a6c4; opacity: 0.5; }
+      .blob.violet { left: 38%; bottom: 18%;width: 1100px; height: 1100px; background: #8b2fd6; opacity: 0.32; }
+
+      /* faint blurred "code editor" lines, low opacity, gives the glass structure to refract */
+      .code { position: absolute; left: 9%; top: 16%; width: 46%; filter: blur(7px); opacity: 0.16;
+        display: flex; flex-direction: column; gap: 34px; }
+      .ln { height: 22px; border-radius: 11px; }
+      .ln.c1 { background: #8b9bff; } .ln.c2 { background: #4fd6c9; }
+      .ln.c3 { background: #c98bff; } .ln.c4 { background: #6b7390; } .ln.c5 { background: #ff9bce; }
+      .grain { position: absolute; inset: 0; pointer-events: none; opacity: 0.05; mix-blend-mode: overlay;
+        background-image: radial-gradient(rgba(255,255,255,0.8) 1px, transparent 1px); background-size: 4px 4px; }
+
+      /* ---------- shortcut key badges (⌘ K, arrow, enter) ---------- */
+      .keys { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%);
+        display: flex; align-items: center; justify-content: center; gap: 40px; z-index: 60; }
+      .keycap { display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.95);
+        background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.26); border-radius: 28px;
+        box-shadow: 0 30px 70px rgba(0,0,0,0.45), inset 0 2px 0 rgba(255,255,255,0.4);
+        backdrop-filter: blur(30px) saturate(160%); -webkit-backdrop-filter: blur(30px) saturate(160%);
+        font-weight: 600; }
+      .keycap.big { width: 150px; height: 150px; font-size: 92px; }
+
+      .navkey { position: absolute; left: 50%; top: 1700px; transform: translateX(-50%);
+        width: 104px; height: 104px; font-size: 56px; z-index: 60; opacity: 0;
+        display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.95);
+        background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.26); border-radius: 24px;
+        box-shadow: 0 24px 56px rgba(0,0,0,0.45), inset 0 2px 0 rgba(255,255,255,0.4);
+        backdrop-filter: blur(26px) saturate(160%); -webkit-backdrop-filter: blur(26px) saturate(160%); font-weight: 600; }
+
+      /* ---------- the command palette ---------- */
+      .palette-wrap { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 30; }
+      .palette { position: relative; width: 1120px; border-radius: 32px; overflow: hidden;
+        padding: 44px; display: flex; flex-direction: column; gap: 30px;
+        background: rgba(255,255,255,0.12);
+        backdrop-filter: blur(48px) saturate(170%) brightness(1.05);
+        -webkit-backdrop-filter: blur(48px) saturate(170%) brightness(1.05);
+        border: 1px solid rgba(255,255,255,0.18);
+        box-shadow: 0 60px 150px rgba(0,0,0,0.62), 0 22px 55px rgba(0,0,0,0.5); }
+      /* inset rim highlight around all edges, ~30% */
+      .p-rim { position: absolute; inset: 0; border-radius: 32px; pointer-events: none;
+        box-shadow: inset 0 0 0 1.5px rgba(255,255,255,0.30), inset 0 3px 0 rgba(255,255,255,0.32),
+                    inset 0 0 40px rgba(255,255,255,0.10); }
+
+      /* search input — glass inset field, darker tint */
+      .search { position: relative; height: 124px; border-radius: 20px; display: flex; align-items: center; gap: 28px;
+        padding: 0 36px; background: rgba(0,0,0,0.26); border: 1px solid rgba(255,255,255,0.10);
+        box-shadow: inset 0 3px 14px rgba(0,0,0,0.4); }
+      .search .mag { width: 50px; height: 50px; flex: none; opacity: 0.7; }
+      .query { display: flex; align-items: center; font-size: 56px; font-weight: 400; color: rgba(255,255,255,0.95);
+        letter-spacing: 1px; }
+      .query .ch { opacity: 0; }
+      .caret { width: 4px; height: 60px; margin-left: 6px; border-radius: 2px; background: #5cf0e0;
+        box-shadow: 0 0 14px rgba(92,240,224,0.7); }
+
+      /* result rows */
+      .results { display: flex; flex-direction: column; gap: 16px; }
+      .res-row { position: relative; height: 116px; border-radius: 20px; display: flex; align-items: center; gap: 30px;
+        padding: 0 30px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.07); }
+      .res-row.t2 { background: rgba(255,255,255,0.065); }
+      .res-row.t3 { background: rgba(255,255,255,0.07); }
+      .res-row.t4 { background: rgba(255,255,255,0.06); }
+      .res-row.t5 { background: rgba(255,255,255,0.055); }
+      .r-sel { position: absolute; inset: 0; border-radius: 20px; background: rgba(255,255,255,0.20); opacity: 0; pointer-events: none; }
+      .r-rim { position: absolute; inset: 0; border-radius: 20px; pointer-events: none; opacity: 0;
+        box-shadow: inset 0 0 0 1.5px rgba(255,255,255,0.5), inset 0 2px 0 rgba(255,255,255,0.45); }
+      .r-icon { width: 72px; height: 72px; flex: none; border-radius: 18px; display: flex; align-items: center; justify-content: center;
+        background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.16); position: relative; z-index: 1; }
+      .r-icon svg { width: 40px; height: 40px; }
+      .r-icon.danger { background: rgba(255,95,95,0.18); border-color: rgba(255,120,120,0.30); }
+      .r-label { flex: 1; position: relative; z-index: 1; color: rgba(255,255,255,0.95); font-size: 46px; font-weight: 500;
+        letter-spacing: 0.2px; text-shadow: 0 2px 10px rgba(0,0,0,0.4); }
+      .r-label.danger { color: #ffc9c9; }
+      .kbd { position: relative; z-index: 1; min-width: 76px; height: 64px; padding: 0 20px; border-radius: 14px;
+        display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 38px; font-weight: 600;
+        color: rgba(255,255,255,0.78); background: rgba(255,255,255,0.09); border: 1px solid rgba(255,255,255,0.14); }
+    </style>
   </head>
   <body>
-    <div id="root" data-composition-id="main" data-start="0" data-duration="16" data-width="3840" data-height="2160"></div>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="16" data-width="3840" data-height="2160">
+      <div class="stage" data-layout-allow-overflow>
+        <div class="bg" id="bg" data-layout-allow-overflow>
+          <div class="blob purple" id="b1"></div>
+          <div class="blob teal" id="b2"></div>
+          <div class="blob violet" id="b3"></div>
+          <div class="code" id="code" data-layout-ignore>
+            <div class="ln c1" style="width: 64%"></div>
+            <div class="ln c2" style="width: 38%"></div>
+            <div class="ln c3" style="width: 80%"></div>
+            <div class="ln c4" style="width: 52%"></div>
+            <div class="ln c5" style="width: 70%"></div>
+            <div class="ln c2" style="width: 44%"></div>
+            <div class="ln c1" style="width: 86%"></div>
+            <div class="ln c4" style="width: 58%"></div>
+            <div class="ln c3" style="width: 48%"></div>
+          </div>
+        </div>
+
+        <!-- ⌘ K shortcut badges -->
+        <div class="keys" id="keys" data-layout-ignore>
+          <div class="keycap big" id="kcmd">⌘</div>
+          <div class="keycap big" id="kk">K</div>
+        </div>
+
+        <!-- arrow / enter nav hints -->
+        <div class="navkey" id="kdown" data-layout-ignore>↓</div>
+        <div class="navkey" id="kenter" data-layout-ignore>↵</div>
+
+        <!-- the palette -->
+        <div class="palette-wrap" id="pwrap" data-layout-allow-overflow>
+          <div class="palette" id="palette">
+            <div class="p-rim"></div>
+
+            <div class="search">
+              <svg class="mag" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round">
+                <circle cx="11" cy="11" r="6"/><path d="M16 16 L20 20"/>
+              </svg>
+              <div class="query">
+                <span class="ch" id="c0">f</span><span class="ch" id="c1">i</span><span class="ch" id="c2">l</span>
+                <span class="caret" id="caret"></span>
+              </div>
+            </div>
+
+            <div class="results" id="results">
+              <div class="res-row t1" id="row0">
+                <div class="r-sel" id="sel0"></div><div class="r-rim" id="rim0"></div>
+                <div class="r-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3 H14 L19 8 V21 H7 Z"/><path d="M14 3 V8 H19"/><path d="M13 12 H13.01 M10.5 14.5 H15.5 M13 12 V17"/></svg></div>
+                <div class="r-label">New File</div>
+                <div class="kbd">⌘N</div>
+              </div>
+              <div class="res-row t2" id="row1">
+                <div class="r-sel" id="sel1"></div><div class="r-rim" id="rim1"></div>
+                <div class="r-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7 H9 L11 9 H20 V18 H3 Z"/><path d="M3 11 H21"/></svg></div>
+                <div class="r-label">Open File…</div>
+                <div class="kbd">⌘O</div>
+              </div>
+              <div class="res-row t3" id="row2">
+                <div class="r-sel" id="sel2"></div><div class="r-rim" id="rim2"></div>
+                <div class="r-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15 L20 20"/></svg></div>
+                <div class="r-label">Find in Files</div>
+                <div class="kbd">⇧⌘F</div>
+              </div>
+              <div class="res-row t4" id="row3">
+                <div class="r-sel" id="sel3"></div><div class="r-rim" id="rim3"></div>
+                <div class="r-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7 H9 L11 9 H21 V19 H3 Z"/><circle cx="12" cy="14" r="2.4"/></svg></div>
+                <div class="r-label">Reveal in Finder</div>
+                <div class="kbd">⌥⌘R</div>
+              </div>
+              <div class="res-row t5" id="row4">
+                <div class="r-sel" id="sel4"></div><div class="r-rim" id="rim4"></div>
+                <div class="r-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20 L4 16 L15 5 L19 9 L8 20 Z"/><path d="M13.5 6.5 L17.5 10.5"/></svg></div>
+                <div class="r-label">Rename File</div>
+                <div class="kbd">F2</div>
+              </div>
+              <div class="res-row t6" id="row5">
+                <div class="r-sel" id="sel5"></div><div class="r-rim" id="rim5"></div>
+                <div class="r-icon danger"><svg viewBox="0 0 24 24" fill="none" stroke="#ffb4b4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6 H20 M9 6 V4 H15 V6 M6 6 L7 20 H17 L18 6"/></svg></div>
+                <div class="r-label danger">Delete File</div>
+                <div class="kbd">⌫</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grain"></div>
+      </div>
+    </div>
+
     <script>
       window.__timelines = window.__timelines || {};
-      window.__timelines["main"] = gsap.timeline({ paused: true });
+      const FPS = 30;
+      const f = (n) => n / FPS;
+
+      // ---------- initial states ----------
+      gsap.set("#keys", { autoAlpha: 0 });
+      gsap.set("#kcmd, #kk", { scale: 0.5, transformOrigin: "50% 50%" });
+      gsap.set("#palette", { autoAlpha: 0, scale: 0.92, transformOrigin: "50% 50%" });
+      gsap.set(".ch", { autoAlpha: 0 });
+      gsap.set("#caret", { autoAlpha: 0 });
+      gsap.set(".res-row", { autoAlpha: 0, y: 24 });
+      gsap.set(".r-sel, .r-rim", { autoAlpha: 0 });
+
+      const tl = gsap.timeline({ paused: true });
+
+      // --- background drift (whole 16s) ---
+      tl.fromTo("#b1", { x: -40, y: -30 }, { x: 40, y: 30, duration: 16, ease: "sine.inOut" }, 0);
+      tl.fromTo("#b2", { x: 44, y: 26 }, { x: -44, y: -26, duration: 16, ease: "sine.inOut" }, 0);
+      tl.fromTo("#b3", { x: -28, y: 24 }, { x: 28, y: -24, duration: 16, ease: "sine.inOut" }, 0);
+      tl.fromTo("#code", { y: -18 }, { y: 18, duration: 16, ease: "sine.inOut" }, 0);
+
+      // --- ⌘K shortcut fires: springs in together, fades out in 6 frames ---
+      let t = 0.6;
+      tl.to("#keys", { autoAlpha: 1, duration: f(3) }, t);
+      tl.to("#kcmd, #kk", { scale: 1, duration: f(10), ease: "back.out(2.4)", stagger: 0 }, t);
+      tl.to("#keys", { autoAlpha: 0, duration: f(6), ease: "power2.in" }, t + f(16));
+
+      // --- palette materializes: scale 0.92 -> 1.0 over 14 frames, ease-out cubic, no spring ---
+      const appear = 1.55;
+      tl.to("#palette", { autoAlpha: 1, scale: 1, duration: f(14), ease: "power3.out" }, appear);
+
+      // --- blinking cursor in the empty field ---
+      const blink = appear + f(10);
+      tl.set("#caret", { autoAlpha: 1 }, blink);
+      tl.to("#caret", { autoAlpha: 0, duration: f(15), ease: "steps(1)", repeat: 20, yoyo: true }, blink);
+
+      // --- query types itself: three characters, fast ---
+      const type = appear + 1.1; // ~2.65s
+      tl.to("#c0", { autoAlpha: 1, duration: f(1) }, type);
+      tl.to("#c1", { autoAlpha: 1, duration: f(1) }, type + f(4));
+      tl.to("#c2", { autoAlpha: 1, duration: f(1) }, type + f(8));
+
+      // --- results populate: six rows, staggered fade-in 4 frames apart, top to bottom ---
+      const rows = type + f(14); // ~3.1s
+      tl.to(".res-row", { autoAlpha: 1, y: 0, duration: f(8), ease: "power2.out", stagger: f(4) }, rows);
+
+      // --- arrow-key navigation: down to row 2, then row 3 ---
+      // down #1 -> highlight row1 (the second row)
+      const nav1 = 6.2;
+      tl.to("#kdown", { autoAlpha: 1, y: 0, duration: f(4), ease: "power2.out" }, nav1 - f(2));
+      tl.fromTo("#kdown", { y: -10 }, { y: 0, duration: f(4), ease: "power2.out" }, nav1 - f(2));
+      tl.to("#kdown", { autoAlpha: 0, duration: f(7), ease: "power2.in" }, nav1 + f(7));
+      tl.to("#sel1", { autoAlpha: 1, duration: f(5), ease: "power2.out" }, nav1);
+      tl.to("#rim1", { autoAlpha: 1, duration: f(5), ease: "power2.out" }, nav1);
+
+      // down #2 -> move highlight from row1 to row2 (the third row)
+      const nav2 = 8.8;
+      tl.to("#kdown", { autoAlpha: 1, duration: f(4), ease: "power2.out" }, nav2 - f(2));
+      tl.fromTo("#kdown", { y: -10 }, { y: 0, duration: f(4), ease: "power2.out" }, nav2 - f(2));
+      tl.to("#kdown", { autoAlpha: 0, duration: f(7), ease: "power2.in" }, nav2 + f(7));
+      tl.to("#sel1, #rim1", { autoAlpha: 0, duration: f(4), ease: "power2.in" }, nav2);
+      tl.to("#sel2", { autoAlpha: 1, duration: f(5), ease: "power2.out" }, nav2);
+      tl.to("#rim2", { autoAlpha: 1, duration: f(5), ease: "power2.out" }, nav2);
+
+      // --- Enter: selected row flashes bright, panel scales to 0.95 + fades out over 10 frames ---
+      const enter = 11.6;
+      tl.to("#kenter", { autoAlpha: 1, duration: f(4), ease: "power2.out" }, enter - f(2));
+      tl.fromTo("#kenter", { y: -10 }, { y: 0, duration: f(4), ease: "power2.out" }, enter - f(2));
+      tl.to("#kenter", { autoAlpha: 0, duration: f(8), ease: "power2.in" }, enter + f(6));
+      // 2-frame bright flash on the selected row
+      tl.to("#sel2", { autoAlpha: 0.65, duration: f(1) }, enter);
+      tl.to("#sel2", { autoAlpha: 0.20, duration: f(3), ease: "power2.out" }, enter + f(2));
+      // dismiss
+      const dismiss = enter + f(6);
+      tl.to("#palette", { scale: 0.95, autoAlpha: 0, duration: f(10), ease: "power2.in" }, dismiss);
+
+      // --- background resumes, calm tail to 16s (blobs keep drifting) ---
+
+      window.__timelines["main"] = tl;
     </script>
   </body>
 </html>
