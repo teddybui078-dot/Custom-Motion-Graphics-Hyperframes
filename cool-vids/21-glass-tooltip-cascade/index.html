@@ -4,12 +4,188 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=3840, height=2160" />
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 3840px; height: 2160px; overflow: hidden;
+        font-family: "Inter", system-ui, sans-serif; }
+
+      .stage { position: absolute; inset: 0; overflow: hidden; background: #08060f; }
+
+      /* drifting background blobs */
+      .bg { position: absolute; inset: 0; overflow: hidden; }
+      .blob { position: absolute; border-radius: 50%; filter: blur(150px); will-change: transform; }
+      .blob.b1 { left: 6%;  top: 10%;  width: 1500px; height: 1500px; background: #6d3aed; opacity: 0.55; }
+      .blob.b2 { right: 4%; bottom: 6%; width: 1600px; height: 1600px; background: #15a6c4; opacity: 0.5; }
+      .blob.b3 { left: 40%; top: 30%;  width: 1200px; height: 1200px; background: #d6359b; opacity: 0.36; }
+      .blob.b4 { right: 26%; top: 8%;  width: 1000px; height: 1000px; background: #2f7fd6; opacity: 0.34; }
+      .grain { position: absolute; inset: 0; pointer-events: none; opacity: 0.05; mix-blend-mode: overlay;
+        background-image: radial-gradient(rgba(255,255,255,0.8) 1px, transparent 1px); background-size: 4px 4px; }
+
+      /* glass icon buttons (48px spec -> 96px on the 4K canvas) */
+      .icon-wrap { position: absolute; width: 96px; height: 96px; margin-left: -48px; margin-top: -48px; z-index: 20; }
+      .icon { position: absolute; inset: 0; border-radius: 50%; overflow: hidden;
+        display: flex; align-items: center; justify-content: center;
+        background: rgba(255,255,255,0.12);
+        backdrop-filter: blur(26px) saturate(160%) brightness(1.04);
+        -webkit-backdrop-filter: blur(26px) saturate(160%) brightness(1.04);
+        border: 1px solid rgba(255,255,255,0.18);
+        box-shadow: 0 24px 50px rgba(0,0,0,0.40); }
+      .icon svg { width: 48px; height: 48px; position: relative; z-index: 2; }
+      .i-bright { position: absolute; inset: 0; border-radius: 50%; opacity: 0; pointer-events: none; z-index: 1;
+        background: radial-gradient(70% 70% at 50% 35%, rgba(255,255,255,0.5), rgba(255,255,255,0.05) 60%, transparent 75%); }
+      .i-rim { position: absolute; inset: 0; border-radius: 50%; pointer-events: none; opacity: 0.5; z-index: 3;
+        box-shadow: inset 0 3px 0 rgba(255,255,255,0.7), inset 0 0 18px rgba(255,255,255,0.18); }
+      .i-flash { position: absolute; inset: 0; border-radius: 50%; pointer-events: none; opacity: 0; z-index: 4;
+        box-shadow: inset 0 0 0 3px rgba(255,255,255,0.95), inset 0 0 30px rgba(255,255,255,0.6);
+        background: radial-gradient(60% 60% at 50% 40%, rgba(255,255,255,0.55), transparent 70%); }
+
+      /* glass tooltip pill */
+      .tip { position: absolute; top: 884px; height: 70px; padding: 0 34px; z-index: 40;
+        display: flex; align-items: center; justify-content: center; border-radius: 999px; opacity: 0;
+        background: rgba(255,255,255,0.10);
+        backdrop-filter: blur(24px) saturate(150%); -webkit-backdrop-filter: blur(24px) saturate(150%);
+        border: 1px solid rgba(255,255,255,0.16);
+        box-shadow: 0 18px 40px rgba(0,0,0,0.40); }
+      .tip .t-rim { position: absolute; inset: 0; border-radius: 999px; pointer-events: none;
+        box-shadow: inset 0 2px 0 rgba(255,255,255,0.4), inset 0 0 0 1px rgba(255,255,255,0.10); }
+      .tip span { position: relative; color: rgba(255,255,255,0.96); font-size: 30px; font-weight: 600; letter-spacing: 0.4px;
+        white-space: nowrap; text-shadow: 0 2px 8px rgba(0,0,0,0.4); }
+
+      #cursor { position: absolute; left: 0; top: 0; z-index: 90; opacity: 0;
+        filter: drop-shadow(0 10px 14px rgba(0,0,0,0.5)); }
+    </style>
   </head>
   <body>
-    <div id="root" data-composition-id="main" data-start="0" data-duration="12" data-width="3840" data-height="2160"></div>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="12" data-width="3840" data-height="2160">
+      <div class="stage" data-layout-allow-overflow>
+        <div class="bg" id="bg" data-layout-allow-overflow>
+          <div class="blob b1" id="bl1"></div>
+          <div class="blob b2" id="bl2"></div>
+          <div class="blob b3" id="bl3"></div>
+          <div class="blob b4" id="bl4"></div>
+        </div>
+
+        <!-- five glass icon buttons -->
+        <div class="icon-wrap" id="iw0" style="left:1400px; top:1080px;">
+          <div class="icon" id="ic0"><div class="i-bright"></div><div class="i-flash"></div><div class="i-rim"></div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11 L12 4 L20 11 M6 9.5 V20 H18 V9.5"/></svg>
+          </div>
+        </div>
+        <div class="icon-wrap" id="iw1" style="left:1660px; top:1080px;">
+          <div class="icon" id="ic1"><div class="i-bright"></div><div class="i-flash"></div><div class="i-rim"></div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6"/><path d="M16 16 L20 20"/></svg>
+          </div>
+        </div>
+        <div class="icon-wrap" id="iw2" style="left:1920px; top:1080px;">
+          <div class="icon" id="ic2"><div class="i-bright"></div><div class="i-flash"></div><div class="i-rim"></div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 10 A6 6 0 0 1 18 10 V15 L20 18 H4 L6 15 Z"/><path d="M10 18 A2 2 0 0 0 14 18"/></svg>
+          </div>
+        </div>
+        <div class="icon-wrap" id="iw3" style="left:2180px; top:1080px;">
+          <div class="icon" id="ic3"><div class="i-bright"></div><div class="i-flash"></div><div class="i-rim"></div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20 C5 14.5 4 10.5 6.5 8 C8.5 6 11 7 12 9 C13 7 15.5 6 17.5 8 C20 10.5 19 14.5 12 20 Z"/></svg>
+          </div>
+        </div>
+        <div class="icon-wrap" id="iw4" style="left:2440px; top:1080px;">
+          <div class="icon" id="ic4"><div class="i-bright"></div><div class="i-flash"></div><div class="i-rim"></div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.4"/><path d="M12 3 V6 M12 18 V21 M3 12 H6 M18 12 H21 M5.6 5.6 L7.7 7.7 M16.3 16.3 L18.4 18.4 M18.4 5.6 L16.3 7.7 M7.7 16.3 L5.6 18.4"/></svg>
+          </div>
+        </div>
+
+        <!-- tooltips -->
+        <div class="tip" id="tip0" style="left:1400px;"><div class="t-rim"></div><span>Home</span></div>
+        <div class="tip" id="tip1" style="left:1660px;"><div class="t-rim"></div><span>Search</span></div>
+        <div class="tip" id="tip2" style="left:1920px;"><div class="t-rim"></div><span>Alerts</span></div>
+        <div class="tip" id="tip3" style="left:2180px;"><div class="t-rim"></div><span>Saved</span></div>
+        <div class="tip" id="tip4" style="left:2440px;"><div class="t-rim"></div><span>Settings</span></div>
+
+        <div id="cursor">
+          <svg width="78" height="92" viewBox="0 0 24 28">
+            <path d="M3,2 L3,22 L8.5,16.8 L12,24.5 L15.4,23 L11.9,15.3 L19,15.3 Z"
+                  fill="#ffffff" stroke="#1b1b22" stroke-width="1.4" stroke-linejoin="round"/>
+          </svg>
+        </div>
+
+        <div class="grain"></div>
+      </div>
+    </div>
+
     <script>
       window.__timelines = window.__timelines || {};
-      window.__timelines["main"] = gsap.timeline({ paused: true });
+      const FPS = 30;
+      const f = (n) => n / FPS;
+
+      const ICON_X = [1400, 1660, 1920, 2180, 2440];
+      const ARRIVE = [1.4, 2.7, 4.0, 5.3, 6.6];   // cursor centred on each icon
+      const HOLD_END = 8.8;                         // 5th icon held until the click
+
+      // ---------- initial states ----------
+      gsap.set(".tip", { xPercent: -50, scale: 0.7, autoAlpha: 0, transformOrigin: "50% 130%" });
+      gsap.set(".icon-wrap", { transformOrigin: "50% 50%" });
+      gsap.set(".i-bright, .i-flash", { autoAlpha: 0 });
+      gsap.set("#cursor", { autoAlpha: 0, x: -140, y: 1066 });
+
+      const tl = gsap.timeline({ paused: true });
+
+      // --- background drifts the whole 12s ---
+      tl.fromTo("#bl1", { x: -40, y: -28 }, { x: 40, y: 28, duration: 12, ease: "sine.inOut" }, 0);
+      tl.fromTo("#bl2", { x: 44, y: 24 }, { x: -44, y: -24, duration: 12, ease: "sine.inOut" }, 0);
+      tl.fromTo("#bl3", { x: -26, y: 22 }, { x: 26, y: -22, duration: 12, ease: "sine.inOut" }, 0);
+      tl.fromTo("#bl4", { x: 30, y: -20 }, { x: -30, y: 20, duration: 12, ease: "sine.inOut" }, 0);
+
+      // --- cursor enters from the left ---
+      tl.to("#cursor", { autoAlpha: 1, duration: 0.25 }, 0.45);
+
+      // --- per-icon hover cascade ---
+      for (let i = 0; i < 5; i++) {
+        const arrive = ARRIVE[i];
+        const last = i === 4;
+        const leave = last ? HOLD_END : ARRIVE[i + 1] - 0.5;
+
+        // cursor travels to this icon, arriving on time (segments never overlap in time)
+        tl.to("#cursor", { x: ICON_X[i] - 8, duration: 0.7, ease: "power2.inOut" }, arrive - 0.7);
+
+        // icon lifts (translateY -6 -> *2 = -12, scale 1.1) + brightens
+        tl.to(`#iw${i}`, { y: -12, scale: 1.1, duration: f(6), ease: "back.out(2.2)" }, arrive - 0.12);
+        tl.to(`#ic${i} .i-bright`, { autoAlpha: 0.55, duration: f(6), ease: "power2.out" }, arrive - 0.12);
+        tl.to(`#ic${i} .i-rim`, { autoAlpha: 0.8, duration: f(6), ease: "power2.out" }, arrive - 0.12);
+
+        // tooltip springs up: 0.7 -> 1.05 -> 1.0
+        tl.to(`#tip${i}`, { scale: 1.05, autoAlpha: 1, duration: f(6), ease: "power3.out" }, arrive - 0.08);
+        tl.to(`#tip${i}`, { scale: 1.0, duration: f(5), ease: "power2.inOut" }, arrive - 0.08 + f(6));
+
+        if (!last) {
+          // departing icon settles back through a spring
+          tl.to(`#iw${i}`, { y: 0, scale: 1, duration: f(10), ease: "back.out(1.7)" }, leave);
+          tl.to(`#ic${i} .i-bright`, { autoAlpha: 0, duration: f(8), ease: "power2.in" }, leave);
+          tl.to(`#ic${i} .i-rim`, { autoAlpha: 0.5, duration: f(8), ease: "power2.in" }, leave);
+          // departing tooltip scales down + fades (finishes before the next pops — clean handoff)
+          tl.to(`#tip${i}`, { scale: 0.75, autoAlpha: 0, duration: f(5), ease: "power2.in" }, leave);
+        }
+      }
+
+      // --- 5th icon: pause, then the click ---
+      const click = HOLD_END;
+      // tiny cursor press
+      tl.to("#cursor", { y: 1080, duration: f(2), ease: "power2.in" }, click - f(2));
+      tl.to("#cursor", { y: 1066, duration: f(4), ease: "power2.out" }, click + f(2));
+      // glass flashes bright for ~2 frames (inset highlight spike)
+      tl.to("#ic4 .i-flash", { autoAlpha: 1, duration: f(1) }, click);
+      tl.to("#ic4 .i-flash", { autoAlpha: 0, duration: f(6), ease: "power2.out" }, click + f(2));
+      // icon compresses to 0.88 then springs back
+      tl.to("#iw4", { scale: 0.88, duration: f(2), ease: "power2.in" }, click);
+      tl.to("#iw4", { scale: 1.12, duration: f(6), ease: "back.out(3)" }, click + f(2));
+      tl.to("#iw4", { scale: 1.1, duration: f(4), ease: "power2.out" }, click + f(8));
+
+      // --- tooltip fades, cursor leaves, the icon settles to rest ---
+      const leaveAll = click + 0.7;
+      tl.to("#tip4", { scale: 0.75, autoAlpha: 0, duration: f(6), ease: "power2.in" }, leaveAll);
+      tl.to("#cursor", { x: 2760, y: 1180, autoAlpha: 0, duration: 0.9, ease: "power2.in" }, leaveAll + 0.1);
+      tl.to("#iw4", { y: 0, scale: 1, duration: f(12), ease: "back.out(1.6)" }, leaveAll + 0.1);
+      tl.to("#ic4 .i-bright", { autoAlpha: 0, duration: f(10), ease: "power2.in" }, leaveAll + 0.1);
+      tl.to("#ic4 .i-rim", { autoAlpha: 0.5, duration: f(10), ease: "power2.in" }, leaveAll + 0.1);
+
+      window.__timelines["main"] = tl;
     </script>
   </body>
 </html>
