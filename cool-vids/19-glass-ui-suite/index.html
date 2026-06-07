@@ -3,9 +3,249 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=3840, height=2160" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 3840px; height: 2160px; overflow: hidden;
+        font-family: "Inter", sans-serif; }
+
+      /* ambient dark canvas — deep navy to black */
+      .stage { position: absolute; inset: 0; overflow: hidden;
+        background: radial-gradient(120% 120% at 50% 50%, #14132b 0%, #0c0b1c 52%, #050509 100%); }
+      .grain { position: absolute; inset: 0; pointer-events: none; opacity: 0.05; mix-blend-mode: overlay; z-index: 60;
+        background-image: radial-gradient(rgba(255,255,255,0.7) 1px, transparent 1px); background-size: 4px 4px; }
+
+      /* single large soft bloom, centred, fills ~half the canvas, hue shifts over the scene */
+      #bloom { position: absolute; left: 50%; top: 50%; width: 2000px; height: 2000px; margin: -1000px 0 0 -1000px;
+        border-radius: 50%; filter: blur(220px); background: #3b82f6; opacity: 0.55; will-change: transform, background-color; }
+
+      /* ===================== SCENE 1 — GLASS MUSIC PLAYER ===================== */
+      .scene { position: absolute; inset: 0; }
+
+      /* the glass card */
+      #card { position: absolute; left: 50%; top: 50%; width: 720px; height: 1010px;
+        margin: -505px 0 0 -360px; border-radius: 62px; overflow: hidden;
+        display: flex; flex-direction: column; padding: 48px;
+        background: rgba(255,255,255,0.08);
+        backdrop-filter: blur(72px) saturate(150%); -webkit-backdrop-filter: blur(72px) saturate(150%);
+        box-shadow:
+          inset 0 5px 0 rgba(255,255,255,0.50),       /* strong top rim */
+          inset 1.5px 0 0 rgba(255,255,255,0.16),
+          inset -1.5px 0 0 rgba(255,255,255,0.16),
+          inset 0 -1.5px 0 rgba(255,255,255,0.14),
+          0 80px 160px rgba(4,4,12,0.6), 0 14px 44px rgba(4,4,12,0.45); }
+      /* tint layer — colour shifts with the bloom so the glass is never neutral white */
+      .card-tint { position: absolute; inset: 0; border-radius: 62px; pointer-events: none;
+        background: #3b82f6; opacity: 0.16; mix-blend-mode: screen; will-change: background-color; }
+      .card-border { position: absolute; inset: 0; border-radius: 62px; pointer-events: none;
+        border: 1px solid rgba(255,255,255,0.14); }
+      .card-content { position: relative; z-index: 2; display: flex; flex-direction: column; height: 100%;
+        justify-content: space-between; }
+
+      /* album artwork area — top 55%, its own frosted surface showing the bloom as abstract colour */
+      .artwork { position: relative; width: 100%; height: 470px; flex: none; border-radius: 40px; overflow: hidden;
+        backdrop-filter: blur(40px) saturate(180%); -webkit-backdrop-filter: blur(40px) saturate(180%);
+        background:
+          linear-gradient(150deg, rgba(255,255,255,0.10), rgba(255,255,255,0.02));
+        box-shadow: inset 0 3px 0 rgba(255,255,255,0.35), inset 0 -2px 6px rgba(0,0,0,0.22),
+                    0 18px 40px rgba(4,4,12,0.4); }
+      .artwork::after { content: ""; position: absolute; left: 0; top: 0; right: 0; height: 46%;
+        background: linear-gradient(to bottom, rgba(255,255,255,0.28), transparent); }
+      /* a soft glass equaliser glyph hint inside the artwork */
+      .art-glyph { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0.9; }
+      .art-glyph svg { width: 150px; height: 150px; stroke: rgba(255,255,255,0.85); fill: none;
+        stroke-width: 6; stroke-linecap: round; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.35)); }
+
+      .meta { margin-top: 40px; }
+      .title { font-size: 56px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px; line-height: 1.05; }
+      .title .w { display: inline-block; margin-right: 0.28em; }
+      .artist { margin-top: 14px; font-size: 36px; font-weight: 400; color: rgba(255,255,255,0.72); }
+
+      /* progress */
+      .progress { margin-top: 36px; }
+      .track { position: relative; width: 100%; height: 12px; border-radius: 999px; overflow: hidden;
+        background: rgba(255,255,255,0.14); box-shadow: inset 0 1px 2px rgba(0,0,0,0.3); }
+      .fill { position: absolute; left: 0; top: 0; height: 100%; width: 100%; border-radius: 999px;
+        transform-origin: 0 50%; transform: scaleX(0);
+        background: linear-gradient(90deg, rgba(255,255,255,0.7), #ffffff); }
+      .playhead { position: absolute; top: 50%; left: 0; width: 30px; height: 30px; margin-top: -15px; border-radius: 50%;
+        background: #ffffff; box-shadow: 0 0 18px rgba(255,255,255,0.6), 0 4px 10px rgba(0,0,0,0.35); }
+      .times { display: flex; justify-content: space-between; margin-top: 18px;
+        font-size: 28px; color: rgba(255,255,255,0.66); font-variant-numeric: tabular-nums; }
+
+      /* controls */
+      .controls { display: flex; align-items: center; justify-content: center; gap: 64px; margin-top: 36px; }
+      .ctrl { position: relative; border-radius: 50%; flex: none;
+        display: flex; align-items: center; justify-content: center;
+        background: rgba(255,255,255,0.10);
+        backdrop-filter: blur(24px) saturate(150%); -webkit-backdrop-filter: blur(24px) saturate(150%);
+        box-shadow: inset 0 2px 0 rgba(255,255,255,0.45), inset 0 -2px 6px rgba(0,0,0,0.20),
+                    0 12px 26px rgba(4,4,12,0.4); }
+      .ctrl.side { width: 112px; height: 112px; }
+      .ctrl.play { width: 132px; height: 132px; background: rgba(255,255,255,0.16); }
+      .ctrl svg { stroke: rgba(255,255,255,0.95); fill: none; stroke-width: 2.2;
+        stroke-linecap: round; stroke-linejoin: round; }
+      .ctrl.side svg { width: 50px; height: 50px; }
+      .ctrl.play svg { width: 60px; height: 60px; fill: rgba(255,255,255,0.96); stroke: none; }
+      .ctrl .flash { position: absolute; inset: 0; border-radius: 50%; opacity: 0; pointer-events: none;
+        background: radial-gradient(circle at 50% 40%, rgba(255,255,255,0.8), transparent 70%); }
+
+      #cursor { position: absolute; left: 0; top: 0; z-index: 90; opacity: 0;
+        filter: drop-shadow(0 12px 16px rgba(0,0,0,0.55)); }
+    </style>
   </head>
   <body>
-    <!-- scaffold placeholder: glass-ui-suite (combined glass scenes; scene 1 = music player) -->
-    <div id="root" data-composition-id="main" data-start="0" data-duration="18" data-width="3840" data-height="2160"></div>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="18" data-width="3840" data-height="2160">
+      <div class="stage" data-layout-allow-overflow>
+        <div id="bloom"></div>
+
+        <!-- ===== SCENE 1: Glass Music Player ===== -->
+        <div class="scene" id="scene1" data-layout-allow-overflow>
+          <div id="card">
+            <div class="card-tint"></div>
+            <div class="card-content">
+              <div>
+                <div class="artwork">
+                  <div class="art-glyph">
+                    <svg viewBox="0 0 24 24">
+                      <path d="M4 14v-3M8 16V8M12 18V6M16 16V8M20 14v-3"/>
+                    </svg>
+                  </div>
+                </div>
+                <div class="meta">
+                  <div class="title" id="title"></div>
+                  <div class="artist" id="artist">Aerials</div>
+                </div>
+                <div class="progress">
+                  <div class="track">
+                    <div class="fill" id="fill"></div>
+                    <div class="playhead" id="playhead"></div>
+                  </div>
+                  <div class="times">
+                    <span id="t-cur">0:00</span>
+                    <span id="t-rem">-3:45</span>
+                  </div>
+                </div>
+              </div>
+              <div class="controls">
+                <div class="ctrl side" id="c-prev">
+                  <svg viewBox="0 0 24 24"><path d="M7 6v12"/><path d="M20 6l-10 6 10 6z" fill="rgba(255,255,255,0.95)" stroke="none"/></svg>
+                </div>
+                <div class="ctrl play" id="c-play">
+                  <div class="flash"></div>
+                  <svg viewBox="0 0 24 24"><path d="M8 5l12 7-12 7z"/></svg>
+                </div>
+                <div class="ctrl side" id="c-next">
+                  <svg viewBox="0 0 24 24"><path d="M17 6v12"/><path d="M4 6l10 6-10 6z" fill="rgba(255,255,255,0.95)" stroke="none"/></svg>
+                </div>
+              </div>
+            </div>
+            <div class="card-border"></div>
+          </div>
+        </div>
+
+        <div id="cursor">
+          <svg width="82" height="96" viewBox="0 0 24 28">
+            <path d="M3,2 L3,22 L8.5,16.8 L12,24.5 L15.4,23 L11.9,15.3 L19,15.3 Z"
+                  fill="#ffffff" stroke="#1b1b22" stroke-width="1.4" stroke-linejoin="round"/>
+          </svg>
+        </div>
+
+        <div class="grain"></div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const $ = (s) => document.querySelector(s);
+      const FPS = 30;
+      const f = (n) => n / FPS;
+
+      // ----- word-by-word title -----
+      const TITLE = ["Slow", "Motion", "Lights"];
+      const titleEl = $("#title");
+      TITLE.forEach((w) => {
+        const s = document.createElement("span");
+        s.className = "w";
+        s.textContent = w;
+        titleEl.appendChild(s);
+      });
+      const words = titleEl.querySelectorAll(".w");
+
+      // ----- progress geometry & timestamp model -----
+      const TRACK_W = 720 - 96;        // card width minus padding
+      const PLAY_W = 30;
+      const TOTAL = 225;               // 3:45 song length
+      const fmt = (s) => { const m = Math.floor(s / 60); const ss = Math.floor(s % 60); return m + ":" + String(ss).padStart(2, "0"); };
+      const curEl = $("#t-cur"), remEl = $("#t-rem"), fillEl = $("#fill"), headEl = $("#playhead");
+      const prog = { v: 0 };
+      const renderProgress = () => {
+        const p = prog.v;
+        curEl.textContent = fmt(p * TOTAL);
+        remEl.textContent = "-" + fmt(TOTAL - p * TOTAL);
+        gsap.set(fillEl, { scaleX: p, opacity: 0.55 + 0.45 * p });
+        gsap.set(headEl, { x: p * (TRACK_W - PLAY_W) });
+      };
+      renderProgress();
+
+      // ----- bloom hue colours (blue -> purple -> teal) -----
+      const BLUE = "#3b82f6", PURPLE = "#7c3aed", TEAL = "#14b8a6";
+
+      // ----- initial states -----
+      gsap.set("#card", { scale: 0.9, y: 34, autoAlpha: 0, transformOrigin: "50% 50%" });
+      gsap.set(".artwork", { autoAlpha: 0, scale: 0.96, transformOrigin: "50% 50%" });
+      gsap.set(words, { autoAlpha: 0, y: 16 });
+      gsap.set("#artist", { autoAlpha: 0, y: 12 });
+      gsap.set(".progress", { autoAlpha: 0 });
+      gsap.set(["#c-prev", "#c-play", "#c-next"], { autoAlpha: 0, scale: 0, transformOrigin: "50% 50%" });
+      gsap.set("#cursor", { autoAlpha: 0, x: 2480, y: 1760 });
+
+      // ===================== TIMELINE =====================
+      const tl = gsap.timeline({ paused: true });
+
+      // --- background bloom: slow drift + hue cycle across the whole 18s ---
+      tl.fromTo("#bloom", { x: -60, y: -30 }, { x: 70, y: 40, duration: 18, ease: "sine.inOut" }, 0);
+      tl.to("#bloom", { backgroundColor: PURPLE, duration: 9, ease: "sine.inOut" }, 0);
+      tl.to("#bloom", { backgroundColor: TEAL, duration: 9, ease: "sine.inOut" }, 9);
+      // --- card tint shifts in lockstep with the bloom ---
+      tl.to(".card-tint", { backgroundColor: PURPLE, duration: 9, ease: "sine.inOut" }, 0);
+      tl.to(".card-tint", { backgroundColor: TEAL, duration: 9, ease: "sine.inOut" }, 9);
+
+      // --- card materialises at centre ---
+      tl.to("#card", { scale: 1.0, y: 0, autoAlpha: 1, duration: 0.7, ease: "back.out(1.6)" }, 0.3);
+      // --- artwork surface settles in ---
+      tl.to(".artwork", { autoAlpha: 1, scale: 1, duration: 0.6, ease: "power3.out" }, 0.7);
+
+      // --- title fades in word by word ---
+      tl.to(words, { autoAlpha: 1, y: 0, duration: 0.45, ease: "power2.out", stagger: 0.16 }, 1.25);
+      // --- artist beneath ---
+      tl.to("#artist", { autoAlpha: 1, y: 0, duration: 0.5, ease: "power2.out" }, 1.95);
+
+      // --- progress bar appears ---
+      tl.to(".progress", { autoAlpha: 1, duration: 0.5, ease: "power2.out" }, 2.35);
+
+      // --- three control buttons pop in, left to right ---
+      tl.to("#c-prev", { autoAlpha: 1, scale: 1, duration: 0.4, ease: "back.out(2.2)" }, 2.6);
+      tl.to("#c-play", { autoAlpha: 1, scale: 1, duration: 0.45, ease: "back.out(2.2)" }, 2.74);
+      tl.to("#c-next", { autoAlpha: 1, scale: 1, duration: 0.4, ease: "back.out(2.2)" }, 2.88);
+
+      // --- playhead travels at a steady pace; timestamps + fill driven from one proxy ---
+      tl.to(prog, { v: 1, duration: 13, ease: "none", onUpdate: renderProgress }, 3.2);
+
+      // --- cursor drifts in and taps play ---
+      tl.to("#cursor", { autoAlpha: 1, duration: 0.3 }, 4.4);
+      tl.to("#cursor", { x: 1920 + 6, y: 1290, duration: 1.0, ease: "power2.inOut" }, 4.5); // toward play button
+      // tap: compress + spring back, with a 2-frame inset highlight flash
+      const tap = 5.7;
+      tl.to("#c-play .flash", { autoAlpha: 1, duration: f(2) }, tap);
+      tl.to("#c-play .flash", { autoAlpha: 0, duration: 0.18 }, tap + f(2));
+      tl.to("#c-play", { scale: 0.88, duration: 0.10, ease: "power2.in" }, tap);
+      tl.to("#c-play", { scale: 1.0, duration: 0.42, ease: "elastic.out(1, 0.5)" }, tap + 0.10);
+      tl.to("#cursor", { y: 1276, duration: 0.12, ease: "power2.in", yoyo: true, repeat: 1 }, tap); // tiny click dip
+      // cursor eases away; playback (playhead) keeps moving, bloom keeps shifting
+      tl.to("#cursor", { x: 2360, y: 1700, autoAlpha: 0, duration: 1.0, ease: "power2.in" }, tap + 0.9);
+
+      window.__timelines["main"] = tl;
+    </script>
   </body>
 </html>
