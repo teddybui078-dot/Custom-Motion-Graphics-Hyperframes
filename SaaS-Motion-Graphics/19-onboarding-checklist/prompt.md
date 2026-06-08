@@ -1,0 +1,5 @@
+# Prompt — 19-onboarding-checklist
+
+The original prompt used to generate this motion graphic:
+
+A sidebar checklist sits on the left of a product screen — five onboarding steps, all unchecked. The first item is already complete — its checkbox is filled blue, its label has a strikethrough. The cursor moves to the second item and clicks it. The checkbox fills with a blue checkmark — the check draws itself in a single continuous stroke, not appearing all at once. The label gets a strikethrough that draws left to right. A subtle progress bar at the top of the checklist advances from 20% to 40%. The cursor moves to the third item and clicks. Same sequence. Progress bar to 60%. Then the fourth. 80%. One item remains. The cursor hovers over it. Pauses. Then clicks. The final checkbox fills. The progress bar completes. The entire checklist briefly pulses — all items brightening for 4 frames — and a small confetti burst drops from the top of the checklist, 12 small colored squares scattering and fading. The checklist is done.
