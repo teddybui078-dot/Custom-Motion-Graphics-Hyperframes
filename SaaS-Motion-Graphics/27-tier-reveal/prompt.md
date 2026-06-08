@@ -1,0 +1,19 @@
+# Prompt — 27-tier-reveal
+
+The original prompt used to generate this motion graphic:
+
+Apply this cinematic hit concept:
+A single frame of pure black. Then the hit lands.
+The impact is not an animation — it is a physical event. On the exact frame of impact, four things happen simultaneously with zero delay between them: the screen flashes white for 2 frames — not a fade, a hard overexposure, as if the camera sensor was overwhelmed; a radial shockwave expands outward from the point of impact — a thin ring, white, traveling from the center of the hit outward to the canvas edges in 8 frames, starting thick and thinning as it expands; the entire canvas shifts 6px in the direction of the force — a single frame translation, snapping back to center on the very next frame; and the subject of the hit — whatever received the impact — compresses in the direction of the force, squashing 15% on the impact axis and stretching 8% on the perpendicular axis simultaneously, the classic squash-and-stretch of physical contact.
+The frame after the flash, the canvas goes darker than it started — not black, but a half-stop underexposure that lasts 4 frames before recovering to normal exposure. This is the shadow that follows the light. The overexposure and the subsequent underexposure together create the sensation of the eye being physically struck.
+Motion blur activates on the impacting object for the 3 frames preceding the hit — directional blur, smearing in the direction of travel, the object moving faster than the camera can resolve. On the frame of impact the blur cuts to perfect sharpness — the moment of contact is the clearest frame in the sequence. Then on the 2 frames following impact, the debris or reaction elements carry the same directional blur as they scatter.
+The audio visual relationship is encoded in the motion: the 2-frame white flash is the visual equivalent of the sound spike. The subsequent underexposure is the silence after the spike. The shockwave ring is the low-end rumble traveling outward. The canvas translation snap is the physical bass hit felt in the chest. Even without sound, the viewer's body responds to these four simultaneous events as if they heard it.
+Chromatic aberration activates at the moment of impact — the red, green, and blue channels of the entire canvas separate by 4px in different directions for 3 frames, creating a brief color fringing across the whole frame, as if the camera itself was physically displaced by the force. By frame 4 after impact the channels have re-converged to perfect alignment.
+Debris — particles, fragments, or whatever the subject matter produces — launch outward from the impact point on the frame after the flash. They travel on physically correct arcs: fast initial velocity decelerating under gravity, each fragment a different size traveling a different distance, the smallest fragments traveling furthest. They carry motion blur proportional to their speed. They land, bounce once at 40% of their launch energy, and settle. The settling of the last fragment is the end of the hit. After that, stillness. The kind of stillness that only exists after something violent.
+
+to this element which you will also create with hyperframes
+
+The Tier Reveal
+Duration: 12 seconds
+
+White canvas. Three pricing cards materialize from the bottom of the frame simultaneously — sliding up from 20px below and fading in, spring eased, settling into a horizontal row. Free on the left, Pro in the center, Enterprise on the right. The Pro card sits 24px higher than the other two — elevated, distinguished. As the cards settle, feature rows build inside each one from top to bottom, staggered by 6 frames per row. Checkmarks draw themselves on included features, dash marks fade in on excluded ones. The Pro card's checkmarks are blue. The others are gray. A "Most Popular" badge springs onto the Pro card last — scale 0 to 1.05 to 1.0, single overshoot. Everything holds.
