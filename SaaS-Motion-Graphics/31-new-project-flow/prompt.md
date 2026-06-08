@@ -1,0 +1,7 @@
+# Prompt — 31-new-project-flow
+
+The original prompt used to generate this motion graphic:
+
+Duration: 20 seconds
+A browser frame on white. The product is open — a project management tool, home screen, a list of existing projects visible. A cursor enters the top right and clicks a blue "New Project" button. A modal appears — sliding down from the top of the screen, spring eased. A project name field is already focused, cursor blinking. A name types itself in — fast, confident, the way someone types something they already know. Below the name field, a color picker row — the cursor clicks a teal swatch. The modal's header bar shifts to teal. A template selector appears below — three options in a row, each a miniature preview of a different board layout. The cursor clicks the middle one. A preview expands on the right side of the modal showing the selected template populated with placeholder content. The cursor clicks "Create Project" at the bottom of the modal.
+The modal closes. The new project appears at the top of the project list — springing in with a bounce, teal colored, the name visible, a "Just created" timestamp beneath it. The cursor clicks into it. The project board opens — the chosen template layout, empty but structured, columns in place, ready. The cursor clicks the first empty task slot and types a task name. It appears. The cursor clicks a second slot. Types. Two tasks exist now where there were none. The board is alive. The project has begun.
