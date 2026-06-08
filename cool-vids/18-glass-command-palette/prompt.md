@@ -1,0 +1,18 @@
+# Prompt — 18-glass-command-palette
+
+The original prompt used to generate this motion graphic:
+
+Glass Command Palette
+Duration: 16 seconds
+A dark productive canvas — a code editor or dashboard blurred in the background, the kind of context where a command palette lives. Rich dark background with just enough color variation — purple and teal blobs drifting — to give the glass something to refract.
+A keyboard shortcut fires — two keys appearing briefly as glass pill badges center canvas, ⌘ and K, springing in together and fading out in 6 frames. The command palette responds.
+A glass panel materializes at canvas center — a wide centered card, 560px wide, border-radius 16px, backdrop blur 24px, white tint 12%, inset rim highlight around all edges at 30% opacity, a deeper drop shadow than previous scenes to lift it clearly above the background. It scales in from 0.92 to 1.0 over 14 frames, ease-out cubic. No spring on this one — it feels more like a system element appearing than a playful bounce.
+At the top of the panel, a search input — a glass inset field, darker tint than the card, border-radius 10px. A blinking cursor sits inside it. A search query types itself in — three characters, fast. Results appear below the input immediately, populating the panel with a staggered fade-in — six result rows, each a glass surface slightly different in tint, icon on the left, label in the center, keyboard shortcut badge on the right. The rows appear 4 frames apart top to bottom.
+The cursor moves — an arrow key visual appears briefly showing downward navigation. The second row highlights — its glass tint brightening to 20% white, its rim highlight intensifying, a selection state. Down again. Third row highlighted. Enter pressed — the selected row flashes bright for 2 frames, the entire panel scales down to 0.95 and fades out simultaneously over 10 frames. Gone. The background resumes as if nothing interrupted it.
+Scene 3 — Glass Music Player
+Duration: 18 seconds
+A dark canvas, the kind of ambient dark that belongs behind music — deep navy to black, a single large soft color bloom that shifts slowly in hue over the duration of the scene, cycling from blue to purple to teal, representing the mood of the music. The bloom is the only background element, centered, large, filling half the canvas. Everything glass will sit above it.
+A glass card materializes at canvas center — portrait proportion, 280×380px, border-radius 24px, the most sophisticated glass surface of any scene so far. Backdrop blur 28px, white tint 8%, a stronger inset rim highlight — 2px white at 50% opacity along the top edge only, thinner 0.5px along the other three edges. The card catches the shifting background bloom and its tint shifts with it — the glass is not a neutral white, it is tinted by whatever color lives behind it at that moment.
+Inside the card, an album artwork area fills the top 55% — a rounded rectangle within the glass, its own backdrop blur surface showing the background bloom as abstract color, no actual artwork, just color through glass. A song title fades in word by word below the artwork. An artist name fades in beneath it in lighter weight.
+A progress bar appears — a thin glass track, a filled glass pill as the playhead position indicator. The playhead travels rightward across the track at a steady pace, the filled portion of the track brightening as it fills. A timestamp counts upward on the left, counts downward on the right, both in sync with the playhead.
+Three glass control buttons materialize in a row at the bottom — backward, play/pause, forward. Each a glass circle, 44px, the same f
